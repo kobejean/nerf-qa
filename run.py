@@ -43,7 +43,7 @@ parser = argparse.ArgumentParser(description='Initialize a new run with wandb wi
 # Basic configurations
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
 parser.add_argument('--resize', type=lambda x: (str(x).lower() in ['true', '1', 'yes', 'y']), default=True, help='Whether to resize images.')
-parser.add_argument('--epochs', type=int, default=10, help='Number of epochs.')
+parser.add_argument('--epochs', type=int, default=40, help='Number of epochs.')
 parser.add_argument('--batch_size', type=int, default=1, help='Batch size.')
 parser.add_argument('--frame_batch_size', type=int, default=32, help='Frame batch size, affects training time and memory usage.')
 
