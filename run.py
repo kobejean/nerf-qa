@@ -115,11 +115,16 @@ class VQAModel(nn.Module):
 #%%
 # Read the CSV file
 scores_df = pd.read_csv(SCORE_FILE)
+# filter test
+test_files = ['ship_reference.mp4', 'truck_reference.mp4']
+scores_df = scores_df[~scores_df['reference_filename'].isin(test_files)]
 
 loss_fn = nn.MSELoss()
 
+
+
 # Number of splits for GroupKFold
-num_folds = min(scores_df['reference_filename'].nunique(), 4)
+num_folds = min(scores_df['reference_filename'].nunique(), 3)
 
 # Example function to load a video and process it frame by frame
 def load_video_frames(video_path):
@@ -221,8 +226,8 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
                 optimizer.zero_grad()  # Zero the gradients after updating
                 average_batch_loss = batch_loss / config.batch_size
                 wandb.log({
-                    "Train Metrics Dict/batch_loss": average_batch_loss,
-                    "Train Metrics Dict/rmse": np.sqrt(average_batch_loss),
+                    f"Train Metrics Dict/batch_loss/k{fold}": average_batch_loss,
+                    f"Train Metrics Dict/rmse/k{fold}": np.sqrt(average_batch_loss),
                     }, step=global_step)
                 batch_loss = 0
         
@@ -270,20 +275,20 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
 
             # Log to wandb
             wandb.log({
-                "Eval Metrics Dict/batch_loss": eval_loss,
-                "Eval Metrics Dict/rmse": rsme,
-                "Eval Metrics Dict/plcc": plcc,
-                "Eval Metrics Dict/srcc": srcc,
+                f"Eval Metrics Dict/batch_loss/k{fold}": eval_loss,
+                f"Eval Metrics Dict/rmse/k{fold}": rsme,
+                f"Eval Metrics Dict/plcc/k{fold}": plcc,
+                f"Eval Metrics Dict/srcc/k{fold}": srcc,
             }, step=global_step)
             wandb.log({
-                "Eval Metrics Dict/rmse_hist": wandb.Histogram(np.array(all_rmse)),
+                f"Eval Metrics Dict/rmse_hist/k{fold}": wandb.Histogram(np.array(all_rmse)),
             }, step=global_step)
 
             
         # Logging the average loss
         average_loss = total_loss / len(scores_df)
         print(f"Average Loss: {average_loss}\n\n")
-        wandb.log({ "Train Metrics Dict/total_loss": average_batch_loss }, step=global_step)
+        wandb.log({ f"Train Metrics Dict/total_loss/k{fold}": average_batch_loss }, step=global_step)
 
 weighted_score = -1.0 * np.mean(rsmes) + 1.0 * np.mean(plccs) + 1.0 * np.mean(srccs)
 # Log to wandb
