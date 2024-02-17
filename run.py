@@ -18,7 +18,6 @@ from sklearn.model_selection import GroupKFold
 from sklearn.linear_model import LinearRegression
 
 # data 
-import matplotlib.pyplot as plt
 import pandas as pd
 import cv2
 from torch.utils.data import DataLoader, TensorDataset
