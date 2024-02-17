@@ -1,20 +1,33 @@
 program: run.py
 metric:
-  name: val_loss
-  goal: minimize
+  name: Cross-Validation Metrics Dict/weighted_score_mean
+  goal: maximize
 
 method: bayes
 parameters:
-  optimizer.config.learning_rate:
-    min: !!float 1e-5
-    max: 0.1
-  experiment:
-    values: [expt001, expt002]
-  optimizer:
-    values: [sgd, adagrad, adam]
+  lr:
+    distribution: q_log_uniform_values
+    min: 1e-6
+    max: 1e-4
+    q: 1e-6
+  eps:
+    distribution: q_log_uniform_values
+    min: 1e-10
+    max: 1e-6
+    q: 1e-10
+  beta1:
+    distribution: uniform
+    min: 0.85
+    max: 0.99
+  beta2:
+    distribution: uniform
+    min: 0.990
+    max: 0.999
+  batch_size:
+    values: [1]
 
 command:
 - ${env}
 - ${interpreter}
 - ${program}
-- ${args_no_hyphens}
+- ${args}
