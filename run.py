@@ -23,10 +23,11 @@ import cv2
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
 # local
 from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS, prepare_image
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 
 #%%
 DATA_DIR = "/home/ccl/Datasets/NeRF-QA"
@@ -185,6 +186,11 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
         eps=config.eps
     )
 
+    step_early_stop = 0
+    plcc_early_stop = 0
+    srcc_early_stop = 0
+    rsme_early_stop = float("inf")
+
     # Training loop
     for epoch in range(wandb.config.epochs):
         print(f"Epoch {epoch+1}/{wandb.config.epochs}")
@@ -267,11 +273,17 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
             eval_loss /= len(val_df)
             rsme = np.mean(all_rmse)
 
+            if rsme < rsme_early_stop:
+                step_early_stop = global_step
+                plcc_early_stop = float(plcc)
+                srcc_early_stop = float(srcc)
+                rsme_early_stop = float(rsme)
+
             if epoch == wandb.config.epochs-1:
                 # last epoch
-                plccs.append(float(plcc))
-                srccs.append(float(srcc))
-                rsmes.append(float(rsme))
+                plccs.append(plcc_early_stop)
+                srccs.append(srcc_early_stop)
+                rsmes.append(rsme_early_stop)
 
             # Log to wandb
             wandb.log({
