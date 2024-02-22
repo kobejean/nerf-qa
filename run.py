@@ -47,7 +47,7 @@ parser = argparse.ArgumentParser(description='Initialize a new run with wandb wi
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
 parser.add_argument('--resize', type=lambda x: (str(x).lower() in ['true', '1', 'yes', 'y']), default=True, help='Whether to resize images.')
 parser.add_argument('--linearization_type', type=lambda x: (str(x).lower() in ['linear', 'log', 'sqrt']), default='sqrt', help='Whether to resize images.')
-parser.add_argument('--epochs', type=int, default=15, help='Number of epochs.')
+parser.add_argument('--epochs', type=int, default=30, help='Number of epochs.')
 parser.add_argument('--batch_size', type=int, default=2, help='Batch size.')
 parser.add_argument('--frame_batch_size', type=int, default=32, help='Frame batch size, affects training time and memory usage.')
 
@@ -136,7 +136,7 @@ loss_fn = nn.MSELoss(reduction='none')
 
 #%%
 # Number of splits for GroupKFold
-num_folds = min(scores_df['scene'].nunique(), 2)
+num_folds = min(scores_df['scene'].nunique(), 4)
 
 #
 def plot_dists_mos_log(df):
