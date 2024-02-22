@@ -346,9 +346,9 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
                 f"Eval Metrics Dict/plcc/k{fold}": plcc,
                 f"Eval Metrics Dict/srcc/k{fold}": srcc,
             }, step=global_step)
-            wandb.log({
-                f"Eval Metrics Dict/rmse_hist/k{fold}": wandb.Histogram(np.array(all_rmse)),
-            }, step=global_step)
+            # wandb.log({
+            #     f"Eval Metrics Dict/rmse_hist/k{fold}": wandb.Histogram(np.array(all_rmse)),
+            # }, step=global_step)
             dists_mos_log_fig = plot_dists_mos_log(val_df)
             dists_ft_mos_lin_fig = plot_dists_ft_mos(all_target_scores, all_predicted_scores)
             wandb.log({
@@ -375,11 +375,11 @@ wandb.log({
     "Cross-Validation Metrics Dict/srcc_mean": np.mean(srccs),
     "Cross-Validation Metrics Dict/srcc_std": np.std(srccs),
 }, step=global_step)
-wandb.log({
-    "Cross-Validation Metrics Dict/rmse_hist": wandb.Histogram(np.array(rsmes)),
-    "Cross-Validation Metrics Dict/plcc_hist": wandb.Histogram(np.array(plccs)),
-    "Cross-Validation Metrics Dict/srcc_hist": wandb.Histogram(np.array(srccs)),
-}, step=global_step)
+# wandb.log({
+#     "Cross-Validation Metrics Dict/rmse_hist": wandb.Histogram(np.array(rsmes)),
+#     "Cross-Validation Metrics Dict/plcc_hist": wandb.Histogram(np.array(plccs)),
+#     "Cross-Validation Metrics Dict/srcc_hist": wandb.Histogram(np.array(srccs)),
+# }, step=global_step)
 
 #%%
 
