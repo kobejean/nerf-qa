@@ -335,9 +335,12 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
 
             if epoch == wandb.config.epochs-1:
                 # last epoch
-                plccs.append(plcc_early_stop)
-                srccs.append(srcc_early_stop)
-                rsmes.append(rsme_early_stop)
+                # plccs.append(plcc_early_stop)
+                # srccs.append(srcc_early_stop)
+                # rsmes.append(rsme_early_stop)
+                plccs.append(float(plcc))
+                srccs.append(float(srcc))
+                rsmes.append(float(rsme))
 
             # Log to wandb
             wandb.log({
