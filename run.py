@@ -210,8 +210,6 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
     # Split the data into training and validation sets
     train_df = scores_df.iloc[train_idx].reset_index()
     val_df = scores_df.iloc[val_idx].reset_index()
-    train_size = train_df.shape[0]
-    val_size = val_df.shape[0]
 
     print(f"Validation Refrences: {val_df['scene'].drop_duplicates().values}")
 
@@ -230,6 +228,8 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
 
     train_dataloader = create_dataloader(train_df, config.frame_batch_size)
     val_dataloader = create_dataloader(val_df, config.frame_batch_size)
+    train_size = len(train_dataloader)
+    val_size = len(val_dataloader)
     # Training loop
     for epoch in range(wandb.config.epochs):
         print(f"Epoch {epoch+1}/{wandb.config.epochs}")
@@ -239,7 +239,7 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
         weight_sum = 0
         optimizer.zero_grad()  # Initialize gradients to zero at the start of each epoch
 
-        for index, (dist,ref,score,i) in tqdm(enumerate(train_dataloader, 1), desc="Training..."):  # Start index from 1 for easier modulus operation            
+        for index, (dist,ref,score,i) in tqdm(enumerate(train_dataloader, 1), total=train_size, desc="Training..."):  # Start index from 1 for easier modulus operation            
             # Compute score
             predicted_score = model(dist.to(device),ref.to(device))
             target_score = score.to(device).float()
@@ -247,6 +247,8 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
             # Compute loss
             loss = loss_fn(predicted_score, target_score)
             weights = 1 / torch.tensor(train_df['frame_count'].iloc[i.numpy()].values, device=device, dtype=torch.float32)
+
+            global_step += weights.shape[0]
             weight_sum += weights.sum().item()
             loss = torch.dot(loss, weights)
             # Accumulate gradients
@@ -257,8 +259,6 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
             if index % config.batch_size == 0 or index == train_size:
 
                 # Scale gradients
-                accumulation_steps = ((index-1) % config.batch_size) + 1
-                global_step += accumulation_steps
                 for param in model.parameters():
                     if param.grad is not None:
                         param.grad /= weight_sum
@@ -283,7 +283,7 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
             all_predicted_scores = []  # List to store all predicted scores
             all_ids = []  # List to store all predicted scores
             
-            for dist, ref, score, i in tqdm(val_dataloader, desc="Validating..."):
+            for dist, ref, score, i in tqdm(val_dataloader, total=val_size, desc="Validating..."):
                 # Compute score
                 predicted_score = model(dist.to(device), ref.to(device))
                 target_score = score.to(device).float()
