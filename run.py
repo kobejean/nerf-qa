@@ -47,7 +47,7 @@ parser = argparse.ArgumentParser(description='Initialize a new run with wandb wi
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
 parser.add_argument('--resize', type=lambda x: (str(x).lower() in ['true', '1', 'yes', 'y']), default=True, help='Whether to resize images.')
 parser.add_argument('--log_scale', type=lambda x: (str(x).lower() in ['true', '1', 'yes', 'y']), default=True, help='Whether to resize images.')
-parser.add_argument('--epochs', type=int, default=40, help='Number of epochs.')
+parser.add_argument('--epochs', type=int, default=20, help='Number of epochs.')
 parser.add_argument('--batch_size', type=int, default=2, help='Batch size.')
 parser.add_argument('--frame_batch_size', type=int, default=32, help='Frame batch size, affects training time and memory usage.')
 
@@ -58,7 +58,7 @@ parser.add_argument('--beta1', type=float, default=0.9, help='Optimizer beta1.')
 parser.add_argument('--beta2', type=float, default=0.999, help='Optimizer beta2.')
 
 # Parse arguments
-#args = parser.parse_args()
+args = parser.parse_args()
 # Simulate args
 class Args:
     def __init__(self):
@@ -74,11 +74,11 @@ class Args:
         self.beta2 = 0.999
 
 # Instead of parsing args, create an instance of the Args class
-args = Args()
+#args = Args()
 #%%
 
 # Initialize wandb with the parsed arguments, further simplifying parameter names
-wandb.init(project='nerf-qa-test', config=args)
+wandb.init(project='nerf-qa', config=args)
 
 # Access the config
 config = wandb.config
@@ -224,17 +224,17 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
     srcc_early_stop = 0
     rsme_early_stop = float("inf")
 
+    train_dataloader = create_dataloader(train_df, config.frame_batch_size)
+    val_dataloader = create_dataloader(val_df, config.frame_batch_size)
     # Training loop
     for epoch in range(wandb.config.epochs):
         print(f"Epoch {epoch+1}/{wandb.config.epochs}")
         model.train()  # Set model to training mode
         total_loss = 0
         batch_loss = 0
+        weight_sum = 0
         optimizer.zero_grad()  # Initialize gradients to zero at the start of each epoch
 
-        # Shuffle train_df with random seed
-        #train_df = train_df.sample(frac=1, random_state=config.seed+global_step).reset_index(drop=True)
-        train_dataloader = iter(create_dataloader(train_df, config.frame_batch_size))
         for index, (dist,ref,score,i) in tqdm(enumerate(train_dataloader, 1), desc="Training..."):  # Start index from 1 for easier modulus operation            
             # Compute score
             predicted_score = model(dist.to(device),ref.to(device))
@@ -243,7 +243,7 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
             # Compute loss
             loss = loss_fn(predicted_score, target_score)
             weights = 1 / torch.tensor(train_df['frame_count'].iloc[i.numpy()].values, device=device, dtype=torch.float32)
-            weights /= weights.sum()
+            weight_sum += weights.sum().item()
             loss = torch.dot(loss, weights)
             # Accumulate gradients
             loss.backward()
@@ -255,20 +255,20 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
                 # Scale gradients
                 accumulation_steps = ((index-1) % config.batch_size) + 1
                 global_step += accumulation_steps
-                if accumulation_steps > 1:
-                    for param in model.parameters():
-                        if param.grad is not None:
-                            param.grad /= accumulation_steps
+                for param in model.parameters():
+                    if param.grad is not None:
+                        param.grad /= weight_sum
                 
                 # Update parameters every batch_size steps or on the last iteration
                 optimizer.step()
                 optimizer.zero_grad()  # Zero the gradients after updating
-                average_batch_loss = batch_loss / config.batch_size
+                average_batch_loss = batch_loss / weight_sum
                 wandb.log({
                     f"Train Metrics Dict/batch_loss/k{fold}": average_batch_loss,
                     f"Train Metrics Dict/rmse/k{fold}": np.sqrt(average_batch_loss),
                     }, step=global_step)
                 batch_loss = 0
+                weight_sum = 0
         
         # Validation step
         model.eval()  # Set model to evaluation mode
@@ -279,7 +279,6 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
             all_predicted_scores = []  # List to store all predicted scores
             all_ids = []  # List to store all predicted scores
             
-            val_dataloader = iter(create_dataloader(val_df, config.frame_batch_size))
             for dist, ref, score, i in tqdm(val_dataloader, desc="Validating..."):
                 # Compute score
                 predicted_score = model(dist.to(device), ref.to(device))

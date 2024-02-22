@@ -74,53 +74,57 @@ class LargeQADataset(Dataset):
   
 
 
-#%%
-DATA_DIR = "/home/ccl/Datasets/NeRF-QA-Large-1"
-REF_DIR = path.join(DATA_DIR, "references")
-REND_DIR = path.join(DATA_DIR, "nerf-renders")
-SCORE_FILE = path.join(DATA_DIR, "scores.csv")
-SCOREs_FILE = path.join(DATA_DIR, "scores_update.csv")
-scores_df = pd.read_csv(SCORE_FILE)
-# scores_df['scene'] = scores_df['referenced_filename'].str.replace('gt_', '', 1)
+# #%%
+# DATA_DIR = "/home/ccl/Datasets/NeRF-QA-Large-1"
+# REF_DIR = path.join(DATA_DIR, "references")
+# REND_DIR = path.join(DATA_DIR, "nerf-renders")
+# SCORE_FILE = path.join(DATA_DIR, "scores.csv")
+# SCOREs_FILE = path.join(DATA_DIR, "scores_update.csv")
+# scores_df = pd.read_csv(SCORE_FILE)
+# # scores_df['scene'] = scores_df['referenced_filename'].str.replace('gt_', '', 1)
 
-# def count_images_in_dir(directory):
-#     """Count the number of .png images in the specified directory."""
-#     directory = path.join(REF_DIR, directory)
-#     return len([name for name in os.listdir(directory) if name.endswith('.png')])
+# # def count_images_in_dir(directory):
+# #     """Count the number of .png images in the specified directory."""
+# #     directory = path.join(REF_DIR, directory)
+# #     return len([name for name in os.listdir(directory) if name.endswith('.png')])
 
-# # Apply the function to each row in the DataFrame to create the 'frame_count' column
-# scores_df['frame_count'] = scores_df['referenced_filename'].apply(lambda x: count_images_in_dir(x))
+# # # Apply the function to each row in the DataFrame to create the 'frame_count' column
+# # scores_df['frame_count'] = scores_df['referenced_filename'].apply(lambda x: count_images_in_dir(x))
 
-# column_order = ['scene', 'frame_count'] + [col for col in scores_df.columns if not col in ['scene', 'frame_count']]
+# # column_order = ['scene', 'frame_count'] + [col for col in scores_df.columns if not col in ['scene', 'frame_count']]
 
-# scores_df = scores_df[column_order]
+# # scores_df = scores_df[column_order]
 
-#%%
-from IPython.display import display
-display(scores_df)
-print(scores_df.head(3))
-print(scores_df['scene'].drop_duplicates().values)
-#%%
+# #%%
+# from IPython.display import display
+# display(scores_df)
+# print(scores_df.head(3))
+# print(scores_df['scene'].drop_duplicates().values)
+# #%%
 
-# %%  
-dataset = LargeQADataset(dir = DATA_DIR, scores_df=scores_df)
-dataloader = DataLoader(dataset, batch_size=32, shuffle=False)
-all_dists = []
-all_ids = []
-dists_model = DISTS().to(device)
-for dist, ref, score, video_idx in iter(dataloader):
-    score = dists_model(dist.to(device), ref.to(device))
-    all_dists.append(score.cpu().detach().numpy())
-    all_ids.append(video_idx.cpu().detach().numpy())
+# # %%  
+# dataset = LargeQADataset(dir = DATA_DIR, scores_df=scores_df)
+# dataloader = DataLoader(dataset, batch_size=32, shuffle=False)
+# all_dists = []
+# all_ids = []
+# dists_model = DISTS().to(device)
+# for dist, ref, score, video_idx in iter(dataloader):
+#     score = dists_model(dist.to(device), ref.to(device))
+#     all_dists.append(score.cpu().detach().numpy())
+#     all_ids.append(video_idx.cpu().detach().numpy())
 
-#%%
-df = pd.DataFrame({
-                'ID': np.concatenate(all_ids, axis=0),
-                'DISTS': np.concatenate(all_dists, axis=0),
-            })
+# #%%
+# df = pd.DataFrame({
+#                 'ID': np.concatenate(all_ids, axis=0),
+#                 'DISTS': np.concatenate(all_dists, axis=0),
+#             })
 
-# Step 2: Group by ID and calculate mean
-average_scores = df.groupby('ID').mean().reset_index()
-display(average_scores.head(10))
-#scores_df.to_csv(SCOREs_FILE, index=False)
-# %%
+# # Step 2: Group by ID and calculate mean
+# average_scores = df.groupby('ID').mean().reset_index()
+# display(average_scores.head(10))
+# #scores_df.to_csv(SCOREs_FILE, index=False)
+# # %%
+# scores_df['DISTS'] = average_scores['DISTS']
+
+# # %%
+# scores_df.to_csv(SCOREs_FILE, index=False)
