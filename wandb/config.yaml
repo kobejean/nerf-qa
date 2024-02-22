@@ -9,7 +9,7 @@ parameters:
     distribution: q_log_uniform_values
     min: 1e-7
     max: 1e-4
-    q: 1e-6
+    q: 1e-7
   eps:
     distribution: q_log_uniform_values
     min: 1e-10
@@ -25,8 +25,8 @@ parameters:
     max: 0.999
   batch_size:
     values: [2,4,8,16]
-  log_scale:
-    values: [true, false]
+  linearization_type:
+    values: ['sqrt', 'linear', 'log']
   # resize:
   #   values: [true, false]
 

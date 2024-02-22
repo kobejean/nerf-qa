@@ -46,8 +46,8 @@ parser = argparse.ArgumentParser(description='Initialize a new run with wandb wi
 # Basic configurations
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
 parser.add_argument('--resize', type=lambda x: (str(x).lower() in ['true', '1', 'yes', 'y']), default=True, help='Whether to resize images.')
-parser.add_argument('--log_scale', type=lambda x: (str(x).lower() in ['true', '1', 'yes', 'y']), default=True, help='Whether to resize images.')
-parser.add_argument('--epochs', type=int, default=20, help='Number of epochs.')
+parser.add_argument('--linearization_type', type=lambda x: (str(x).lower() in ['linear', 'log', 'sqrt']), default='sqrt', help='Whether to resize images.')
+parser.add_argument('--epochs', type=int, default=15, help='Number of epochs.')
 parser.add_argument('--batch_size', type=int, default=2, help='Batch size.')
 parser.add_argument('--frame_batch_size', type=int, default=32, help='Frame batch size, affects training time and memory usage.')
 
@@ -62,7 +62,7 @@ args = parser.parse_args()
 # Simulate args
 class Args:
     def __init__(self):
-        self.log_scale = True
+        self.linearization_type = 'sqrt'
         self.seed = 42
         self.resize = True  # Modify this to False if you don't want resizing.
         self.epochs = 8
@@ -87,13 +87,15 @@ config = wandb.config
 #%%
 
 class VQAModel(nn.Module):
-    def __init__(self, train_df, log_scale = True):
+    def __init__(self, train_df, linearization_type = True):
         super(VQAModel, self).__init__()
-        self.log_scale = log_scale
+        self.linearization_type = linearization_type
         # Reshape data (scikit-learn expects X to be a 2D array)
         X = train_df['DISTS'].values.reshape(-1, 1)  # Predictor
-        if self.log_scale:
+        if self.linearization_type == 'log':
             X = np.log(X)
+        elif self.linearization_type == 'sqrt':
+            X = np.sqrt(X)
         y = train_df['MOS'].values  # Response
 
         # Create a linear regression model
@@ -113,8 +115,10 @@ class VQAModel(nn.Module):
     def forward(self, dist, ref):
         scores = self.dists_model(ref, dist, require_grad=True, batch_average=False)  # Returns a tensor of scores
         
-        if self.log_scale:
+        if self.linearization_type == 'log':
             scores = torch.log(scores)
+        elif self.linearization_type == 'sqrt':
+            scores = torch.sqrt(scores)
         # Normalize raw scores using the trainable mean and std
         normalized_scores = scores * self.dists_weight + self.dists_bias
         return normalized_scores
@@ -212,7 +216,7 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
     print(f"Validation Refrences: {val_df['scene'].drop_duplicates().values}")
 
     # Reset model and optimizer for each fold (if you want to start fresh for each fold)
-    model = VQAModel(train_df=train_df, log_scale=config.log_scale).to(device)
+    model = VQAModel(train_df=train_df, linearization_type=config.linearization_type).to(device)
     optimizer = optim.Adam(model.parameters(),
         lr=config.lr,
         betas=(config.beta1, config.beta2),
