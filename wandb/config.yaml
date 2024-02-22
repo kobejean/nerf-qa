@@ -24,7 +24,11 @@ parameters:
     min: 0.96
     max: 0.999
   batch_size:
-    values: [8]
+    values: [2,4,8]
+  log_scale:
+    values: [true, false]
+  # resize:
+  #   values: [true, false]
 
 command:
 - ${env}

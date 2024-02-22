@@ -22,20 +22,18 @@ import pandas as pd
 import cv2
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
-import plotly.express as px
-import plotly.graph_objects as go
-from scipy.optimize import curve_fit
 
 # local
 from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS, prepare_image
-from nerf_qa.data import LargeQADataset
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 #%%
-DATA_DIR = "/home/ccl/Datasets/NeRF-QA-Large-1"
-SCORE_FILE = path.join(DATA_DIR, "scores.csv")
+DATA_DIR = "/home/ccl/Datasets/NeRF-QA"
+REF_DIR = path.join(DATA_DIR, "Reference")
+SYN_DIR = path.join(DATA_DIR, "NeRF-QA_videos")
+SCORE_FILE = path.join(DATA_DIR, "NeRF_VQA_MOS.csv")
 
 import argparse
 import wandb
@@ -46,9 +44,8 @@ parser = argparse.ArgumentParser(description='Initialize a new run with wandb wi
 # Basic configurations
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
 parser.add_argument('--resize', type=lambda x: (str(x).lower() in ['true', '1', 'yes', 'y']), default=True, help='Whether to resize images.')
-parser.add_argument('--log_scale', type=lambda x: (str(x).lower() in ['true', '1', 'yes', 'y']), default=True, help='Whether to resize images.')
-parser.add_argument('--epochs', type=int, default=40, help='Number of epochs.')
-parser.add_argument('--batch_size', type=int, default=2, help='Batch size.')
+parser.add_argument('--epochs', type=int, default=80, help='Number of epochs.')
+parser.add_argument('--batch_size', type=int, default=1, help='Batch size.')
 parser.add_argument('--frame_batch_size', type=int, default=32, help='Frame batch size, affects training time and memory usage.')
 
 # Further simplified optimizer configurations
@@ -58,27 +55,10 @@ parser.add_argument('--beta1', type=float, default=0.9, help='Optimizer beta1.')
 parser.add_argument('--beta2', type=float, default=0.999, help='Optimizer beta2.')
 
 # Parse arguments
-#args = parser.parse_args()
-# Simulate args
-class Args:
-    def __init__(self):
-        self.log_scale = True
-        self.seed = 42
-        self.resize = True  # Modify this to False if you don't want resizing.
-        self.epochs = 8
-        self.batch_size = 8
-        self.frame_batch_size = 32
-        self.lr = 3e-5
-        self.eps = 1e-8
-        self.beta1 = 0.9
-        self.beta2 = 0.999
-
-# Instead of parsing args, create an instance of the Args class
-args = Args()
-#%%
+args = parser.parse_args()
 
 # Initialize wandb with the parsed arguments, further simplifying parameter names
-wandb.init(project='nerf-qa-test', config=args)
+wandb.init(project='nerf-qa', config=args)
 
 # Access the config
 config = wandb.config
@@ -87,13 +67,10 @@ config = wandb.config
 #%%
 
 class VQAModel(nn.Module):
-    def __init__(self, train_df, log_scale = True):
+    def __init__(self, train_df):
         super(VQAModel, self).__init__()
-        self.log_scale = log_scale
         # Reshape data (scikit-learn expects X to be a 2D array)
         X = train_df['DISTS'].values.reshape(-1, 1)  # Predictor
-        if self.log_scale:
-            X = np.log(X)
         y = train_df['MOS'].values  # Response
 
         # Create a linear regression model
@@ -109,14 +86,30 @@ class VQAModel(nn.Module):
         self.dists_weight = nn.Parameter(torch.tensor([model.coef_[0]], dtype=torch.float32))
         self.dists_bias = nn.Parameter(torch.tensor([model.intercept_], dtype=torch.float32))
 
+    def compute_dists_with_batches(self, dataloader):
+        all_scores = []  # Collect scores from all batches as tensors
+
+        for dist_batch, ref_batch in dataloader:
+            ref_images = ref_batch.to(device)  # Assuming ref_batch[0] is the tensor of images
+            dist_images = dist_batch.to(device)  # Assuming dist_batch[0] is the tensor of images
+            scores = self.dists_model(ref_images, dist_images, require_grad=True, batch_average=False)  # Returns a tensor of scores
+            
+            # Collect scores tensors
+            all_scores.append(scores)
+
+        # Concatenate all score tensors into a single tensor
+        all_scores_tensor = torch.cat(all_scores, dim=0)
+
+        # Compute the average score across all batches
+        average_score = torch.mean(all_scores_tensor) if all_scores_tensor.numel() > 0 else torch.tensor(0.0).to(device)
+
+        return average_score
         
-    def forward(self, dist, ref):
-        scores = self.dists_model(ref, dist, require_grad=True, batch_average=False)  # Returns a tensor of scores
+    def forward(self, dataloader):
+        raw_scores = self.compute_dists_with_batches(dataloader)
         
-        if self.log_scale:
-            scores = torch.log(scores)
         # Normalize raw scores using the trainable mean and std
-        normalized_scores = scores * self.dists_weight + self.dists_bias
+        normalized_scores = raw_scores * self.dists_weight + self.dists_bias
         return normalized_scores
 
 
@@ -124,75 +117,49 @@ class VQAModel(nn.Module):
 # Read the CSV file
 scores_df = pd.read_csv(SCORE_FILE)
 # filter test
-test_scenes = ['ship', 'lego', 'drums', 'ficus', 'train', 'm60', 'playground', 'truck']
-scores_df = scores_df[~scores_df['scene'].isin(test_scenes)]
+test_files = ['ship_reference.mp4', 'truck_reference.mp4']
+scores_df = scores_df[~scores_df['reference_filename'].isin(test_files)]
 
-loss_fn = nn.MSELoss(reduction='none')
+loss_fn = nn.MSELoss()
 
 
-#%%
+
 # Number of splits for GroupKFold
-num_folds = min(scores_df['scene'].nunique(), 2)
+num_folds = min(scores_df['reference_filename'].nunique(), 3)
 
-#
-def plot_dists_mos_log(df):
-    x_data = df['MOS']
-    y_data = df['DISTS']
-    def log_func(x, a, b):
-        return a + b * np.log(x)
-    # Fit the model
-    params, params_covariance = curve_fit(log_func, x_data, y_data)
-
-    # Predict using the fitted model
-    x_range = np.linspace(min(x_data), max(x_data), 400)
-    y_pred = log_func(x_range, params[0], params[1])
-
-    # Plotting
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=x_data, y=y_data, mode='markers', name='Data'))
-
-    # Regression line
-    fig.add_trace(go.Scatter(x=x_range, y=y_pred, mode='lines', name='Logarithmic Regression'))
-    fig.update_layout(title='Logarithmic Regression between DISTS and MOS',
-                    xaxis_title='MOS',
-                    yaxis_title='DISTS')
-    return fig
-
-def plot_dists_ft_mos(all_target_scores, all_predicted_scores):
-    x_data = all_target_scores
-    y_data = all_predicted_scores
-    def lin_func(x, a, b):
-        return a + b * x
-    # Fit the model
-    params, params_covariance = curve_fit(lin_func, x_data, y_data)
-
-    # Predict using the fitted model
-    x_range = np.linspace(min(x_data), max(x_data), 400)
-    y_pred = lin_func(x_range, params[0], params[1])
-    # Plotting
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=x_data, y=y_data, mode='markers', name='Data'))
-
-    # Regression line
-    fig.add_trace(go.Scatter(x=x_range, y=y_pred, mode='lines', name='Linear Regression'))
-    fig.update_layout(title='Linear Regression between DISTS Fine-tuned and MOS',
-                    xaxis_title='MOS',
-                    yaxis_title='DISTS (Fine-tuned)')
-    return fig
-
+# Example function to load a video and process it frame by frame
+def load_video_frames(video_path):
+    cap = cv2.VideoCapture(video_path)
+    frames = []
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+        # Convert frame to RGB (from BGR) and then to tensor
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame = torch.from_numpy(frame).permute(2, 0, 1).float() / 255.0
+        frame = transforms.ToPILImage()(frame)
+        frame = prepare_image(frame, resize=config.resize).squeeze(0)
+        frames.append(frame)
+    cap.release()
+    return torch.stack(frames)
 
 # Batch creation function
-def create_dataloader(scores_df, frame_batch_size):
+def create_dataloader(row, frame_batch_size):
+    dist_video_path = path.join(SYN_DIR, row['distorted_filename'])
+    ref_video_path = path.join(REF_DIR, row['reference_filename'])
+    ref = load_video_frames(ref_video_path)
+    dist = load_video_frames(dist_video_path)
     # Create a dataset and dataloader for efficient batching
-    dataset = LargeQADataset(dir=DATA_DIR, scores_df=scores_df)
-    dataloader = DataLoader(dataset, batch_size=frame_batch_size, shuffle=True)
+    dataset = TensorDataset(dist, ref)
+    dataloader = DataLoader(dataset, batch_size=frame_batch_size, shuffle=False)
     return dataloader
 
 # Initialize GroupKFold
 gkf = GroupKFold(n_splits=num_folds)
 
 # Extract reference filenames as groups for GroupKFold
-groups = scores_df['scene'].values
+groups = scores_df['reference_filename'].values
 
 global_step = 0
 plccs = []
@@ -204,15 +171,15 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
     print(f"Fold {fold}/{num_folds}")
     
     # Split the data into training and validation sets
-    train_df = scores_df.iloc[train_idx].reset_index()
-    val_df = scores_df.iloc[val_idx].reset_index()
+    train_df = scores_df.iloc[train_idx]
+    val_df = scores_df.iloc[val_idx]
     train_size = train_df.shape[0]
     val_size = val_df.shape[0]
 
-    print(f"Validation Refrences: {val_df['scene'].drop_duplicates().values}")
+    print(f"Validation Refrences: {val_df['reference_filename'].drop_duplicates().values}")
 
     # Reset model and optimizer for each fold (if you want to start fresh for each fold)
-    model = VQAModel(train_df=train_df, log_scale=config.log_scale).to(device)
+    model = VQAModel(train_df=train_df).to(device)
     optimizer = optim.Adam(model.parameters(),
         lr=config.lr,
         betas=(config.beta1, config.beta2),
@@ -233,18 +200,18 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
         optimizer.zero_grad()  # Initialize gradients to zero at the start of each epoch
 
         # Shuffle train_df with random seed
-        #train_df = train_df.sample(frac=1, random_state=config.seed+global_step).reset_index(drop=True)
-        train_dataloader = iter(create_dataloader(train_df, config.frame_batch_size))
-        for index, (dist,ref,score,i) in tqdm(enumerate(train_dataloader, 1), desc="Training..."):  # Start index from 1 for easier modulus operation            
+        train_df = train_df.sample(frac=1, random_state=config.seed+global_step).reset_index(drop=True)
+        for index, (i, row) in tqdm(enumerate(train_df.iterrows(), 1), total=train_size, desc="Training..."):  # Start index from 1 for easier modulus operation
+            # Load frames
+            dataloader = create_dataloader(row, config.frame_batch_size)
+            
             # Compute score
-            predicted_score = model(dist.to(device),ref.to(device))
-            target_score = score.to(device).float()
+            predicted_score = model(dataloader)
+            target_score = torch.tensor(row['MOS'], device=device, dtype=torch.float32)
             
             # Compute loss
             loss = loss_fn(predicted_score, target_score)
-            weights = 1 / torch.tensor(train_df['frame_count'].iloc[i.numpy()].values, device=device, dtype=torch.float32)
-            weights /= weights.sum()
-            loss = torch.dot(loss, weights)
+            
             # Accumulate gradients
             loss.backward()
             total_loss += loss.item()
@@ -277,48 +244,30 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
             all_rmse = []
             all_target_scores = []  # List to store all target scores
             all_predicted_scores = []  # List to store all predicted scores
-            all_ids = []  # List to store all predicted scores
-            
-            val_dataloader = iter(create_dataloader(val_df, config.frame_batch_size))
-            for dist, ref, score, i in tqdm(val_dataloader, desc="Validating..."):
+
+            for index, row in tqdm(val_df.iterrows(), total=val_size, desc="Validating..."):
+                # Load frames
+                dataloader = create_dataloader(row, config.frame_batch_size)
+                
                 # Compute score
-                predicted_score = model(dist.to(device), ref.to(device))
-                target_score = score.to(device).float()
-                all_predicted_scores.append(predicted_score.cpu())
-                all_target_scores.append(target_score.cpu())
+                predicted_score = model(dataloader)
+                target_score = torch.tensor(row['MOS'], device=device, dtype=torch.float32)
+                all_predicted_scores.append(float(predicted_score.item()))
+                all_target_scores.append(float(target_score.item()))
             
                 # Compute loss
-                loss = loss_fn(predicted_score, target_score).mean()
+                loss = loss_fn(predicted_score, target_score)
                 eval_loss += loss.item()
                 all_rmse.append(float(np.sqrt(loss.item())))
-                all_ids.append(i.cpu())
 
             
             # Convert lists to arrays for correlation computation
-            all_target_scores = np.concatenate(all_target_scores, axis=0)
-            all_predicted_scores = np.concatenate(all_predicted_scores, axis=0)
-            #all_rmse = np.concatenate(all_rmse, axis=0)
-            all_ids = np.concatenate(all_ids, axis=0)
-
+            all_target_scores = np.array(all_target_scores)
+            all_predicted_scores = np.array(all_predicted_scores)
             
-
-            # Step 1: Create a DataFrame
-            df = pd.DataFrame({
-                'ID': all_ids,
-                'TargetScore': all_target_scores,
-                'PredictedScore': all_predicted_scores,
-            })
-
-            # Step 2: Group by ID and calculate mean
-            average_scores = df.groupby('ID').mean().reset_index()
-            all_target_scores = average_scores['TargetScore'].values
-            all_predicted_scores = average_scores['PredictedScore'].values
-            #all_rmse = average_scores['RMSE'].values
-
             # Compute PLCC and SRCC
             plcc = pearsonr(all_target_scores, all_predicted_scores)[0]
             srcc = spearmanr(all_target_scores, all_predicted_scores)[0]
-            all_target_scores
             
             # Average loss over validation set
             eval_loss /= len(val_df)
@@ -346,14 +295,6 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
             wandb.log({
                 f"Eval Metrics Dict/rmse_hist/k{fold}": wandb.Histogram(np.array(all_rmse)),
             }, step=global_step)
-            dists_mos_log_fig = plot_dists_mos_log(val_df)
-            dists_ft_mos_lin_fig = plot_dists_ft_mos(all_target_scores, all_predicted_scores)
-            wandb.log({
-                f"Eval Plots/dists_mos_log/k{fold}": wandb.Plotly(dists_mos_log_fig),
-                f"Eval Plots/dists_ft_mos_lin_fig/k{fold}": wandb.Plotly(dists_ft_mos_lin_fig)
-            }, step=global_step)
-
-
 
             
         # Logging the average loss
@@ -379,10 +320,3 @@ wandb.log({
 }, step=global_step)
 
 #%%
-
-
-#%%
-
-# %%
-wandb.finish()
-# %%

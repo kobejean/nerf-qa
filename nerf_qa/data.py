@@ -23,61 +23,104 @@ import pandas as pd
 import cv2
 from torch.utils.data import TensorDataset
 from tqdm import tqdm
+from PIL import Image
+import plotly.express as px
 
-# local
 from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS, prepare_image
 
-class CustomImageDataset(Dataset):
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+
+#%%
+
+class LargeQADataset(Dataset):
 
     def __init__(self, dir, scores_df, resize=True):
-        self.ref_dir = path.join(dir, "Reference")
-        self.dist_dir = path.join(dir, "NeRF-QA_videos")
+        self.ref_dir = path.join(dir, "references")
+        self.dist_dir = path.join(dir, "nerf-renders")
         self.scores_df = scores_df
         self.resize = resize
-        self.total_size = self._count_all_frames()
+        self.total_size = self.scores_df['frame_count'].sum()
+        self.cumulative_frame_counts = self.scores_df['frame_count'].cumsum()
 
-    def _load_video_frames(self, video_path):
-        cap = cv2.VideoCapture(video_path)
-        frames = []
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-            # Convert frame to RGB (from BGR) and then to tensor
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame = torch.from_numpy(frame).permute(2, 0, 1).float() / 255.0
-            frame = transforms.ToPILImage()(frame)
-            frame = prepare_image(frame, resize=self.resize).squeeze(0)
-            frames.append(frame)
-        cap.release()
-        return torch.stack(frames)
-    
-
-    def _count_all_frames(self):
-        def _count_frames(video_path):
-            cap = cv2.VideoCapture(video_path)
-            count += int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            cap.release()
-        count = 0
-        for i, row in self.scores_df.iterrows():
-            dist_video_path = path.join(self.dist_dir, row['distorted_filename'])
-            ref_video_path = path.join(self.ref_dir, row['reference_filename'])
-            dist_count = _count_frames(dist_video_path)
-            ref_count = _count_frames(ref_video_path)
-            assert dist_count == ref_count
-            count += ref_count
-        return count
 
 
     def __len__(self):
         return self.total_size
 
     def __getitem__(self, idx):
-        # img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0])
-        # image = read_image(img_path)
-        # label = self.img_labels.iloc[idx, 1]
-        # if self.transform:
-        #     image = self.transform(image)
-        # if self.target_transform:
-        #     label = self.target_transform(label)
-        # return image, label
+        # Determine which video the index falls into
+        video_idx = (self.cumulative_frame_counts > idx).idxmax()
+        if video_idx > 0:
+            frame_within_video = idx - self.cumulative_frame_counts.iloc[video_idx - 1]
+        else:
+            frame_within_video = idx
+
+        # Get the filenames for the distorted and referenced frames
+        distorted_filename = self.scores_df.iloc[video_idx]['distorted_filename']
+        referenced_filename = self.scores_df.iloc[video_idx]['referenced_filename']
+
+        # Construct the full paths
+        distorted_path = os.path.join(self.dist_dir, distorted_filename, f"{frame_within_video:03d}.png")
+        referenced_path = os.path.join(self.ref_dir, referenced_filename, f"{frame_within_video:03d}.png")
+
+        # Load and optionally resize images
+        distorted_image = prepare_image(Image.open(distorted_path).convert("RGB")).squeeze(0)
+        referenced_image = prepare_image(Image.open(referenced_path).convert("RGB")).squeeze(0)
+
+        row = self.scores_df.iloc[video_idx]
+        score = row['MOS']
+        return distorted_image, referenced_image, score, video_idx
+  
+
+
+#%%
+DATA_DIR = "/home/ccl/Datasets/NeRF-QA-Large-1"
+REF_DIR = path.join(DATA_DIR, "references")
+REND_DIR = path.join(DATA_DIR, "nerf-renders")
+SCORE_FILE = path.join(DATA_DIR, "scores.csv")
+SCOREs_FILE = path.join(DATA_DIR, "scores_update.csv")
+scores_df = pd.read_csv(SCORE_FILE)
+# scores_df['scene'] = scores_df['referenced_filename'].str.replace('gt_', '', 1)
+
+# def count_images_in_dir(directory):
+#     """Count the number of .png images in the specified directory."""
+#     directory = path.join(REF_DIR, directory)
+#     return len([name for name in os.listdir(directory) if name.endswith('.png')])
+
+# # Apply the function to each row in the DataFrame to create the 'frame_count' column
+# scores_df['frame_count'] = scores_df['referenced_filename'].apply(lambda x: count_images_in_dir(x))
+
+# column_order = ['scene', 'frame_count'] + [col for col in scores_df.columns if not col in ['scene', 'frame_count']]
+
+# scores_df = scores_df[column_order]
+
+#%%
+from IPython.display import display
+display(scores_df)
+print(scores_df.head(3))
+print(scores_df['scene'].drop_duplicates().values)
+#%%
+
+# %%  
+dataset = LargeQADataset(dir = DATA_DIR, scores_df=scores_df)
+dataloader = DataLoader(dataset, batch_size=32, shuffle=False)
+all_dists = []
+all_ids = []
+dists_model = DISTS().to(device)
+for dist, ref, score, video_idx in iter(dataloader):
+    score = dists_model(dist.to(device), ref.to(device))
+    all_dists.append(score.cpu().detach().numpy())
+    all_ids.append(video_idx.cpu().detach().numpy())
+
+#%%
+df = pd.DataFrame({
+                'ID': np.concatenate(all_ids, axis=0),
+                'DISTS': np.concatenate(all_dists, axis=0),
+            })
+
+# Step 2: Group by ID and calculate mean
+average_scores = df.groupby('ID').mean().reset_index()
+display(average_scores.head(10))
+#scores_df.to_csv(SCOREs_FILE, index=False)
+# %%
