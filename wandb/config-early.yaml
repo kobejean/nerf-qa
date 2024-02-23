@@ -31,7 +31,7 @@ parameters:
     min: 0
     max: 0.2
   batch_size:
-    values: [512,1024,2048]
+    values: [412,825,1648]
   linearization_type:
     values: ['linear']
   # resize:
