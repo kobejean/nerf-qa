@@ -49,7 +49,7 @@ parser.add_argument('--resize', type=lambda x: (str(x).lower() in ['true', '1', 
 parser.add_argument('--linearization_type', type=lambda x: (str(x).lower() in ['linear', 'log', 'sqrt']), default='sqrt', help='Whether to resize images.')
 parser.add_argument('--epochs', type=int, default=30, help='Number of epochs.')
 parser.add_argument('--batch_size', type=int, default=2, help='Batch size.')
-parser.add_argument('--frame_batch_size', type=int, default=64, help='Frame batch size, affects training time and memory usage.')
+parser.add_argument('--frame_batch_size', type=int, default=32, help='Frame batch size, affects training time and memory usage.')
 
 # Further simplified optimizer configurations
 parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate.')
