@@ -26,7 +26,7 @@ parameters:
   batch_size:
     values: [2,4,8,16]
   linearization_type:
-    values: ['sqrt', 'linear']
+    values: ['linear']
   # resize:
   #   values: [true, false]
 
