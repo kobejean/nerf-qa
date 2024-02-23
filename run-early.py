@@ -123,7 +123,7 @@ class VQAModel(nn.Module):
         return normalized_scores
     
 class EarlyStoppingWithMA:
-    def __init__(self, patience=10, verbose=False, delta=0, path='checkpoint.pt', trace_func=print, ma_window=10):
+    def __init__(self, patience=10, verbose=False, delta=0.05, path='checkpoint.pt', trace_func=print, ma_window=10):
         self.patience = patience
         self.verbose = verbose
         self.counter = 0
