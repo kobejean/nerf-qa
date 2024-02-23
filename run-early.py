@@ -64,7 +64,7 @@ args = parser.parse_args()
 
 kappa = args.kappa_scale * float(args.batch_size) / float(1024)
 batches_per_step = args.batch_size // DEVICE_BATCH_SIZE
-epochs = max(args.batch_size // 16, 64)
+epochs = max(args.batch_size // 16, 128)
 config = {
     "epochs": epochs,
     "batches_per_step": batches_per_step,
