@@ -235,6 +235,7 @@ gkf = GroupKFold(n_splits=num_folds)
 groups = scores_df['scene'].values
 
 global_step = 0
+weighted_score_est = 0
 plccs = []
 srccs = []
 rmses = []
@@ -398,6 +399,7 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
                 f"Eval Metrics Dict/plcc/k{fold}": plcc,
                 f"Eval Metrics Dict/srcc/k{fold}": srcc,
                 f"Eval Metrics Dict/weighted_score/k{fold}": weighted_score,
+                "Cross-Validation Metrics Dict/weighted_score_mean": weighted_score_est + weighted_score_early_stop / num_folds,
             }, step=global_step)
             # wandb.log({
             #     f"Eval Metrics Dict/rmse_hist/k{fold}": wandb.Histogram(np.array(all_rmse)),
@@ -411,7 +413,7 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
 
             if early_stopper.early_stop:
                 break
-
+        weighted_score_est += weighted_score_early_stop / num_folds
 
 
             
