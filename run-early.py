@@ -64,7 +64,7 @@ args = parser.parse_args()
 
 kappa = args.kappa_scale * float(args.batch_size) / float(1024)
 batches_per_step = args.batch_size // DEVICE_BATCH_SIZE
-epochs = max(args.batch_size // 16, 128)
+epochs = 128
 config = {
     "epochs": epochs,
     "batches_per_step": batches_per_step,
@@ -322,7 +322,7 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
         # Validation step
         model.eval()  # Set model to evaluation mode
         with torch.no_grad():
-            escore = 0
+            batch_loss = 0
             all_rmse = []
             all_target_scores = []  # List to store all target scores
             all_predicted_scores = []  # List to store all predicted scores
@@ -338,7 +338,7 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
                 # Compute loss
                 loss = loss_fn(predicted_score, target_score).mean()
                 mse = mse_fn(predicted_score, target_score).mean()
-                escore += loss.item()
+                batch_loss += loss.item()
                 all_rmse.append(float(np.sqrt(mse.item())))
                 all_ids.append(i.cpu())
 
@@ -370,7 +370,7 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
             all_target_scores
             
             # Average loss over validation set
-            escore /= len(val_df)
+            batch_loss /= len(val_df)
             rmse = np.mean(all_rmse)
             weighted_score = 1.0*float(plcc) + 1.0*float(srcc) - 0.5*float(rmse)
 
@@ -394,7 +394,7 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
 
             # Log to wandb
             wandb.log({
-                f"Eval Metrics Dict/batch_loss/k{fold}": escore,
+                f"Eval Metrics Dict/batch_loss/k{fold}": batch_loss,
                 f"Eval Metrics Dict/rmse/k{fold}": rmse,
                 f"Eval Metrics Dict/plcc/k{fold}": plcc,
                 f"Eval Metrics Dict/srcc/k{fold}": srcc,
@@ -412,15 +412,18 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
             }, step=global_step)
 
             if early_stopper.early_stop:
+                for cont_epoch in range(epoch+1, config.epochs):
+                    wandb.log({
+                        "Cross-Validation Metrics Dict/weighted_score_mean": weighted_score_est + weighted_score_early_stop / num_folds,
+                    }, step=(global_step // (epoch+1))*(cont_epoch+1))
                 break
-        weighted_score_est += weighted_score_early_stop / num_folds
 
 
             
         # Logging the average loss
         average_loss = total_loss / len(scores_df)
-        print(f"Average Loss: {average_loss}\n\n")
-        wandb.log({ f"Train Metrics Dict/total_loss/k{fold}": average_batch_loss }, step=global_step)
+        print(f"Average Loss: {average_loss}, Est Weighted Score: {weighted_score_est}\n\n")
+    weighted_score_est += weighted_score_early_stop / num_folds
 
 weighted_score = -0.5 * np.mean(rmses) + 1.0 * np.mean(plccs) + 1.0 * np.mean(srccs)
 # Log to wandb
