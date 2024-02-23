@@ -1,4 +1,4 @@
 **/__pycache__
 wandb/*
-!wandb/config.yaml
+!wandb/config*.yaml
 outputs/
