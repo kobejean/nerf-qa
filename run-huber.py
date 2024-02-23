@@ -301,7 +301,7 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
                 loss = loss_fn(predicted_score, target_score).mean()
                 mse = mse_fn(predicted_score, target_score).mean()
                 eval_loss += loss.item()
-                all_rmse.append(float(np.sqrt(lomsess.item())))
+                all_rmse.append(float(np.sqrt(mse.item())))
                 all_ids.append(i.cpu())
 
             
