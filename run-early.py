@@ -64,7 +64,7 @@ args = parser.parse_args()
 
 kappa = args.kappa_scale * float(args.batch_size) / float(1024)
 batches_per_step = args.batch_size // DEVICE_BATCH_SIZE
-epochs = max(args.batch_size // 16, 32)
+epochs = max(args.batch_size // 16, 64)
 config = {
     "epochs": epochs,
     "batches_per_step": batches_per_step,
@@ -123,7 +123,7 @@ class VQAModel(nn.Module):
         return normalized_scores
     
 class EarlyStoppingWithMA:
-    def __init__(self, patience=5, verbose=False, delta=0, path='checkpoint.pt', trace_func=print, ma_window=10):
+    def __init__(self, patience=10, verbose=False, delta=0, path='checkpoint.pt', trace_func=print, ma_window=10):
         self.patience = patience
         self.verbose = verbose
         self.counter = 0
