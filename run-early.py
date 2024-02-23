@@ -243,8 +243,6 @@ rmses = []
 # Group K-Fold Cross-Validation
 for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups), 1):
     print(f"Fold {fold}/{num_folds}")
-
-    global_step = (fold-1)*1000000
     
     # Split the data into training and validation sets
     train_df = scores_df.iloc[train_idx].reset_index()
@@ -412,10 +410,12 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
             }, step=global_step)
 
             if early_stopper.early_stop:
+                steps_per_epoch = global_step // (epoch+1)
                 for cont_epoch in range(epoch+1, config.epochs):
+                    global_step += steps_per_epoch
                     wandb.log({
                         "Cross-Validation Metrics Dict/weighted_score_mean": weighted_score_est + weighted_score_early_stop / num_folds,
-                    }, step=(global_step // (epoch+1))*(cont_epoch+1))
+                    }, step=global_step)
                 break
 
 
