@@ -255,6 +255,7 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
             global_step += weights.shape[0]
             weight_sum += weights.sum().item()
             loss = torch.dot(loss, weights)
+            mse = torch.dot(loss, mse)
             # Accumulate gradients
             loss.backward()
             total_loss += loss.item()
