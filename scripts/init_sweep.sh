@@ -1,4 +1,4 @@
 #!/bin/bash
 
 # NOTE: run this script from project root
-wandb sweep --project nerf-qa wandb/config-huber.yaml
+wandb sweep --project nerf-qa wandb/config-adaptive.yaml
