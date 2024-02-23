@@ -7,14 +7,14 @@ method: bayes
 parameters:
   lr:
     distribution: q_log_uniform_values
-    min: 3e-6
+    min: 1e-5
     max: 1e-4
-    q: 1e-7
-  eps:
-    distribution: q_log_uniform_values
-    min: 1e-10
-    max: 1e-6
-    q: 1e-10
+    q: 1e-5
+  # eps:
+  #   distribution: q_log_uniform_values
+  #   min: 1e-10
+  #   max: 1e-6
+  #   q: 1e-10
   beta1:
     distribution: uniform
     min: 0.55
@@ -25,8 +25,8 @@ parameters:
     max: 0.999
   delta:
     distribution: uniform
-    min: 0.5
-    max: 1.5
+    min: 0
+    max: 2
   batch_size:
     values: [8,16,32]
   linearization_type:
