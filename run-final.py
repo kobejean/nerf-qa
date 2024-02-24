@@ -70,7 +70,7 @@ config = {
     "epochs": epochs,
     "batches_per_step": batches_per_step,
     "kappa": kappa,
-    "lr": 1e-4,
+    "lr": 5e-5,
     "beta1": 0.15,
     "beta2": 0.95,
     "eps": 1e-9,
