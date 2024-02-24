@@ -257,6 +257,7 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
         betas=(config.beta1, config.beta2),
         eps=config.eps
     )
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
     early_stopper = EarlyStoppingWithMA()
     step_early_stop = 0
     plcc_early_stop = 0
@@ -408,6 +409,8 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
                 f"Eval Plots/dists_mos_log/k{fold}": wandb.Plotly(dists_mos_log_fig),
                 f"Eval Plots/dists_ft_mos_lin_fig/k{fold}": wandb.Plotly(dists_ft_mos_lin_fig)
             }, step=global_step)
+            
+            scheduler.step()
 
             if early_stopper.early_stop:
                 steps_per_epoch = global_step // (epoch+1)
