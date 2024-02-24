@@ -48,7 +48,7 @@ parser = argparse.ArgumentParser(description='Initialize a new run with wandb wi
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
 parser.add_argument('--resize', type=lambda x: (str(x).lower() in ['true', '1', 'yes', 'y']), default=True, help='Whether to resize images.')
 parser.add_argument('--linearization_type', type=lambda x: (str(x).lower() in ['linear', 'log', 'sqrt']), default='linear', help='Whether to resize images.')
-parser.add_argument('--batch_size', type=int, default=3290, help='Batch size.')
+parser.add_argument('--batch_size', type=int, default=1645, help='Batch size.')
 
 # Further simplified optimizer configurations
 parser.add_argument('--lr_scale', type=float, default=1.0, help='Learning rate.')
@@ -56,7 +56,7 @@ parser.add_argument('--eps_scale', type=float, default=5.0, help='Optimizer epsi
 parser.add_argument('--beta1_scale', type=float, default=0.92, help='Optimizer beta1.')
 parser.add_argument('--beta2_scale', type=float, default=1.0, help='Optimizer beta2.')
 parser.add_argument('--delta', type=float, default=0.075, help='Huber loss delta')
-parser.add_argument('--gamma', type=float, default=0.99, help='Huber loss delta')
+parser.add_argument('--gamma', type=float, default=0.995, help='Huber loss delta')
 parser.add_argument('--kappa_scale', type=float, default=1.0, help='Kappa scale')
 
 
@@ -70,8 +70,8 @@ config = {
     "epochs": epochs,
     "batches_per_step": batches_per_step,
     "kappa": kappa,
-    "lr": 1e-4,
-    "beta1": 0.15,
+    "lr": 5e-5,
+    "beta1": 0.4,
     "beta2": 0.95,
     "eps": 1e-9,
 }     
@@ -124,7 +124,7 @@ class VQAModel(nn.Module):
         return normalized_scores
     
 class EarlyStoppingWithMA:
-    def __init__(self, patience=10, verbose=False, delta=0.0, path='checkpoint_2.pt', trace_func=print, ma_window=10):
+    def __init__(self, patience=10, verbose=False, delta=0.03, path='checkpoint_4_l1_1645.pt', trace_func=print, ma_window=10):
         self.patience = patience
         self.verbose = verbose
         self.counter = 0
@@ -397,6 +397,8 @@ for epoch in range(wandb.config.epochs):
         }, step=global_step)
 
         scheduler.step()
+        if early_stopper.early_stop:
+            break
 
 
         
