@@ -123,7 +123,7 @@ class VQAModel(nn.Module):
         return normalized_scores
     
 class EarlyStoppingWithMA:
-    def __init__(self, patience=10, verbose=False, delta=0.05, path='checkpoint.pt', trace_func=print, ma_window=10):
+    def __init__(self, patience=10, verbose=False, delta=0.01, path='checkpoint.pt', trace_func=print, ma_window=10):
         self.patience = patience
         self.verbose = verbose
         self.counter = 0
@@ -409,7 +409,7 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
                 f"Eval Plots/dists_mos_log/k{fold}": wandb.Plotly(dists_mos_log_fig),
                 f"Eval Plots/dists_ft_mos_lin_fig/k{fold}": wandb.Plotly(dists_ft_mos_lin_fig)
             }, step=global_step)
-            
+
             scheduler.step()
 
             if early_stopper.early_stop:
