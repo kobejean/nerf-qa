@@ -64,7 +64,7 @@ parser.add_argument('--kappa_scale', type=float, default=1.0, help='Kappa scale'
 args = parser.parse_args()
 
 kappa = args.kappa_scale * float(args.batch_size) / float(1024)
-batches_per_step = -(args.batch_size // -DEVICE_BATCH_SIZE)
+batches_per_step = (args.batch_size // DEVICE_BATCH_SIZE)
 epochs = 256
 config = {
     "epochs": epochs,
@@ -300,7 +300,7 @@ for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups),
             batch_loss += loss.item()
             batch_mse += mse.item()
             
-            if index % config.batches_per_step == 0 or index == train_size:
+            if index % config.batches_per_step == 0:# or index == train_size:
 
                 # Scale gradients
                 for param in model.parameters():
