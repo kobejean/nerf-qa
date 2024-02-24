@@ -124,7 +124,7 @@ class VQAModel(nn.Module):
         return normalized_scores
     
 class EarlyStoppingWithMA:
-    def __init__(self, patience=10, verbose=False, delta=0.0, path='checkpoint_4_l1.pt', trace_func=print, ma_window=10):
+    def __init__(self, patience=10, verbose=False, delta=0.0, path='checkpoint_4_huber.pt', trace_func=print, ma_window=10):
         self.patience = patience
         self.verbose = verbose
         self.counter = 0
@@ -172,7 +172,7 @@ train_df = scores_df[~scores_df['scene'].isin(test_scenes)].reset_index()
 test_df = scores_df[scores_df['scene'].isin(test_scenes)].reset_index()
 
 mse_fn = nn.MSELoss(reduction='none')
-loss_fn = nn.L1Loss(reduction='none')
+loss_fn = nn.HuberLoss(reduction='none', delta=config.delta)
 
 
 #%%
