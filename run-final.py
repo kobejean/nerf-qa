@@ -48,7 +48,7 @@ parser = argparse.ArgumentParser(description='Initialize a new run with wandb wi
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
 parser.add_argument('--resize', type=lambda x: (str(x).lower() in ['true', '1', 'yes', 'y']), default=True, help='Whether to resize images.')
 parser.add_argument('--linearization_type', type=lambda x: (str(x).lower() in ['linear', 'log', 'sqrt']), default='linear', help='Whether to resize images.')
-parser.add_argument('--batch_size', type=int, default=3290, help='Batch size.')
+parser.add_argument('--batch_size', type=int, default=1645, help='Batch size.')
 
 # Further simplified optimizer configurations
 parser.add_argument('--lr_scale', type=float, default=1.0, help='Learning rate.')
@@ -70,7 +70,7 @@ config = {
     "epochs": epochs,
     "batches_per_step": batches_per_step,
     "kappa": kappa,
-    "lr": 5e-5,
+    "lr": 1e-5,
     "beta1": 0.5,
     "beta2": 0.95,
     "eps": 1e-9,
@@ -79,9 +79,9 @@ config.update(vars(args))
 
 
 #%%
-
+exp_name=f"l1-yes-sb-bs:{config['batch_size']}-lr:{config['lr']:.0e}-b1:{config['beta1']:.2f}-b2:{config['beta2']:.2f}"
 # Initialize wandb with the parsed arguments, further simplifying parameter names
-wandb.init(project='nerf-qa', config=config)
+wandb.init(project='nerf-qa-final', name=exp_name, config=config)
 config = wandb.config
 
 #%%
@@ -129,6 +129,8 @@ class VQAModel(nn.Module):
             scene_bias = self.per_scene_bias[scene_indices]
         else:
             scene_bias = torch.mean(self.per_scene_bias)
+            scene_bias = torch.broadcast_to(scene_bias, normalized_scores.shape)
+            #scene_bias = torch.zeros_like(normalized_scores)
 
         normalized_scores += scene_bias
         return normalized_scores, scene_bias    
@@ -161,7 +163,7 @@ class VQAModel(nn.Module):
 
     
 class EarlyStoppingWithMA:
-    def __init__(self, patience=10, verbose=False, delta=0.03, path='checkpoint_4_huber_3290_sb_vis.pt', trace_func=print, ma_window=10):
+    def __init__(self, patience=10, verbose=False, delta=0.003, path=f'checkpoint-{exp_name}.pt', trace_func=print, ma_window=10):
         self.patience = patience
         self.verbose = verbose
         self.counter = 0
@@ -209,8 +211,8 @@ train_df = scores_df[~scores_df['scene'].isin(test_scenes)].reset_index() # + ['
 val_df = scores_df[scores_df['scene'].isin(test_scenes)].reset_index()
 
 mse_fn = nn.MSELoss(reduction='none')
-#loss_fn = nn.L1Loss(reduction='none')#, delta=config.delta)
-loss_fn = nn.HuberLoss(reduction='none', delta=config.delta)
+loss_fn = nn.L1Loss(reduction='none')
+#loss_fn = nn.HuberLoss(reduction='none', delta=config.delta)
 
 
 TEST_DATA_DIR = "/home/ccl/Datasets/NeRF-QA"
@@ -389,7 +391,7 @@ val_size = len(val_dataloader)
 for epoch in range(wandb.config.epochs):
     print(f"Epoch {epoch+1}/{wandb.config.epochs}")
 
-    if (epoch) % 5 == 0:
+    if (epoch) % 1 == 0:
         # Test step
         model.eval()  # Set model to evaluation mode
         with torch.no_grad():
@@ -440,10 +442,10 @@ for epoch in range(wandb.config.epochs):
                 f"Test Metrics Dict/rmse": rsme,
                 f"Test Metrics Dict/plcc": plcc,
                 f"Test Metrics Dict/srcc": srcc,
-            }, step=0)
+            }, step=global_step)
             wandb.log({
                 f"Test Metrics Dict/rmse_hist": wandb.Histogram(np.array(all_rmse)),
-            }, step=0)
+            }, step=global_step)
             dists_mos_log_fig = plot_dists_mos_log(test_df)
             dists_mos_group_fig = plot_dists_mos_with_group_regression(test_df, 'DISTS', 'reference_filename')
             dists_ft_mos_group_fig = plot_dists_mos_with_group_regression(results_df, 'PredictedScore', 'scene')
@@ -453,7 +455,7 @@ for epoch in range(wandb.config.epochs):
                 f"Test Plots/dists_ft_mos_lin_fig": wandb.Plotly(dists_ft_mos_lin_fig),
                 f"Test Plots/dists_mos_group_fig": wandb.Plotly(dists_mos_group_fig),
                 f"Test Plots/dists_ft_mos_group_fig": wandb.Plotly(dists_ft_mos_group_fig),
-            }, step=0)
+            }, step=global_step)
 
     model.train()  # Set model to training mode
     total_loss = 0
@@ -477,7 +479,7 @@ for epoch in range(wandb.config.epochs):
         weight_sum += weights.sum().item()
         scene_bias_loss = torch.dot(scene_bias ** 2, weights)
         loss = torch.dot(loss, weights)
-        loss += 1.0 * scene_bias_loss
+        loss += 0.2 * scene_bias_loss
         mse = torch.dot(mse, weights)
         # Accumulate gradients
         loss.backward()
