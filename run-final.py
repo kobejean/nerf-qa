@@ -48,7 +48,7 @@ parser = argparse.ArgumentParser(description='Initialize a new run with wandb wi
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
 parser.add_argument('--resize', type=lambda x: (str(x).lower() in ['true', '1', 'yes', 'y']), default=True, help='Whether to resize images.')
 parser.add_argument('--linearization_type', type=lambda x: (str(x).lower() in ['linear', 'log', 'sqrt']), default='linear', help='Whether to resize images.')
-parser.add_argument('--batch_size', type=int, default=1645, help='Batch size.')
+parser.add_argument('--batch_size', type=int, default=3200, help='Batch size.')
 
 # Further simplified optimizer configurations
 parser.add_argument('--lr_scale', type=float, default=1.0, help='Learning rate.')
@@ -79,7 +79,7 @@ config.update(vars(args))
 
 
 #%%
-exp_name=f"l1-no-sb-bs:{config['batch_size']}-lr:{config['lr']:.0e}-b1:{config['beta1']:.2f}-b2:{config['beta2']:.2f}"
+exp_name=f"l1-2scn-no-sb-bs:{config['batch_size']}-lr:{config['lr']:.0e}-b1:{config['beta1']:.2f}-b2:{config['beta2']:.2f}"
 # Initialize wandb with the parsed arguments, further simplifying parameter names
 wandb.init(project='nerf-qa-final', name=exp_name, config=config)
 config = wandb.config
@@ -207,7 +207,7 @@ class EarlyStoppingWithMA:
 scores_df = pd.read_csv(SCORE_FILE)
 # filter test
 test_scenes = ['ship', 'lego', 'drums', 'ficus', 'train', 'm60', 'playground', 'truck']
-train_df = scores_df[~scores_df['scene'].isin(test_scenes)].reset_index() # + ['trex', 'horns']
+train_df = scores_df[~scores_df['scene'].isin(test_scenes+ ['trex', 'horns'])].reset_index() # + ['trex', 'horns']
 val_df = scores_df[scores_df['scene'].isin(test_scenes)].reset_index()
 
 mse_fn = nn.MSELoss(reduction='none')
