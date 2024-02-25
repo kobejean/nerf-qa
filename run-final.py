@@ -172,7 +172,7 @@ train_df = scores_df[~scores_df['scene'].isin(test_scenes)].reset_index()
 test_df = scores_df[scores_df['scene'].isin(test_scenes)].reset_index()
 
 mse_fn = nn.MSELoss(reduction='none')
-loss_fn = nn.L1Loss(reduction='none')
+loss_fn = nn.HuberLoss(reduction='none', delta=config.delta)
 
 
 #%%
