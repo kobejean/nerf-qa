@@ -479,7 +479,7 @@ for epoch in range(wandb.config.epochs):
         weight_sum += weights.sum().item()
         scene_bias_loss = torch.dot(scene_bias ** 2, weights)
         loss = torch.dot(loss, weights)
-        loss += 0.2 * scene_bias_loss
+        loss += 0.05 * scene_bias_loss
         mse = torch.dot(mse, weights)
         # Accumulate gradients
         loss.backward()
