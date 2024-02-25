@@ -76,28 +76,9 @@ class VQAModel(nn.Module):
 
         # Print the coefficients
         self.dists_model = DISTS()
-        if train_df:
-            # Reshape data (scikit-learn expects X to be a 2D array)
-            X = train_df['DISTS'].values.reshape(-1, 1)  # Predictor
-            if self.linearization_type == 'log':
-                X = np.log(X)
-            elif self.linearization_type == 'sqrt':
-                X = np.sqrt(X)
-            y = train_df['MOS'].values  # Response
-
-            # Create a linear regression model
-            model = LinearRegression()
-
-            # Fit the model
-            model.fit(X, y)
-            print(f"Coefficient: {model.coef_[0]}")
-            print(f"Intercept: {model.intercept_}")
-
-            self.dists_weight = nn.Parameter(torch.tensor([model.coef_[0]], dtype=torch.float32))
-            self.dists_bias = nn.Parameter(torch.tensor([model.intercept_], dtype=torch.float32))
-        else:
-            self.dists_weight = nn.Parameter(torch.tensor([1], dtype=torch.float32))
-            self.dists_bias = nn.Parameter(torch.tensor([0], dtype=torch.float32))
+        self.dists_weight = nn.Parameter(torch.tensor(1, dtype=torch.float32))
+        self.dists_bias = nn.Parameter(torch.tensor(0, dtype=torch.float32))
+        self.per_scene_bias = nn.Parameter(torch.tensor([0,0,0,0], dtype=torch.float32))
 
 
     def compute_dists_with_batches(self, dataloader):
@@ -148,7 +129,7 @@ def load_video_frames(video_path):
     return torch.stack(frames)
 
 # Batch creation function
-def create_dataloader(row, frame_batch_size):
+def create_dataloader_test(row, frame_batch_size):
     dist_video_path = path.join(SYN_DIR, row['distorted_filename'])
     ref_video_path = path.join(REF_DIR, row['reference_filename'])
     ref = load_video_frames(ref_video_path)
@@ -204,14 +185,14 @@ def plot_dists_ft_mos(all_target_scores, all_predicted_scores):
     return fig
 
 
-val_df = scores_df
-val_size = val_df.shape[0]
+test_df = scores_df
+test_size = test_df.shape[0]
 
-print(f"Validation Refrences: {val_df['reference_filename'].drop_duplicates().values}")
+print(f"Validation Refrences: {test_df['reference_filename'].drop_duplicates().values}")
 
 # Reset model and optimizer for each fold (if you want to start fresh for each fold)
 model = VQAModel().to(device)
-model.load_state_dict(torch.load('checkpoint_4_l1_1645.pt'))
+model.load_state_dict(torch.load('checkpoint_4_l1_3290_sb.pt'))
 
 print(model.dists_weight, model.dists_bias)
 
@@ -225,9 +206,9 @@ with torch.no_grad():
         all_target_scores = []  # List to store all target scores
         all_predicted_scores = []  # List to store all predicted scores
 
-        for index, row in tqdm(val_df.iterrows(), total=val_size, desc="Validating..."):
+        for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Validating..."):
             # Load frames
-            dataloader = create_dataloader(row, config.frame_batch_size)
+            dataloader = create_dataloader_test(row, config.frame_batch_size)
             
             # Compute score
             predicted_score = model(dataloader)
@@ -250,7 +231,7 @@ with torch.no_grad():
         srcc = spearmanr(all_target_scores, all_predicted_scores)[0]
         
         # Average loss over validation set
-        eval_loss /= len(val_df)
+        eval_loss /= len(test_df)
         rsme = np.mean(all_rmse)
 
 
@@ -265,7 +246,7 @@ with torch.no_grad():
         wandb.log({
             f"Test Metrics Dict/rmse_hist": wandb.Histogram(np.array(all_rmse)),
         }, step=0)
-        dists_mos_log_fig = plot_dists_mos_log(val_df)
+        dists_mos_log_fig = plot_dists_mos_log(test_df)
         dists_ft_mos_lin_fig = plot_dists_ft_mos(all_target_scores, all_predicted_scores)
         wandb.log({
             f"Test Plots/dists_mos_log": wandb.Plotly(dists_mos_log_fig),
