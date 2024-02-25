@@ -211,7 +211,7 @@ print(f"Validation Refrences: {val_df['reference_filename'].drop_duplicates().va
 
 # Reset model and optimizer for each fold (if you want to start fresh for each fold)
 model = VQAModel().to(device)
-model.load_state_dict(torch.load('ckpt/checkpoint_4_l1_1645.pt'))
+model.load_state_dict(torch.load('checkpoint_4_l1_1645.pt'))
 
 print(model.dists_weight, model.dists_bias)
 
