@@ -65,13 +65,13 @@ args = parser.parse_args()
 
 kappa = args.kappa_scale * float(args.batch_size) / float(1024)
 batches_per_step = -(args.batch_size // -DEVICE_BATCH_SIZE)
-epochs = 256
+epochs = 50
 config = {
     "epochs": epochs,
     "batches_per_step": batches_per_step,
     "kappa": kappa,
-    "lr": 1e-5,
-    "beta1": 0.5,
+    "lr": 5e-5,
+    "beta1": 0.4,
     "beta2": 0.95,
     "eps": 1e-9,
 }     
@@ -79,7 +79,7 @@ config.update(vars(args))
 
 
 #%%
-exp_name=f"l1-yes-sb-bs:{config['batch_size']}-lr:{config['lr']:.0e}-b1:{config['beta1']:.2f}-b2:{config['beta2']:.2f}"
+exp_name=f"l1-no-sb-bs:{config['batch_size']}-lr:{config['lr']:.0e}-b1:{config['beta1']:.2f}-b2:{config['beta2']:.2f}"
 # Initialize wandb with the parsed arguments, further simplifying parameter names
 wandb.init(project='nerf-qa-final', name=exp_name, config=config)
 config = wandb.config
@@ -130,7 +130,7 @@ class VQAModel(nn.Module):
         else:
             scene_bias = torch.mean(self.per_scene_bias)
             scene_bias = torch.broadcast_to(scene_bias, normalized_scores.shape)
-            #scene_bias = torch.zeros_like(normalized_scores)
+        scene_bias = torch.zeros_like(normalized_scores)
 
         normalized_scores += scene_bias
         return normalized_scores, scene_bias    
