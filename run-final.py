@@ -48,7 +48,7 @@ parser = argparse.ArgumentParser(description='Initialize a new run with wandb wi
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
 parser.add_argument('--resize', type=lambda x: (str(x).lower() in ['true', '1', 'yes', 'y']), default=True, help='Whether to resize images.')
 parser.add_argument('--linearization_type', type=lambda x: (str(x).lower() in ['linear', 'log', 'sqrt']), default='linear', help='Whether to resize images.')
-parser.add_argument('--batch_size', type=int, default=1645, help='Batch size.')
+parser.add_argument('--batch_size', type=int, default=3290, help='Batch size.')
 
 # Further simplified optimizer configurations
 parser.add_argument('--lr_scale', type=float, default=1.0, help='Learning rate.')
@@ -71,8 +71,8 @@ config = {
     "batches_per_step": batches_per_step,
     "kappa": kappa,
     "lr": 5e-5,
-    "beta1": 0.4,
-    "beta2": 0.95,
+    "beta1": 0.9,
+    "beta2": 0.99,
     "eps": 1e-9,
 }     
 config.update(vars(args))

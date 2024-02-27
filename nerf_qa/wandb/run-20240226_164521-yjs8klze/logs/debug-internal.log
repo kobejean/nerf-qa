@@ -1,0 +1,211 @@
+2024-02-26 16:45:26,057 INFO    StreamThr :2828080 [internal.py:wandb_internal():86] W&B internal server running at pid: 2828080, started at: 2024-02-26 16:45:26.057266
+2024-02-26 16:45:26,058 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: status
+2024-02-26 16:45:26,059 INFO    WriterThread:2828080 [datastore.py:open_for_write():87] open: /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/run-yjs8klze.wandb
+2024-02-26 16:45:26,060 DEBUG   SenderThread:2828080 [sender.py:send():382] send: header
+2024-02-26 16:45:26,060 DEBUG   SenderThread:2828080 [sender.py:send():382] send: run
+2024-02-26 16:45:26,478 INFO    SenderThread:2828080 [dir_watcher.py:__init__():211] watching files in: /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/files
+2024-02-26 16:45:26,479 INFO    SenderThread:2828080 [sender.py:_start_run_threads():1136] run started: yjs8klze with start time 1708933525.105809
+2024-02-26 16:45:26,485 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: check_version
+2024-02-26 16:45:26,485 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: check_version
+2024-02-26 16:45:26,536 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: run_start
+2024-02-26 16:45:26,537 DEBUG   HandlerThread:2828080 [system_info.py:__init__():27] System info init
+2024-02-26 16:45:26,537 DEBUG   HandlerThread:2828080 [system_info.py:__init__():42] System info init done
+2024-02-26 16:45:26,537 INFO    HandlerThread:2828080 [system_monitor.py:start():194] Starting system monitor
+2024-02-26 16:45:26,537 INFO    SystemMonitor:2828080 [system_monitor.py:_start():158] Starting system asset monitoring threads
+2024-02-26 16:45:26,538 INFO    HandlerThread:2828080 [system_monitor.py:probe():214] Collecting system info
+2024-02-26 16:45:26,538 INFO    SystemMonitor:2828080 [interfaces.py:start():190] Started cpu monitoring
+2024-02-26 16:45:26,538 INFO    SystemMonitor:2828080 [interfaces.py:start():190] Started disk monitoring
+2024-02-26 16:45:26,539 INFO    SystemMonitor:2828080 [interfaces.py:start():190] Started gpu monitoring
+2024-02-26 16:45:26,539 INFO    SystemMonitor:2828080 [interfaces.py:start():190] Started memory monitoring
+2024-02-26 16:45:26,539 INFO    SystemMonitor:2828080 [interfaces.py:start():190] Started network monitoring
+2024-02-26 16:45:26,545 DEBUG   HandlerThread:2828080 [system_info.py:probe():151] Probing system
+2024-02-26 16:45:26,546 DEBUG   HandlerThread:2828080 [system_info.py:_probe_git():136] Probing git
+2024-02-26 16:45:26,552 DEBUG   HandlerThread:2828080 [system_info.py:_probe_git():144] Probing git done
+2024-02-26 16:45:26,552 DEBUG   HandlerThread:2828080 [system_info.py:probe():199] Probing system done
+2024-02-26 16:45:26,552 DEBUG   HandlerThread:2828080 [system_monitor.py:probe():223] {'os': 'Linux-6.5.0-17-generic-x86_64-with-glibc2.35', 'python': '3.10.0', 'heartbeatAt': '2024-02-26T07:45:26.545554', 'startedAt': '2024-02-26T07:45:21.502301', 'docker': None, 'cuda': None, 'args': (), 'state': 'running', 'program': '/home/ccl/Code/nerf-qa/nerf_qa/logger.py', 'codePathLocal': 'logger.py', 'codePath': 'nerf_qa/logger.py', 'git': {'remote': 'https://github.com/kobejean/nerf-qa.git', 'commit': '76eafa554d62e77ab12d0fed2888a49e6263be07'}, 'email': 's1292010@u-aizu.ac.jp', 'root': '/home/ccl/Code/nerf-qa', 'host': 'ccl1dc14', 'username': 'ccl', 'executable': '/home/ccl/.conda/envs/nerf-qa/bin/python', 'cpu_count': 6, 'cpu_count_logical': 12, 'cpu_freq': {'current': 4140.0985, 'min': 400.0, 'max': 4464.0}, 'cpu_freq_per_core': [{'current': 4286.581, 'min': 400.0, 'max': 4464.0}, {'current': 4057.446, 'min': 400.0, 'max': 4464.0}, {'current': 4282.163, 'min': 400.0, 'max': 4464.0}, {'current': 3938.649, 'min': 400.0, 'max': 4464.0}, {'current': 4153.188, 'min': 400.0, 'max': 4464.0}, {'current': 4204.345, 'min': 400.0, 'max': 4464.0}, {'current': 4283.611, 'min': 400.0, 'max': 4464.0}, {'current': 4059.331, 'min': 400.0, 'max': 4464.0}, {'current': 4231.8, 'min': 400.0, 'max': 4464.0}, {'current': 4079.851, 'min': 400.0, 'max': 4464.0}, {'current': 4278.656, 'min': 400.0, 'max': 4464.0}, {'current': 4049.349, 'min': 400.0, 'max': 4464.0}], 'disk': {'/': {'total': 73.03193283081055, 'used': 44.71711730957031}}, 'gpu': 'NVIDIA GeForce RTX 3090', 'gpu_count': 1, 'gpu_devices': [{'name': 'NVIDIA GeForce RTX 3090', 'memory_total': 25769803776}], 'memory': {'total': 22.834205627441406}}
+2024-02-26 16:45:26,552 INFO    HandlerThread:2828080 [system_monitor.py:probe():224] Finished collecting system info
+2024-02-26 16:45:26,552 INFO    HandlerThread:2828080 [system_monitor.py:probe():227] Publishing system info
+2024-02-26 16:45:26,552 DEBUG   HandlerThread:2828080 [system_info.py:_save_conda():208] Saving list of conda packages installed into the current environment
+2024-02-26 16:45:26,553 ERROR   HandlerThread:2828080 [system_info.py:_save_conda():219] Error saving conda packages: [Errno 2] No such file or directory: 'conda'
+Traceback (most recent call last):
+  File "/home/ccl/.conda/envs/nerf-qa/lib/python3.10/site-packages/wandb/sdk/internal/system/system_info.py", line 215, in _save_conda
+    subprocess.call(
+  File "/home/ccl/.conda/envs/nerf-qa/lib/python3.10/subprocess.py", line 345, in call
+    with Popen(*popenargs, **kwargs) as p:
+  File "/home/ccl/.conda/envs/nerf-qa/lib/python3.10/subprocess.py", line 966, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/home/ccl/.conda/envs/nerf-qa/lib/python3.10/subprocess.py", line 1842, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'conda'
+2024-02-26 16:45:26,553 DEBUG   HandlerThread:2828080 [system_info.py:_save_conda():220] Saving conda packages done
+2024-02-26 16:45:26,553 INFO    HandlerThread:2828080 [system_monitor.py:probe():229] Finished publishing system info
+2024-02-26 16:45:26,554 DEBUG   SenderThread:2828080 [sender.py:send():382] send: files
+2024-02-26 16:45:26,554 INFO    SenderThread:2828080 [sender.py:_save_file():1403] saving file wandb-metadata.json with policy now
+2024-02-26 16:45:26,561 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: python_packages
+2024-02-26 16:45:26,561 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: python_packages
+2024-02-26 16:45:26,605 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: stop_status
+2024-02-26 16:45:26,605 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: internal_messages
+2024-02-26 16:45:26,605 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: stop_status
+2024-02-26 16:45:26,867 DEBUG   SenderThread:2828080 [sender.py:send():382] send: telemetry
+2024-02-26 16:45:27,172 INFO    wandb-upload_0:2828080 [upload_job.py:push():131] Uploaded file /tmp/tmplxo26h8twandb/aw1x86a9-wandb-metadata.json
+2024-02-26 16:45:27,479 INFO    Thread-25 :2828080 [dir_watcher.py:_on_file_created():271] file/dir created: /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/files/output.log
+2024-02-26 16:45:27,480 INFO    Thread-25 :2828080 [dir_watcher.py:_on_file_created():271] file/dir created: /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/files/requirements.txt
+2024-02-26 16:45:27,480 INFO    Thread-25 :2828080 [dir_watcher.py:_on_file_created():271] file/dir created: /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/files/conda-environment.yaml
+2024-02-26 16:45:27,480 INFO    Thread-25 :2828080 [dir_watcher.py:_on_file_created():271] file/dir created: /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/files/wandb-metadata.json
+2024-02-26 16:45:29,479 INFO    Thread-25 :2828080 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/files/output.log
+2024-02-26 16:45:31,868 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: status_report
+2024-02-26 16:45:36,870 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: status_report
+2024-02-26 16:45:41,562 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: stop_status
+2024-02-26 16:45:41,562 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: stop_status
+2024-02-26 16:45:41,604 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: internal_messages
+2024-02-26 16:45:42,760 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: status_report
+2024-02-26 16:45:47,760 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: status_report
+2024-02-26 16:45:52,761 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: status_report
+2024-02-26 16:45:56,562 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: stop_status
+2024-02-26 16:45:56,562 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: stop_status
+2024-02-26 16:45:56,604 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: internal_messages
+2024-02-26 16:45:57,765 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: status_report
+2024-02-26 16:45:58,487 INFO    Thread-25 :2828080 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/files/config.yaml
+2024-02-26 16:46:02,968 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: status_report
+2024-02-26 16:46:07,969 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: status_report
+2024-02-26 16:46:11,563 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: stop_status
+2024-02-26 16:46:11,563 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: stop_status
+2024-02-26 16:46:11,604 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: internal_messages
+2024-02-26 16:46:13,836 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: status_report
+2024-02-26 16:46:15,957 DEBUG   SenderThread:2828080 [sender.py:send():382] send: telemetry
+2024-02-26 16:46:16,001 DEBUG   SenderThread:2828080 [sender.py:send():382] send: exit
+2024-02-26 16:46:16,001 INFO    SenderThread:2828080 [sender.py:send_exit():589] handling exit code: 0
+2024-02-26 16:46:16,001 INFO    SenderThread:2828080 [sender.py:send_exit():591] handling runtime: 49
+2024-02-26 16:46:16,003 INFO    SenderThread:2828080 [sender.py:_save_file():1403] saving file wandb-summary.json with policy end
+2024-02-26 16:46:16,003 INFO    SenderThread:2828080 [sender.py:send_exit():597] send defer
+2024-02-26 16:46:16,003 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: defer
+2024-02-26 16:46:16,004 INFO    HandlerThread:2828080 [handler.py:handle_request_defer():172] handle defer: 0
+2024-02-26 16:46:16,004 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: defer
+2024-02-26 16:46:16,004 INFO    SenderThread:2828080 [sender.py:send_request_defer():613] handle sender defer: 0
+2024-02-26 16:46:16,004 INFO    SenderThread:2828080 [sender.py:transition_state():617] send defer: 1
+2024-02-26 16:46:16,004 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: defer
+2024-02-26 16:46:16,004 INFO    HandlerThread:2828080 [handler.py:handle_request_defer():172] handle defer: 1
+2024-02-26 16:46:16,004 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: defer
+2024-02-26 16:46:16,004 INFO    SenderThread:2828080 [sender.py:send_request_defer():613] handle sender defer: 1
+2024-02-26 16:46:16,004 INFO    SenderThread:2828080 [sender.py:transition_state():617] send defer: 2
+2024-02-26 16:46:16,004 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: defer
+2024-02-26 16:46:16,004 INFO    HandlerThread:2828080 [handler.py:handle_request_defer():172] handle defer: 2
+2024-02-26 16:46:16,004 INFO    HandlerThread:2828080 [system_monitor.py:finish():203] Stopping system monitor
+2024-02-26 16:46:16,004 DEBUG   SystemMonitor:2828080 [system_monitor.py:_start():172] Starting system metrics aggregation loop
+2024-02-26 16:46:16,005 INFO    HandlerThread:2828080 [interfaces.py:finish():202] Joined cpu monitor
+2024-02-26 16:46:16,005 DEBUG   SystemMonitor:2828080 [system_monitor.py:_start():179] Finished system metrics aggregation loop
+2024-02-26 16:46:16,005 INFO    HandlerThread:2828080 [interfaces.py:finish():202] Joined disk monitor
+2024-02-26 16:46:16,005 DEBUG   SystemMonitor:2828080 [system_monitor.py:_start():183] Publishing last batch of metrics
+2024-02-26 16:46:16,067 INFO    HandlerThread:2828080 [interfaces.py:finish():202] Joined gpu monitor
+2024-02-26 16:46:16,067 INFO    HandlerThread:2828080 [interfaces.py:finish():202] Joined memory monitor
+2024-02-26 16:46:16,068 INFO    HandlerThread:2828080 [interfaces.py:finish():202] Joined network monitor
+2024-02-26 16:46:16,068 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: defer
+2024-02-26 16:46:16,068 INFO    SenderThread:2828080 [sender.py:send_request_defer():613] handle sender defer: 2
+2024-02-26 16:46:16,068 INFO    SenderThread:2828080 [sender.py:transition_state():617] send defer: 3
+2024-02-26 16:46:16,068 DEBUG   SenderThread:2828080 [sender.py:send():382] send: stats
+2024-02-26 16:46:16,068 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: defer
+2024-02-26 16:46:16,068 INFO    HandlerThread:2828080 [handler.py:handle_request_defer():172] handle defer: 3
+2024-02-26 16:46:16,069 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: defer
+2024-02-26 16:46:16,069 INFO    SenderThread:2828080 [sender.py:send_request_defer():613] handle sender defer: 3
+2024-02-26 16:46:16,069 INFO    SenderThread:2828080 [sender.py:transition_state():617] send defer: 4
+2024-02-26 16:46:16,069 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: defer
+2024-02-26 16:46:16,069 INFO    HandlerThread:2828080 [handler.py:handle_request_defer():172] handle defer: 4
+2024-02-26 16:46:16,069 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: defer
+2024-02-26 16:46:16,069 INFO    SenderThread:2828080 [sender.py:send_request_defer():613] handle sender defer: 4
+2024-02-26 16:46:16,069 INFO    SenderThread:2828080 [sender.py:transition_state():617] send defer: 5
+2024-02-26 16:46:16,069 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: defer
+2024-02-26 16:46:16,069 INFO    HandlerThread:2828080 [handler.py:handle_request_defer():172] handle defer: 5
+2024-02-26 16:46:16,070 DEBUG   SenderThread:2828080 [sender.py:send():382] send: summary
+2024-02-26 16:46:16,070 INFO    SenderThread:2828080 [sender.py:_save_file():1403] saving file wandb-summary.json with policy end
+2024-02-26 16:46:16,070 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: defer
+2024-02-26 16:46:16,070 INFO    SenderThread:2828080 [sender.py:send_request_defer():613] handle sender defer: 5
+2024-02-26 16:46:16,070 INFO    SenderThread:2828080 [sender.py:transition_state():617] send defer: 6
+2024-02-26 16:46:16,070 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: defer
+2024-02-26 16:46:16,070 INFO    HandlerThread:2828080 [handler.py:handle_request_defer():172] handle defer: 6
+2024-02-26 16:46:16,070 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: defer
+2024-02-26 16:46:16,070 INFO    SenderThread:2828080 [sender.py:send_request_defer():613] handle sender defer: 6
+2024-02-26 16:46:16,073 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: status_report
+2024-02-26 16:46:16,261 INFO    SenderThread:2828080 [sender.py:transition_state():617] send defer: 7
+2024-02-26 16:46:16,261 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: defer
+2024-02-26 16:46:16,261 INFO    HandlerThread:2828080 [handler.py:handle_request_defer():172] handle defer: 7
+2024-02-26 16:46:16,262 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: defer
+2024-02-26 16:46:16,262 INFO    SenderThread:2828080 [sender.py:send_request_defer():613] handle sender defer: 7
+2024-02-26 16:46:16,491 INFO    Thread-25 :2828080 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/files/config.yaml
+2024-02-26 16:46:16,491 INFO    Thread-25 :2828080 [dir_watcher.py:_on_file_created():271] file/dir created: /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/files/wandb-summary.json
+2024-02-26 16:46:16,914 INFO    SenderThread:2828080 [sender.py:transition_state():617] send defer: 8
+2024-02-26 16:46:16,915 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: defer
+2024-02-26 16:46:16,915 INFO    HandlerThread:2828080 [handler.py:handle_request_defer():172] handle defer: 8
+2024-02-26 16:46:16,915 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: defer
+2024-02-26 16:46:16,915 INFO    SenderThread:2828080 [sender.py:send_request_defer():613] handle sender defer: 8
+2024-02-26 16:46:16,915 INFO    SenderThread:2828080 [job_builder.py:build():296] Attempting to build job artifact
+2024-02-26 16:46:16,915 INFO    SenderThread:2828080 [job_builder.py:_get_source_type():426] is repo sourced job
+2024-02-26 16:46:16,915 INFO    SenderThread:2828080 [job_builder.py:_get_program_relpath():444] run is notebook based run
+2024-02-26 16:46:16,915 INFO    SenderThread:2828080 [job_builder.py:_build_repo_job_source():164] target path does not exist, exiting
+2024-02-26 16:46:16,915 INFO    SenderThread:2828080 [sender.py:transition_state():617] send defer: 9
+2024-02-26 16:46:16,915 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: defer
+2024-02-26 16:46:16,915 INFO    HandlerThread:2828080 [handler.py:handle_request_defer():172] handle defer: 9
+2024-02-26 16:46:16,915 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: defer
+2024-02-26 16:46:16,916 INFO    SenderThread:2828080 [sender.py:send_request_defer():613] handle sender defer: 9
+2024-02-26 16:46:16,916 INFO    SenderThread:2828080 [dir_watcher.py:finish():358] shutting down directory watcher
+2024-02-26 16:46:16,957 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: poll_exit
+2024-02-26 16:46:17,491 INFO    Thread-25 :2828080 [dir_watcher.py:_on_file_modified():288] file/dir modified: /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/files/output.log
+2024-02-26 16:46:17,492 INFO    SenderThread:2828080 [dir_watcher.py:finish():388] scan: /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/files
+2024-02-26 16:46:17,492 INFO    SenderThread:2828080 [dir_watcher.py:finish():402] scan save: /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/files/wandb-summary.json wandb-summary.json
+2024-02-26 16:46:17,492 INFO    SenderThread:2828080 [dir_watcher.py:finish():402] scan save: /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/files/output.log output.log
+2024-02-26 16:46:17,492 INFO    SenderThread:2828080 [dir_watcher.py:finish():402] scan save: /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/files/conda-environment.yaml conda-environment.yaml
+2024-02-26 16:46:17,496 INFO    SenderThread:2828080 [dir_watcher.py:finish():402] scan save: /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/files/wandb-metadata.json wandb-metadata.json
+2024-02-26 16:46:17,496 INFO    SenderThread:2828080 [dir_watcher.py:finish():402] scan save: /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/files/config.yaml config.yaml
+2024-02-26 16:46:17,496 INFO    SenderThread:2828080 [dir_watcher.py:finish():402] scan save: /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/files/requirements.txt requirements.txt
+2024-02-26 16:46:17,498 INFO    SenderThread:2828080 [sender.py:transition_state():617] send defer: 10
+2024-02-26 16:46:17,498 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: poll_exit
+2024-02-26 16:46:17,498 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: defer
+2024-02-26 16:46:17,500 INFO    HandlerThread:2828080 [handler.py:handle_request_defer():172] handle defer: 10
+2024-02-26 16:46:17,500 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: defer
+2024-02-26 16:46:17,500 INFO    SenderThread:2828080 [sender.py:send_request_defer():613] handle sender defer: 10
+2024-02-26 16:46:17,500 INFO    SenderThread:2828080 [file_pusher.py:finish():172] shutting down file pusher
+2024-02-26 16:46:17,874 INFO    wandb-upload_0:2828080 [upload_job.py:push():131] Uploaded file /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/files/wandb-summary.json
+2024-02-26 16:46:17,958 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: poll_exit
+2024-02-26 16:46:17,958 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: poll_exit
+2024-02-26 16:46:18,150 INFO    wandb-upload_1:2828080 [upload_job.py:push():131] Uploaded file /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/files/output.log
+2024-02-26 16:46:18,178 INFO    wandb-upload_3:2828080 [upload_job.py:push():131] Uploaded file /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/files/requirements.txt
+2024-02-26 16:46:18,178 INFO    wandb-upload_2:2828080 [upload_job.py:push():131] Uploaded file /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/files/config.yaml
+2024-02-26 16:46:18,379 INFO    Thread-24 (_thread_body):2828080 [sender.py:transition_state():617] send defer: 11
+2024-02-26 16:46:18,379 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: defer
+2024-02-26 16:46:18,379 INFO    HandlerThread:2828080 [handler.py:handle_request_defer():172] handle defer: 11
+2024-02-26 16:46:18,379 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: defer
+2024-02-26 16:46:18,379 INFO    SenderThread:2828080 [sender.py:send_request_defer():613] handle sender defer: 11
+2024-02-26 16:46:18,379 INFO    SenderThread:2828080 [file_pusher.py:join():178] waiting for file pusher
+2024-02-26 16:46:18,380 INFO    SenderThread:2828080 [sender.py:transition_state():617] send defer: 12
+2024-02-26 16:46:18,380 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: defer
+2024-02-26 16:46:18,380 INFO    HandlerThread:2828080 [handler.py:handle_request_defer():172] handle defer: 12
+2024-02-26 16:46:18,380 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: defer
+2024-02-26 16:46:18,380 INFO    SenderThread:2828080 [sender.py:send_request_defer():613] handle sender defer: 12
+2024-02-26 16:46:18,380 INFO    SenderThread:2828080 [file_stream.py:finish():595] file stream finish called
+2024-02-26 16:46:18,692 INFO    SenderThread:2828080 [file_stream.py:finish():599] file stream finish is done
+2024-02-26 16:46:18,692 INFO    SenderThread:2828080 [sender.py:transition_state():617] send defer: 13
+2024-02-26 16:46:18,692 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: defer
+2024-02-26 16:46:18,692 INFO    HandlerThread:2828080 [handler.py:handle_request_defer():172] handle defer: 13
+2024-02-26 16:46:18,693 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: defer
+2024-02-26 16:46:18,693 INFO    SenderThread:2828080 [sender.py:send_request_defer():613] handle sender defer: 13
+2024-02-26 16:46:18,693 INFO    SenderThread:2828080 [sender.py:transition_state():617] send defer: 14
+2024-02-26 16:46:18,693 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: defer
+2024-02-26 16:46:18,693 DEBUG   SenderThread:2828080 [sender.py:send():382] send: final
+2024-02-26 16:46:18,693 INFO    HandlerThread:2828080 [handler.py:handle_request_defer():172] handle defer: 14
+2024-02-26 16:46:18,693 DEBUG   SenderThread:2828080 [sender.py:send():382] send: footer
+2024-02-26 16:46:18,693 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: defer
+2024-02-26 16:46:18,693 INFO    SenderThread:2828080 [sender.py:send_request_defer():613] handle sender defer: 14
+2024-02-26 16:46:18,694 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: poll_exit
+2024-02-26 16:46:18,694 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: poll_exit
+2024-02-26 16:46:18,694 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: internal_messages
+2024-02-26 16:46:18,695 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: server_info
+2024-02-26 16:46:18,695 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: server_info
+2024-02-26 16:46:18,736 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: get_summary
+2024-02-26 16:46:18,737 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: sampled_history
+2024-02-26 16:46:18,737 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: job_info
+2024-02-26 16:46:18,861 DEBUG   SenderThread:2828080 [sender.py:send_request():409] send_request: job_info
+2024-02-26 16:46:18,862 DEBUG   HandlerThread:2828080 [handler.py:handle_request():146] handle_request: shutdown
+2024-02-26 16:46:18,862 INFO    HandlerThread:2828080 [handler.py:finish():869] shutting down handler
+2024-02-26 16:46:19,737 INFO    WriterThread:2828080 [datastore.py:close():296] close: /home/ccl/Code/nerf-qa/nerf_qa/wandb/run-20240226_164521-yjs8klze/run-yjs8klze.wandb
+2024-02-26 16:46:19,861 INFO    SenderThread:2828080 [sender.py:finish():1572] shutting down sender
+2024-02-26 16:46:19,861 INFO    SenderThread:2828080 [file_pusher.py:finish():172] shutting down file pusher
+2024-02-26 16:46:19,861 INFO    SenderThread:2828080 [file_pusher.py:join():178] waiting for file pusher

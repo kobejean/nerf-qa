@@ -1,0 +1,108 @@
+{
+    "os": "Linux-6.5.0-17-generic-x86_64-with-glibc2.35",
+    "python": "3.10.0",
+    "heartbeatAt": "2024-02-26T09:30:16.560268",
+    "startedAt": "2024-02-26T09:30:11.999810",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/home/ccl/Code/nerf-qa/nerf_qa/logger.py",
+    "codePathLocal": "logger.py",
+    "codePath": "nerf_qa/logger.py",
+    "git": {
+        "remote": "https://github.com/kobejean/nerf-qa.git",
+        "commit": "76eafa554d62e77ab12d0fed2888a49e6263be07"
+    },
+    "email": "s1292010@u-aizu.ac.jp",
+    "root": "/home/ccl/Code/nerf-qa",
+    "host": "ccl1dc14",
+    "username": "ccl",
+    "executable": "/home/ccl/.conda/envs/nerf-qa/bin/python",
+    "cpu_count": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq": {
+        "current": 3054.390666666666,
+        "min": 400.0,
+        "max": 4464.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 4188.261,
+            "min": 400.0,
+            "max": 4464.0
+        },
+        {
+            "current": 3673.493,
+            "min": 400.0,
+            "max": 4464.0
+        },
+        {
+            "current": 4162.08,
+            "min": 400.0,
+            "max": 4464.0
+        },
+        {
+            "current": 400.0,
+            "min": 400.0,
+            "max": 4464.0
+        },
+        {
+            "current": 4301.816,
+            "min": 400.0,
+            "max": 4464.0
+        },
+        {
+            "current": 400.0,
+            "min": 400.0,
+            "max": 4464.0
+        },
+        {
+            "current": 3689.053,
+            "min": 400.0,
+            "max": 4464.0
+        },
+        {
+            "current": 4154.886,
+            "min": 400.0,
+            "max": 4464.0
+        },
+        {
+            "current": 3740.106,
+            "min": 400.0,
+            "max": 4464.0
+        },
+        {
+            "current": 3449.408,
+            "min": 400.0,
+            "max": 4464.0
+        },
+        {
+            "current": 4436.102,
+            "min": 400.0,
+            "max": 4464.0
+        },
+        {
+            "current": 4075.999,
+            "min": 400.0,
+            "max": 4464.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 73.03193283081055,
+            "used": 44.70953369140625
+        }
+    },
+    "gpu": "NVIDIA GeForce RTX 3090",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce RTX 3090",
+            "memory_total": 25769803776
+        }
+    ],
+    "memory": {
+        "total": 22.834205627441406
+    }
+}

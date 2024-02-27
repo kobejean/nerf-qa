@@ -27,6 +27,7 @@ from PIL import Image
 import plotly.express as px
 
 from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS, prepare_image
+from nerf_qa.settings import DEVICE_BATCH_SIZE
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -72,59 +73,40 @@ class LargeQADataset(Dataset):
         score = row['MOS']
         return distorted_image, referenced_image, score, video_idx
   
+# Batch creation function
+def create_large_qa_dataloader(scores_df, dir):
+    # Create a dataset and dataloader for efficient batching
+    dataset = LargeQADataset(dir=dir, scores_df=scores_df)
+    dataloader = DataLoader(dataset, batch_size=DEVICE_BATCH_SIZE, shuffle=True)
+    return dataloader
+
+# Example function to load a video and process it frame by frame
+def load_video_frames(video_path, resize=True):
+    cap = cv2.VideoCapture(video_path)
+    frames = []
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+        # Convert frame to RGB (from BGR) and then to tensor
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame = torch.from_numpy(frame).permute(2, 0, 1).float() / 255.0
+        frame = transforms.ToPILImage()(frame)
+        frame = prepare_image(frame, resize=resize).squeeze(0)
+        frames.append(frame)
+    cap.release()
+    return torch.stack(frames)
 
 
-# #%%
-# DATA_DIR = "/home/ccl/Datasets/NeRF-QA-Large-1"
-# REF_DIR = path.join(DATA_DIR, "references")
-# REND_DIR = path.join(DATA_DIR, "nerf-renders")
-# SCORE_FILE = path.join(DATA_DIR, "scores.csv")
-# SCOREs_FILE = path.join(DATA_DIR, "scores_update.csv")
-# scores_df = pd.read_csv(SCORE_FILE)
-# # scores_df['scene'] = scores_df['referenced_filename'].str.replace('gt_', '', 1)
-
-# # def count_images_in_dir(directory):
-# #     """Count the number of .png images in the specified directory."""
-# #     directory = path.join(REF_DIR, directory)
-# #     return len([name for name in os.listdir(directory) if name.endswith('.png')])
-
-# # # Apply the function to each row in the DataFrame to create the 'frame_count' column
-# # scores_df['frame_count'] = scores_df['referenced_filename'].apply(lambda x: count_images_in_dir(x))
-
-# # column_order = ['scene', 'frame_count'] + [col for col in scores_df.columns if not col in ['scene', 'frame_count']]
-
-# # scores_df = scores_df[column_order]
-
-# #%%
-# from IPython.display import display
-# display(scores_df)
-# print(scores_df.head(3))
-# print(scores_df['scene'].drop_duplicates().values)
-# #%%
-
-# # %%  
-# dataset = LargeQADataset(dir = DATA_DIR, scores_df=scores_df)
-# dataloader = DataLoader(dataset, batch_size=32, shuffle=False)
-# all_dists = []
-# all_ids = []
-# dists_model = DISTS().to(device)
-# for dist, ref, score, video_idx in iter(dataloader):
-#     score = dists_model(dist.to(device), ref.to(device))
-#     all_dists.append(score.cpu().detach().numpy())
-#     all_ids.append(video_idx.cpu().detach().numpy())
-
-# #%%
-# df = pd.DataFrame({
-#                 'ID': np.concatenate(all_ids, axis=0),
-#                 'DISTS': np.concatenate(all_dists, axis=0),
-#             })
-
-# # Step 2: Group by ID and calculate mean
-# average_scores = df.groupby('ID').mean().reset_index()
-# display(average_scores.head(10))
-# #scores_df.to_csv(SCOREs_FILE, index=False)
-# # %%
-# scores_df['DISTS'] = average_scores['DISTS']
-
-# # %%
-# scores_df.to_csv(SCOREs_FILE, index=False)
+# Batch creation function
+def create_test_video_dataloader(row, dir):
+    ref_dir = path.join(dir, "Reference")
+    syn_dir = path.join(dir, "NeRF-QA_videos")
+    dist_video_path = path.join(syn_dir, row['distorted_filename'])
+    ref_video_path = path.join(ref_dir, row['reference_filename'])
+    ref = load_video_frames(ref_video_path)
+    dist = load_video_frames(dist_video_path)
+    # Create a dataset and dataloader for efficient batching
+    dataset = TensorDataset(dist, ref)
+    dataloader = DataLoader(dataset, batch_size=DEVICE_BATCH_SIZE, shuffle=False)
+    return dataloader
