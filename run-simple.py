@@ -48,7 +48,7 @@ args = parser.parse_args()
 
 epoch_size = 3290
 batches_per_step = -(epoch_size // -DEVICE_BATCH_SIZE)
-epochs = 50
+epochs = 1000000000000
 config = {
     "epochs": epochs,
     "batches_per_step": batches_per_step,
@@ -62,7 +62,7 @@ config.update(vars(args))
 
 
 #%%
-exp_name=f"l1-fixed-lin-bs:{config['batch_size']}-lr:{config['lr']:.0e}-b1:{config['beta1']:.2f}-b2:{config['beta2']:.2f}"
+exp_name=f"l1-grokk-bs:{config['batch_size']}-lr:{config['lr']:.0e}-b1:{config['beta1']:.2f}-b2:{config['beta2']:.2f}"
 
 # Initialize wandb with the parsed arguments, further simplifying parameter names
 wandb.init(project='nerf-qa-test', name=exp_name, config=config)
