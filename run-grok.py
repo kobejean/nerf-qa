@@ -128,8 +128,8 @@ for epoch in range(wandb.config.epochs):
                     'pred_score': predicted_score.detach().cpu(),
                 }, video_ids=video_ids, scene_ids=scene_ids)
 
-    # Log results
-    test_logger.log_summary(step)
+        # Log results
+        test_logger.log_summary(step)
 
     # Train step
     model.train()  # Set model to training mode
