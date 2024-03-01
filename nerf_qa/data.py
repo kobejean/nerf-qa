@@ -16,7 +16,7 @@ import torch.optim as optim
 import wandb
 from sklearn.model_selection import GroupKFold
 from sklearn.linear_model import LinearRegression
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Sampler
 
 # data 
 import pandas as pd
@@ -72,12 +72,49 @@ class LargeQADataset(Dataset):
         row = self.scores_df.iloc[video_idx]
         score = row['MOS']
         return distorted_image, referenced_image, score, video_idx
-  
+
+
+class ComputeBatchSampler(Sampler):
+    def __init__(self, dataset, compute_batch_size):
+        self.dataset = dataset
+        self.compute_batch_size = compute_batch_size
+
+        # Organize indices by image size (assuming dataset[idx] returns a tuple (image, label))
+        self.indices_by_size = {}
+        for idx in tqdm(range(len(dataset)), desc="Preparing Sampler..."):
+            image = dataset[idx][0]
+            size = tuple(image.size())
+            if size not in self.indices_by_size:
+                self.indices_by_size[size] = []
+            self.indices_by_size[size].append(idx)
+
+        self.batches = self._create_batches()
+
+    def _create_batches(self):
+        # This method should organize indices into larger batches ensuring diversity in dimensions
+        # and grouping them into mini-batches by size for computational efficiency
+        batches = []
+        # Example logic (simplified and needs to be optimized):
+        for size, indices in self.indices_by_size.items():
+            for i in range(0, len(indices), self.compute_batch_size):
+                batches.append(indices[i:i + self.compute_batch_size])
+        return batches
+    
+    def __iter__(self):
+        np.random.shuffle(self.batches)  # Shuffle to ensure diversity in each larger batch
+        for batch in self.batches:
+            yield batch
+
+    def __len__(self):
+        return len(self.batches)
+
+
 # Batch creation function
 def create_large_qa_dataloader(scores_df, dir):
     # Create a dataset and dataloader for efficient batching
     dataset = LargeQADataset(dir=dir, scores_df=scores_df)
-    dataloader = DataLoader(dataset, batch_size=DEVICE_BATCH_SIZE, shuffle=True)
+    sampler = ComputeBatchSampler(dataset, DEVICE_BATCH_SIZE)
+    dataloader = DataLoader(dataset, batch_sampler=sampler)
     return dataloader
 
 # Example function to load a video and process it frame by frame
@@ -97,7 +134,6 @@ def load_video_frames(video_path, resize=True):
     cap.release()
     return torch.stack(frames)
 
-
 # Batch creation function
 def create_test_video_dataloader(row, dir):
     ref_dir = path.join(dir, "Reference")
@@ -110,3 +146,21 @@ def create_test_video_dataloader(row, dir):
     dataset = TensorDataset(dist, ref)
     dataloader = DataLoader(dataset, batch_size=DEVICE_BATCH_SIZE, shuffle=False)
     return dataloader
+#%%
+if __name__ == "__main__":
+
+    DATA_DIR = "/home/ccl/Datasets/NeRF-QA-Large-1"
+    SCORE_FILE = path.join(DATA_DIR, "scores.csv")
+    # Read the CSV file
+    scores_df = pd.read_csv(SCORE_FILE)
+    # filter test
+    test_scenes = ['ship', 'lego', 'drums', 'ficus', 'train', 'm60', 'playground', 'truck']
+    train_df = scores_df[~scores_df['scene'].isin(test_scenes)].reset_index() # + ['trex', 'horns']
+    # val_df = scores_df[scores_df['scene'].isin(test_scenes)].reset_index()
+    dataloader = create_large_qa_dataloader(train_df, dir=DATA_DIR)
+    dist, ref, score, id = next(iter(dataloader))
+    print(dist, ref, score, id)
+
+
+
+# %%
