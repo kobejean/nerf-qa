@@ -62,7 +62,7 @@ config.update(vars(args))
 
 
 #%%
-exp_name=f"l1-grokk-bs:{config['batch_size']}-lr:{config['lr']:.0e}-b1:{config['beta1']:.2f}-b2:{config['beta2']:.3f}"
+exp_name=f"l1-bs:{config['batch_size']}-lr:{config['lr']:.0e}-b1:{config['beta1']:.2f}-b2:{config['beta2']:.3f}"
 
 # Initialize wandb with the parsed arguments, further simplifying parameter names
 wandb.init(project='nerf-qa-test', name=exp_name, config=config)
