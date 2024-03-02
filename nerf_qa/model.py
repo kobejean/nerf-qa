@@ -18,7 +18,8 @@ class NeRFQAModel(nn.Module):
         super(NeRFQAModel, self).__init__()
         self.linearization_type = linearization_type
         # Reshape data (scikit-learn expects X to be a 2D array)
-        X = train_df['DISTS'].values.reshape(-1, 1)  # Predictor
+        X = train_df['DISTS_no_resize'].values.reshape(-1, 1)  # Predictor
+        #X = train_df['DISTS'].values.reshape(-1, 1)  # Predictor
         y = train_df['MOS'].values  # Response
 
         # Create a linear regression model to initialize linear layer
@@ -56,7 +57,7 @@ class NeRFQAModel(nn.Module):
         raw_scores = self.compute_dists_with_batches(dataloader)
         
         # Normalize raw scores using the trainable mean and std
-        normalized_scores = raw_scores * self.dists_weight.detach() + self.dists_bias.detach()
+        normalized_scores = raw_scores * self.dists_weight + self.dists_bias
         return normalized_scores
 
     def forward(self, dist, ref):

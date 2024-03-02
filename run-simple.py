@@ -48,15 +48,16 @@ args = parser.parse_args()
 
 epoch_size = 3290
 batches_per_step = -(epoch_size // -DEVICE_BATCH_SIZE)
-epochs = 30
+epochs = 100
 config = {
     "epochs": epochs,
     "batches_per_step": batches_per_step,
-    "lr": 1e-4,
+    "lr": 1e-5,
     "beta1": 0.9,
     "beta2": 0.999,
     "eps": 1e-7,
     "batch_size": epoch_size,
+    "resize": False,
 }     
 config.update(vars(args))
 
@@ -97,8 +98,8 @@ train_logger = MetricCollectionLogger('Train Metrics Dict')
 val_logger = MetricCollectionLogger('Val Metrics Dict')
 test_logger = MetricCollectionLogger('Test Metrics Dict')
 
-train_dataloader = create_large_qa_dataloader(train_df, dir=DATA_DIR)
-val_dataloader = create_large_qa_dataloader(val_df, dir=DATA_DIR)
+train_dataloader = create_large_qa_dataloader(train_df, dir=DATA_DIR, resize=config.resize)
+val_dataloader = create_large_qa_dataloader(val_df, dir=DATA_DIR, resize=config.resize)
 train_size = len(train_dataloader)
 val_size = len(val_dataloader)
 
@@ -112,7 +113,7 @@ for epoch in range(wandb.config.epochs):
 
         for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Testing..."):
             # Load frames
-            dataloader = create_test_video_dataloader(row, dir=TEST_DATA_DIR)
+            dataloader = create_test_video_dataloader(row, dir=TEST_DATA_DIR, resize=config.resize)
             
             # Compute score
             predicted_score = model.forward_dataloader(dataloader)

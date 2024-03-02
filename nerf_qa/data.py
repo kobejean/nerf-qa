@@ -66,8 +66,8 @@ class LargeQADataset(Dataset):
         referenced_path = os.path.join(self.ref_dir, referenced_filename, f"{frame_within_video:03d}.png")
 
         # Load and optionally resize images
-        distorted_image = prepare_image(Image.open(distorted_path).convert("RGB")).squeeze(0)
-        referenced_image = prepare_image(Image.open(referenced_path).convert("RGB")).squeeze(0)
+        distorted_image = prepare_image(Image.open(distorted_path).convert("RGB"), resize=self.resize).squeeze(0)
+        referenced_image = prepare_image(Image.open(referenced_path).convert("RGB"), resize=self.resize).squeeze(0)
 
         row = self.scores_df.iloc[video_idx]
         score = row['MOS']
@@ -110,9 +110,9 @@ class ComputeBatchSampler(Sampler):
 
 
 # Batch creation function
-def create_large_qa_dataloader(scores_df, dir):
+def create_large_qa_dataloader(scores_df, dir, resize=True):
     # Create a dataset and dataloader for efficient batching
-    dataset = LargeQADataset(dir=dir, scores_df=scores_df)
+    dataset = LargeQADataset(dir=dir, scores_df=scores_df, resize=resize)
     sampler = ComputeBatchSampler(dataset, DEVICE_BATCH_SIZE)
     dataloader = DataLoader(dataset, batch_sampler=sampler)
     return dataloader
@@ -135,13 +135,13 @@ def load_video_frames(video_path, resize=True):
     return torch.stack(frames)
 
 # Batch creation function
-def create_test_video_dataloader(row, dir):
+def create_test_video_dataloader(row, dir, resize=True):
     ref_dir = path.join(dir, "Reference")
     syn_dir = path.join(dir, "NeRF-QA_videos")
     dist_video_path = path.join(syn_dir, row['distorted_filename'])
     ref_video_path = path.join(ref_dir, row['reference_filename'])
-    ref = load_video_frames(ref_video_path)
-    dist = load_video_frames(dist_video_path)
+    ref = load_video_frames(ref_video_path, resize=resize)
+    dist = load_video_frames(dist_video_path, resize=resize)
     # Create a dataset and dataloader for efficient batching
     dataset = TensorDataset(dist, ref)
     dataloader = DataLoader(dataset, batch_size=DEVICE_BATCH_SIZE, shuffle=False)
