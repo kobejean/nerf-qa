@@ -25,7 +25,7 @@ class L2pooling(nn.Module):
         return (out+1e-12).sqrt()
 
 class DISTS(torch.nn.Module):
-    def __init__(self, load_weights=True):
+    def __init__(self, load_weights=True, from_feats=False):
         super(DISTS, self).__init__()
         vgg_pretrained_features = models.vgg16(pretrained=True).features
         self.stage1 = torch.nn.Sequential()
@@ -77,8 +77,21 @@ class DISTS(torch.nn.Module):
         h = self.stage5(h)
         h_relu5_3 = h
         return [x,h_relu1_2, h_relu2_2, h_relu3_3, h_relu4_3, h_relu5_3]
+    
+    def warp(self, features, warp, certainty):
+        _, _, H, W = features.shape
+        print("warp", H, W)
+        warp = F.interpolate(warp, size=(H, W), mode='bilinear', align_corners=False).permute(0,2,3,1)
+        certainty = F.interpolate(certainty, size=(H, W), mode='bilinear', align_corners=False)
+        print(certainty.shape)
+        print(warp.shape)
 
-    def forward(self, x, y, require_grad=False, batch_average=False):
+        features = F.grid_sample(
+            features, warp, mode="bilinear", align_corners=False
+        )[0]
+        return features, certainty
+
+    def forward(self, x, y, require_grad=False, batch_average=False, warp=None, certainty=None):
         if require_grad:
             feats0 = self.forward_once(x)
             feats1 = self.forward_once(y)   
@@ -94,14 +107,60 @@ class DISTS(torch.nn.Module):
         alpha = torch.split(self.alpha/w_sum, self.chns, dim=1)
         beta = torch.split(self.beta/w_sum, self.chns, dim=1)
         for k in range(len(self.chns)):
+            if warp is None or certainty is None:
+                x_mean = feats0[k].mean([2,3], keepdim=True)
+                y_mean = feats1[k].mean([2,3], keepdim=True)
+
+                S1 = (2*x_mean*y_mean+c1)/(x_mean**2+y_mean**2+c1)
+                dist1 = dist1+(alpha[k]*S1).sum(1,keepdim=True)
+
+                x_var = ((feats0[k]-x_mean)**2).mean([2,3], keepdim=True)
+                y_var = ((feats1[k]-y_mean)**2).mean([2,3], keepdim=True)
+                xy_cov = (feats0[k]*feats1[k]).mean([2,3],keepdim=True) - x_mean*y_mean
+            else:
+                feats1[k], certainty_k = self.warp(feats1[k], warp, certainty)
+                certainty_sum = certainty_k.sum()
+                print("C", certainty_k.shape)
+                certainty_k = certainty_k
+                x_mean = (feats0[k] * certainty_k).sum([2,3], keepdim=True) / certainty_sum
+                y_mean = (feats1[k] * certainty_k).sum([2,3], keepdim=True) / certainty_sum
+
+                S1 = (2*x_mean*y_mean+c1)/(x_mean**2+y_mean**2+c1)
+                dist1 = dist1+(alpha[k]*S1).sum(1,keepdim=True)
+
+                x_var = (certainty_k*(feats0[k]-x_mean)**2).sum([2,3], keepdim=True) / certainty_sum
+                y_var = (certainty_k*(feats1[k]-y_mean)**2).sum([2,3], keepdim=True) / certainty_sum
+                xy_cov = (certainty_k*feats0[k]*feats1[k]).sum([2,3], keepdim=True) / certainty_sum - x_mean*y_mean
+            
+            S2 = (2*xy_cov+c2)/(x_var+y_var+c2)
+            dist2 = dist2+(beta[k]*S2).sum(1,keepdim=True)
+
+        score = 1 - (dist1+dist2).squeeze()
+        if batch_average:
+            return score.mean()
+        else:
+            return score
+
+    def forward_from_feats(self, feats0, feats1, batch_average=False):
+
+        dist1 = 0 
+        dist2 = 0 
+        c1 = 1e-6
+        c2 = 1e-6
+        w_sum = self.alpha.sum() + self.beta.sum()
+        alpha = torch.split(self.alpha/w_sum, self.chns, dim=1)
+        beta = torch.split(self.beta/w_sum, self.chns, dim=1)
+        for k in range(len(self.chns)):
             x_mean = feats0[k].mean([2,3], keepdim=True)
             y_mean = feats1[k].mean([2,3], keepdim=True)
+
             S1 = (2*x_mean*y_mean+c1)/(x_mean**2+y_mean**2+c1)
             dist1 = dist1+(alpha[k]*S1).sum(1,keepdim=True)
 
             x_var = ((feats0[k]-x_mean)**2).mean([2,3], keepdim=True)
             y_var = ((feats1[k]-y_mean)**2).mean([2,3], keepdim=True)
             xy_cov = (feats0[k]*feats1[k]).mean([2,3],keepdim=True) - x_mean*y_mean
+   
             S2 = (2*xy_cov+c2)/(x_var+y_var+c2)
             dist2 = dist2+(beta[k]*S2).sum(1,keepdim=True)
 
@@ -113,7 +172,7 @@ class DISTS(torch.nn.Module):
 
 def prepare_image(image, resize=True):
     if resize and min(image.size)>256:
-        image = transforms.functional.resize(image,(256))
+        image = transforms.functional.resize(image,(256, 256))
     image = transforms.ToTensor()(image)
     return image.unsqueeze(0)
 

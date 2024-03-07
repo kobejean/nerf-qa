@@ -1,0 +1,17 @@
+program: train-nr.py
+metric:
+  name: Validation Metrics Dict/l1
+  goal: minimize
+
+method: bayes
+parameters:
+  lr:
+    distribution: q_log_uniform_values
+    min: 5e-6
+    max: 5e-4
+    q: 1e-7
+command:
+- ${env}
+- ${interpreter}
+- ${program}
+- ${args}

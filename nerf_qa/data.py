@@ -10,6 +10,7 @@ import argparse
 from scipy.stats import pearsonr, spearmanr
 import numpy as np
 import torch
+import torch.nn.functional as F
 from torch import nn
 from torchvision import models,transforms
 import torch.optim as optim
@@ -17,6 +18,7 @@ import wandb
 from sklearn.model_selection import GroupKFold
 from sklearn.linear_model import LinearRegression
 from torch.utils.data import Dataset, DataLoader, Sampler
+from torch.profiler import profile, record_function, ProfilerActivity
 
 # data 
 import pandas as pd
@@ -146,20 +148,78 @@ def create_test_video_dataloader(row, dir, resize=True):
     dataset = TensorDataset(dist, ref)
     dataloader = DataLoader(dataset, batch_size=DEVICE_BATCH_SIZE, shuffle=False)
     return dataloader
+
+
+class NerfNRQADataset(Dataset):
+    def __init__(self, dataframe, dir = "/home/ccl/Datasets/NeRF-NR-QA/", mode='render'):
+        self.dir = dir
+        self.df = dataframe
+        self.total_frames = self.df['frame_count'].sum()
+        self.frames = self.df['frame_count'].cumsum()
+        self.mode = mode
+
+    def __len__(self):
+        return self.total_frames
+
+    def __getitem__(self, index):
+        df_index = self.frames.searchsorted(index, side='right')
+        if df_index > 0:
+            frame_index = index - self.frames.iloc[df_index - 1]
+        else:
+            frame_index = index
+        row = self.df.iloc[df_index]
+        scene = row['scene']
+        method = row['method']
+        basenames = eval(row['basenames'])  # Convert string to list
+        basename = basenames[frame_index]
+        dists_score = eval(row['DISTS'])[frame_index]  # Get DISTS score for the specific frame
+        render_dir = row['render_dir']
+        if self.mode == 'features':
+            filename, _ = os.path.splitext(basename)
+            parent_dir = os.path.dirname(render_dir)  # Get the parent directory of 'color'
+            features_dir = os.path.join(self.dir, parent_dir, 'features')  # Create the 'features' directory path
+            features_path = os.path.join(features_dir, f"{filename}.pt")
+            features = torch.load(features_path, map_location=torch.device('cpu'))
+            return features, torch.tensor(dists_score), df_index, frame_index
+
+
+
+        render_path = os.path.join(self.dir, render_dir, basename)
+        render_image = self.load_image(render_path)
+        render_256 = F.interpolate(render_image.unsqueeze(0), size=(256, 256), mode='bilinear', align_corners=False).squeeze(0)
+        render_224 = F.interpolate(render_image.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
+        render = { "256x256": render_256, "224x224": render_224 }
+
+        if self.mode == 'render':
+            return render, torch.tensor(dists_score), df_index, frame_index
+
+        gt_dir = row['gt_dir']
+        gt_path = os.path.join(self.dir, gt_dir, basename)
+        gt_image = self.load_image(gt_path)
+        gt_image = F.interpolate(gt_image.unsqueeze(0), size=(256, 256), mode='bilinear', align_corners=False).squeeze(0)
+
+        return gt_image, render, torch.tensor(dists_score), df_index, frame_index
+
+    def load_image(self, path):
+        image = Image.open(path).convert('RGB')
+        image = self.transform(image)
+        return image
+
+    def transform(self, image):
+        # Apply any necessary image transformations here
+        # For example, you can resize, normalize, or convert to tensor
+        return torch.from_numpy(np.array(image)).permute(2, 0, 1).float() / 255.0
 #%%
 if __name__ == "__main__":
 
-    DATA_DIR = "/home/ccl/Datasets/NeRF-QA-Large-1"
-    SCORE_FILE = path.join(DATA_DIR, "scores.csv")
+    DATA_DIR = "/home/ccl/Datasets/NeRF-NR-QA/"  # Specify the path to your DATA_DIR
+
+    # CSV file path
+    csv_file = "/home/ccl/Datasets/NeRF-NR-QA/output.csv"
     # Read the CSV file
-    scores_df = pd.read_csv(SCORE_FILE)
-    # filter test
-    test_scenes = ['ship', 'lego', 'drums', 'ficus', 'train', 'm60', 'playground', 'truck']
-    train_df = scores_df[~scores_df['scene'].isin(test_scenes)].reset_index() # + ['trex', 'horns']
-    # val_df = scores_df[scores_df['scene'].isin(test_scenes)].reset_index()
-    dataloader = create_large_qa_dataloader(train_df, dir=DATA_DIR)
-    dist, ref, score, id = next(iter(dataloader))
-    print(dist, ref, score, id)
+    scores_df = pd.read_csv(csv_file)
+    dataset = NerfNRQADataset(scores_df, dir=DATA_DIR)
+    dataset[100]
 
 
 
