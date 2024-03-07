@@ -29,6 +29,7 @@ class ConvLayer(nn.Module):
         if self.apply_relu:
             x = self.relu(x)
         return x
+    
 class RefineUp(nn.Module):
     """
     Refine and optionally upsample feature maps.
@@ -48,7 +49,7 @@ class RefineUp(nn.Module):
         super(RefineUp, self).__init__()
         self.feature_channels = feature_channels
         self.upsample = upsample
-        self.refine_scale = 0.1  # Scale for residual connections
+        self.refine_scale = wandb.config.refine_scale
 
         # Initialize convolutional layers
         convolutional_layers = [ConvLayer(input_channels, input_channels) for _ in range(depth - 1)]
@@ -59,31 +60,31 @@ class RefineUp(nn.Module):
         if self.upsample:
             self.upsample_layer = nn.ConvTranspose2d(output_channels, output_channels, kernel_size=3, stride=2, padding=1, output_padding=1)
 
-    def forward(self, input_features, additional_features):
+    def forward(self, input_feats, additional_feats):
         """
         Forward pass of the RefineUp module.
 
         Parameters:
-        - input_features: The input feature map.
-        - additional_features: Additional feature channels to integrate.
+        - input_feats: The input feature map.
+        - additional_feats: Additional feature channels to integrate.
 
         Returns:
         - Tuple of the refined (and optionally upsampled) feature map and updated additional features.
         """
         # Integrate additional features into input features
-        input_features[:, :self.feature_channels, :, :] += additional_features[:, :self.feature_channels, :, :]
+        input_feats[:, :self.feature_channels, :, :] += additional_feats[:, :self.feature_channels, :, :]
 
         # Apply convolutional blocks
-        refined_features = self.block(input_features)
+        refined_feats = self.block(input_feats)
 
         # Update additional features with residual scaling
-        additional_features = self.refine_scale * refined_features[:, :self.feature_channels, :, :] + additional_features[:, :self.feature_channels, :, :]
+        additional_feats = self.refine_scale * refined_feats[:, :self.feature_channels, :, :] + additional_feats[:, :self.feature_channels, :, :]
 
         # Upsample if enabled
         if self.upsample:
-            refined_features = self.upsample_layer(refined_features)
+            refined_feats = self.upsample_layer(refined_feats)
 
-        return refined_features, additional_features
+        return refined_feats, additional_feats
     
 
 def freeze_parameters(model):
@@ -120,7 +121,7 @@ class Encoder(nn.Module):
         """
         render_256, render_224 = render["256x256"].to(self.device), render["224x224"].to(self.device)
         dists_feats = self.dists.forward_once(render_256)
-        dinov2_feats = self.dinov2.forward_features(render_224)
+        dinov2_feats = self.dinov2.forward_feats(render_224)
         return dists_feats + [dinov2_feats]
 
 class NRModel(nn.Module):
@@ -131,33 +132,26 @@ class NRModel(nn.Module):
     It integrates features from a pre-trained dino v2 model and applies a series of
     RefineUp layers to predict a no-reference score.
     """
-    def __init__(self, device='cpu'):
+    def __init__(self, device='cpu', refine_up_depth = 2):
         super(NRModel, self).__init__()
         self.device = device
+        self.refine_up_depth = refine_up_depth
         self.encoder = Encoder(device=device)
-        self.define_channel_dimensions()
-        self.initialize_decoder()
-
-
-
-    def define_channel_dimensions(self):
-        """
-        Defines the channel dimensions based on the encoder models' embeddings and features.
-        """
+        
+        # Define the channel dimensions based on the encoder models' embeddings and features
+        initial_embed_dim = self.encoder.dinov2.embed_dim
         self.sem_channels = [
-            self.dinov2.embed_dim, self.dinov2.embed_dim, self.dinov2.embed_dim,
-            self.dinov2.embed_dim // 2, self.dinov2.embed_dim // 4,
-            self.dinov2.embed_dim // 8, self.dinov2.embed_dim // 16,
+            initial_embed_dim, initial_embed_dim, initial_embed_dim,
+            initial_embed_dim // 2, initial_embed_dim // 4,
+            initial_embed_dim // 8, initial_embed_dim // 16,
         ]
-        self.dists_channels = [self.dists.channels[-1]] + list(reversed(self.dists.channels))
+        self.dists_channels = [self.encoder.dists.channels[-1]] + list(reversed(self.encoder.dists.channels))
 
-    def initialize_decoder(self):
-        """
-        Initializes the decoder with RefineUp layers based on channel dimensions.
-        """
+        
+        # Initialize decoder
         num_upscales = len(self.dists_channels) - 3
         self.decoder = nn.Sequential(
-            *[self.create_refineup_layer(i, upsample=True if i < num_upscales else False) for i in range(num_upscales + 2)]
+            *[self.create_refineup_layer(i, upsample=i < num_upscales) for i in range(num_upscales + 2)]
         ).to(self.device)
 
     def create_refineup_layer(self, index, upsample=True):
@@ -168,45 +162,45 @@ class NRModel(nn.Module):
         dists_ch_out, sem_ch_out = self.dists_channels[index + 1], self.sem_channels[index + 1]
         channels_in = dists_ch_in + sem_ch_in
         channels_out = dists_ch_out + sem_ch_out
-        return RefineUp(channels_in, channels_out, dists_ch_out, depth=3, upsample=upsample)
+        return RefineUp(channels_in, channels_out, dists_ch_out, depth=self.refine_up_depth, upsample=upsample)
 
 
     def pred_gt_dists_feats(self, dists_feats, dinov2_feats):
         # Initialize the feature map by concatenating a zero tensor with the DINO v2 features
         feature_map = torch.concat([torch.zeros_like(dists_feats[-1]), dinov2_feats], dim=1)
-        predicted_features = []
+        predicted_feats = []
 
         # Refine features in reverse order using the decoder layers
         for refiner, feature in zip(self.decoder, reversed(dists_feats)):
             feature_map, refined_feature = refiner(feature_map, feature)
-            predicted_features.append(refined_feature)
+            predicted_feats.append(refined_feature)
 
         # Return the refined features in the original order
-        return list(reversed(predicted_features))
+        return list(reversed(predicted_feats))
     
-    def forward_from_feats(self, features_list):
+    def forward_from_feats(self, encoder_feats):
         # Separate DISTS features and DINO v2 features from the features list
-        dists_features = [feature.to(self.device) for feature in features_list[:-1]]
-        dinov2_features = features_list[-1]['x_norm_patchtokens'].permute(0, 2, 1).reshape(-1, self.dinov2.embed_dim, 16, 16).to(self.device)
+        dists_feats = [feature.to(self.device) for feature in encoder_feats[:-1]]
+        dinov2_feats = encoder_feats[-1]['x_norm_patchtokens'].permute(0, 2, 1).reshape(-1, self.encoder.dinov2.embed_dim, 16, 16).to(self.device)
         
         # Predict ground truth DISTS features using the decoded features
-        predicted_gt_features = self.pred_gt_dists_feats(dists_features, dinov2_features)
+        predicted_gt_feats = self.pred_gt_dists_feats(dists_feats, dinov2_feats)
         
         # Compute the final score using DISTS with the predicted features
-        return self.dists.forward_from_feats(dists_features, predicted_gt_features)
+        return self.encoder.dists.forward_from_feats(dists_feats, predicted_gt_feats)
 
 
     def losses(self, gt_image, render, score):
         # Encode render to extract features and predict ground truth DISTS features
-        features_list = self.encoder(render)
-        dists_features = [feature.to(self.device) for feature in features_list[:-1]]
-        dinov2_features = features_list[-1]['x_norm_patchtokens'].permute(0, 2, 1).reshape(-1, self.dinov2.embed_dim, 16, 16).to(self.device)
-        predicted_gt_features = self.pred_gt_dists_feats(dists_features, dinov2_features)
+        encoder_feats = self.encoder(render)
+        dists_feats = [feature.to(self.device) for feature in encoder_feats[:-1]]
+        dinov2_feats = encoder_feats[-1]['x_norm_patchtokens'].permute(0, 2, 1).reshape(-1, self.encoder.dinov2.embed_dim, 16, 16).to(self.device)
+        predicted_gt_feats = self.pred_gt_dists_feats(dists_feats, dinov2_feats)
         
         # Predict scores and calculate the loss with the ground truth image features
-        gt_dists_features = self.dists.forward_once(gt_image)
-        predicted_score = self.dists.forward_from_feats(dists_features, predicted_gt_features)
-        dists_pref2ref = self.dists.forward_from_feats(predicted_gt_features, gt_dists_features, batch_average=True)
+        predicted_score = self.encoder.dists.forward_from_feats(dists_feats, predicted_gt_feats)
+        gt_dists_feats = self.encoder.dists.forward_once(gt_image)
+        dists_pref2ref = self.encoder.dists.forward_from_feats(predicted_gt_feats, gt_dists_feats, batch_average=True)
         
         # Calculate L1 loss and combine it with the DISTS predicted-reference-to-reference loss
         l1_loss = self.l1_loss_fn(predicted_score, score)
@@ -220,94 +214,6 @@ class NRModel(nn.Module):
 
     def forward(self, render):
         # Encode the render and predict scores from features
-        features_list = self.encoder(render)
-        scores = self.forward_from_feats(features_list)
+        encoder_feats = self.encoder(render)
+        scores = self.forward_from_feats(encoder_feats)
         return scores
-
-class NRModel_(nn.Module):
-    def __init__(self, device='cpu', from_feats=False):
-        super(NRModel_, self).__init__()
-        if not from_feats:
-            self.dinov2 = torch.hub.load('facebookresearch/dinov2', 'dinov2_vits14_reg').to(device)
-            for param in self.dinov2.parameters():
-                param.requires_grad = False
-
-        self.dists = DISTS(from_feats=from_feats).to(device)
-        for param in self.dists.parameters():
-            param.requires_grad = False
-
-        self.sem_chns = [
-            self.dinov2.embed_dim,
-            self.dinov2.embed_dim,
-            self.dinov2.embed_dim,
-            self.dinov2.embed_dim//2,
-            self.dinov2.embed_dim//4,
-            self.dinov2.embed_dim//8,
-            self.dinov2.embed_dim//16,
-        ]
-        self.dists_chns = [self.dists.chns[-1]] + list(reversed(self.dists.chns))
-        refiner_depth = 3
-        self.l1_loss_fn = nn.L1Loss()
-        
-        def block(i, upsample=True):
-            dists_chn_in, sem_chn_in = self.dists_chns[i], self.sem_chns[i]
-            dists_chn_out, sem_chn_out = self.dists_chns[i+1], self.sem_chns[i+1]
-            chn_in = dists_chn_in + sem_chn_in
-            chn_out = dists_chn_out + sem_chn_out
-            return RefineUp(chn_in, chn_out, dists_chn_out, depth=refiner_depth, upsample=upsample)
-        
-        num_upscales = len(self.dists_chns)-3
-        self.decoder = nn.Sequential(
-            *[block(i) for i in range(num_upscales)],
-            block(num_upscales, upsample=False),
-            block(num_upscales+1, upsample=False),
-        ).to(device)
-        self.device = device
-
-    def encode(self, render):
-        render_256, render_224 = render["256x256"].to(self.device), render["224x224"].to(self.device)
-        dists_feats = self.dists.forward_once(render_256)
-        dinov2_feats = self.dinov2.forward_features(render_224)
-        features_list = dists_feats + [dinov2_feats]
-        return features_list
-    
-    def pred_gt_dists_feats(self, dists_feats, dinov2_feats):
-        feature_map = torch.concat([torch.zeros_like(dists_feats[-1]), dinov2_feats], dim=1)
-        pred_gt_dists_feats = []
-
-        for refiner, dists_feat in zip(self.decoder, reversed(dists_feats)):
-            feature_map, pred_feat = refiner(feature_map, dists_feat)
-            pred_gt_dists_feats.append(pred_feat)
-
-        return list(reversed(pred_gt_dists_feats))
-
-    def forward_from_feats(self, features_list):
-        dists_feats = [feat.to(self.device) for feat in features_list[:-1]]
-        dinov2_feats = features_list[-1]['x_norm_patchtokens'].permute(0,2,1).reshape(-1,self.dinov2.embed_dim,16,16).to(self.device)
-        pred_gt_dists_feats = self.pred_gt_dists_feats(dists_feats, dinov2_feats)
-        return self.dists.forward_from_feats(dists_feats, pred_gt_dists_feats)
-
-    def losses(self, gt_image, render, score):
-        score.to(self.device)
-        features_list = self.encode(render)
-        dists_feats = [feat.to(self.device) for feat in features_list[:-1]]
-        dinov2_feats = features_list[-1]['x_norm_patchtokens'].to(self.device).permute(0,2,1).reshape(-1,self.dinov2.embed_dim,16,16)
-        pred_gt_dists_feats = self.pred_gt_dists_feats(dists_feats, dinov2_feats)
-        gt_dists_feats = self.dists.forward_once(gt_image)
-        pred_score = self.dists.forward_from_feats(dists_feats, pred_gt_dists_feats)
-
-        dists_pref2ref = self.dists.forward_from_feats(pred_gt_dists_feats, gt_dists_feats, batch_average=True)
-        l1 = self.l1_loss_fn(pred_score, score)
-        combined = dists_pref2ref + l1
-        return {
-            "dists_pref2ref": dists_pref2ref,
-            "l1": l1,
-            "combined": combined
-        }
-
-    def forward(self, render):
-        features_list = self.encode(render)
-        scores = self.forward_from_feats(features_list)
-        return scores
-  
-

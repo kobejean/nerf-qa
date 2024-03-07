@@ -10,6 +10,13 @@ parameters:
     min: 5e-6
     max: 5e-4
     q: 1e-7
+  refine_scale:
+    distribution: q_log_uniform_values
+    min: 5e-2
+    max: 3e-1
+    q: 1e-2
+  refine_up_depth:
+    values: [1, 2, 3]
 command:
 - ${env}
 - ${interpreter}

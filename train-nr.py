@@ -75,19 +75,18 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Initialize a new run with wandb with custom configurations.')
 
     # Basic configurations
-    parser.add_argument('--seed', type=int, default=42, help='Random seed.')
+    parser.add_argument('--refine_up_depth', type=int, default=2, help='Random seed.')
+    parser.add_argument('--refine_scale', type=float, default=0.1, help='Random seed.')
     parser.add_argument('--lr', type=float, default=5e-5, help='Random seed.')
 
     # Parse arguments
     args = parser.parse_args()
 
     epoch_size = 3290
-    batches_per_step = -(epoch_size // -DEVICE_BATCH_SIZE)
-    epochs = 100
+    epochs = 50
     config = {
         "epochs": epochs,
-        #"batches_per_step": batches_per_step,
-        "lr": args.lr,
+        "loader_num_workers": 2,
         "beta1": 0.9,
         "beta2": 0.999,
         "eps": 1e-7,
@@ -104,8 +103,6 @@ if __name__ == '__main__':
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    dists_model = DISTS().to(device)
-
     DATA_DIR = "/home/ccl/Datasets/NeRF-NR-QA/"  # Specify the path to your DATA_DIR
 
     # CSV file 
@@ -116,14 +113,13 @@ if __name__ == '__main__':
 
     train_dataset = NerfNRQADataset(train_df, dir = DATA_DIR, mode='gt')
     val_dataset = NerfNRQADataset(val_df, dir = DATA_DIR, mode='gt')
-    num_workers = 2
-    train_dataloader = DataLoader(train_dataset, collate_fn=recursive_collate, shuffle=True, batch_size = DEVICE_BATCH_SIZE, num_workers=num_workers)
-    val_dataloader = DataLoader(val_dataset, collate_fn=recursive_collate, shuffle=True, batch_size = DEVICE_BATCH_SIZE, num_workers=num_workers)
+    
+    train_dataloader = DataLoader(train_dataset, collate_fn=recursive_collate, shuffle=True, batch_size = DEVICE_BATCH_SIZE, num_workers=config.loader_num_workers)
+    val_dataloader = DataLoader(val_dataset, collate_fn=recursive_collate, shuffle=True, batch_size = DEVICE_BATCH_SIZE, num_workers=config.loader_num_workers)
 
     
 
-
-    model = NRModel(device=device)
+    model = NRModel(device=device, refine_up_depth=config.refine_up_depth)
     optimizer = optim.Adam(model.parameters(),
         lr=config.lr,
         betas=(config.beta1, config.beta2),
