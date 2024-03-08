@@ -83,15 +83,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     epoch_size = 3290
-    epochs = 50
+    epochs = 20
     config = {
         "epochs": epochs,
-        "loader_num_workers": 2,
+        "loader_num_workers": 6,
         "beta1": 0.9,
         "beta2": 0.999,
         "eps": 1e-7,
         "batch_size": DEVICE_BATCH_SIZE,
-        "resize": True,
     }     
     config.update(vars(args))
 
@@ -114,8 +113,8 @@ if __name__ == '__main__':
     train_dataset = NerfNRQADataset(train_df, dir = DATA_DIR, mode='gt')
     val_dataset = NerfNRQADataset(val_df, dir = DATA_DIR, mode='gt')
     
-    train_dataloader = DataLoader(train_dataset, collate_fn=recursive_collate, shuffle=True, batch_size = DEVICE_BATCH_SIZE, num_workers=config.loader_num_workers)
-    val_dataloader = DataLoader(val_dataset, collate_fn=recursive_collate, shuffle=True, batch_size = DEVICE_BATCH_SIZE, num_workers=config.loader_num_workers)
+    train_dataloader = DataLoader(train_dataset, collate_fn=recursive_collate, shuffle=True, batch_size = DEVICE_BATCH_SIZE, num_workers=config.loader_num_workers, pin_memory=True)
+    val_dataloader = DataLoader(val_dataset, collate_fn=recursive_collate, batch_size = DEVICE_BATCH_SIZE, num_workers=config.loader_num_workers, pin_memory=True)
 
     
 

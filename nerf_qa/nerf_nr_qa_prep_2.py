@@ -24,11 +24,11 @@ data_rows = []
 
 # Iterate over the directory structure
 for root, dirs, files in os.walk(DATA_DIR):
-    if "color" in dirs:
+    if "nerf-renders" in dirs[:-1]:
         # Extract scene and method from the directory path
         path_parts = root.split(os.sep)
         if len(path_parts) >= 7:
-            scene = "_".join(path_parts[5:7])
+            scene = dirs[-1]
             method = path_parts[-1]
             if method != "gt-color":
                 gt_dir = os.path.join("/", *path_parts[:-1], "gt-color")

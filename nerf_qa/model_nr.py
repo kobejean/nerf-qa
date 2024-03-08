@@ -15,10 +15,10 @@ from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class ConvLayer(nn.Module):
-    def __init__(self, in_channels, out_channels, apply_relu=True):
+    def __init__(self, in_chns, out_chns, apply_relu=True):
         super(ConvLayer, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size = 3, stride=1, padding='same', dilation=1, groups=1, bias=True)
-        self.batch_norm = nn.BatchNorm2d(out_channels)
+        self.conv = nn.Conv2d(in_chns, out_chns, kernel_size = 3, stride=1, padding='same', dilation=1, groups=1, bias=True)
+        self.batch_norm = nn.BatchNorm2d(out_chns)
         self.apply_relu = apply_relu
         if self.apply_relu:
             self.relu = nn.ReLU()
@@ -39,26 +39,26 @@ class RefineUp(nn.Module):
     additional feature channels and applying depth-wise convolution followed by upsampling.
 
     Parameters:
-    - input_channels: Number of channels in the input feature map.
-    - output_channels: Number of channels in the output feature map.
-    - feature_channels: Number of feature channels to refine.
+    - input_chns: Number of channels in the input feature map.
+    - output_chns: Number of channels in the output feature map.
+    - feature_chns: Number of feature channels to refine.
     - depth: Number of convolutional layers to apply.
     - upsample: Flag indicating whether to upsample the output.
     """
-    def __init__(self, input_channels, output_channels, feature_channels, depth=3, upsample=True):
+    def __init__(self, input_chns, output_chns, feature_chns, depth=3, upsample=True):
         super(RefineUp, self).__init__()
-        self.feature_channels = feature_channels
+        self.feature_chns = feature_chns
         self.upsample = upsample
         self.refine_scale = wandb.config.refine_scale
 
         # Initialize convolutional layers
-        convolutional_layers = [ConvLayer(input_channels, input_channels) for _ in range(depth - 1)]
-        convolutional_layers.append(ConvLayer(input_channels, output_channels, apply_relu=False))
+        convolutional_layers = [ConvLayer(input_chns, input_chns) for _ in range(depth - 1)]
+        convolutional_layers.append(ConvLayer(input_chns, output_chns, apply_relu=False))
         self.block = nn.Sequential(*convolutional_layers)
 
         # Initialize upsampling layer if upsampling is enabled
         if self.upsample:
-            self.upsample_layer = nn.ConvTranspose2d(output_channels, output_channels, kernel_size=3, stride=2, padding=1, output_padding=1)
+            self.upsample_layer = nn.ConvTranspose2d(output_chns, output_chns, kernel_size=3, stride=2, padding=1, output_padding=1)
 
     def forward(self, input_feats, additional_feats):
         """
@@ -72,13 +72,13 @@ class RefineUp(nn.Module):
         - Tuple of the refined (and optionally upsampled) feature map and updated additional features.
         """
         # Integrate additional features into input features
-        input_feats[:, :self.feature_channels, :, :] += additional_feats[:, :self.feature_channels, :, :]
+        input_feats[:, :self.feature_chns, :, :] += additional_feats[:, :self.feature_chns, :, :]
 
         # Apply convolutional blocks
         refined_feats = self.block(input_feats)
 
         # Update additional features with residual scaling
-        additional_feats = self.refine_scale * refined_feats[:, :self.feature_channels, :, :] + additional_feats[:, :self.feature_channels, :, :]
+        additional_feats = self.refine_scale * refined_feats[:, :self.feature_chns, :, :] + additional_feats[:, :self.feature_chns, :, :]
 
         # Upsample if enabled
         if self.upsample:
@@ -121,7 +121,7 @@ class Encoder(nn.Module):
         """
         render_256, render_224 = render["256x256"].to(self.device), render["224x224"].to(self.device)
         dists_feats = self.dists.forward_once(render_256)
-        dinov2_feats = self.dinov2.forward_feats(render_224)
+        dinov2_feats = self.dinov2.forward_features(render_224)
         return dists_feats + [dinov2_feats]
 
 class NRModel(nn.Module):
@@ -137,19 +137,20 @@ class NRModel(nn.Module):
         self.device = device
         self.refine_up_depth = refine_up_depth
         self.encoder = Encoder(device=device)
+        self.l1_loss_fn = nn.L1Loss()
         
         # Define the channel dimensions based on the encoder models' embeddings and features
         initial_embed_dim = self.encoder.dinov2.embed_dim
-        self.sem_channels = [
+        self.sem_chns = [
             initial_embed_dim, initial_embed_dim, initial_embed_dim,
             initial_embed_dim // 2, initial_embed_dim // 4,
             initial_embed_dim // 8, initial_embed_dim // 16,
         ]
-        self.dists_channels = [self.encoder.dists.channels[-1]] + list(reversed(self.encoder.dists.channels))
+        self.dists_chns = [self.encoder.dists.chns[-1]] + list(reversed(self.encoder.dists.chns))
 
         
         # Initialize decoder
-        num_upscales = len(self.dists_channels) - 3
+        num_upscales = len(self.dists_chns) - 3
         self.decoder = nn.Sequential(
             *[self.create_refineup_layer(i, upsample=i < num_upscales) for i in range(num_upscales + 2)]
         ).to(self.device)
@@ -158,8 +159,8 @@ class NRModel(nn.Module):
         """
         Creates a RefineUp layer for the decoder.
         """
-        dists_ch_in, sem_ch_in = self.dists_channels[index], self.sem_channels[index]
-        dists_ch_out, sem_ch_out = self.dists_channels[index + 1], self.sem_channels[index + 1]
+        dists_ch_in, sem_ch_in = self.dists_chns[index], self.sem_chns[index]
+        dists_ch_out, sem_ch_out = self.dists_chns[index + 1], self.sem_chns[index + 1]
         channels_in = dists_ch_in + sem_ch_in
         channels_out = dists_ch_out + sem_ch_out
         return RefineUp(channels_in, channels_out, dists_ch_out, depth=self.refine_up_depth, upsample=upsample)
