@@ -28,7 +28,7 @@ from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS
 from nerf_qa.data import NerfNRQADataset
 from nerf_qa.logger import MetricCollectionLogger
 from nerf_qa.settings import DEVICE_BATCH_SIZE
-from nerf_qa.model_nr import NRModel
+from nerf_qa.model_nr_v2 import NRModel
 import multiprocessing as mp
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -76,6 +76,7 @@ if __name__ == '__main__':
 
     # Basic configurations
     parser.add_argument('--refine_up_depth', type=int, default=2, help='Random seed.')
+    parser.add_argument('--transformer_decoder_depth', type=int, default=2, help='Random seed.')
     parser.add_argument('--refine_scale', type=float, default=0.1, help='Random seed.')
     parser.add_argument('--dists_pref2ref_coeff', type=float, default=0.5, help='Random seed.')
     parser.add_argument('--lr', type=float, default=5e-5, help='Random seed.')
@@ -84,7 +85,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     epoch_size = 3290
-    epochs = 20
+    epochs = 10
     config = {
         "epochs": epochs,
         "loader_num_workers": 6,
