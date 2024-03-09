@@ -205,7 +205,8 @@ class NRModel(nn.Module):
         
         # Calculate L1 loss and combine it with the DISTS predicted-reference-to-reference loss
         l1_loss = self.l1_loss_fn(predicted_score, score)
-        combined_loss = dists_pref2ref + l1_loss
+        coeff = wandb.config.dists_pref2ref_coeff
+        combined_loss = coeff*dists_pref2ref + (1-coeff) * l1_loss
         
         return {
             "dists_pref2ref": dists_pref2ref,

@@ -7,16 +7,20 @@ method: bayes
 parameters:
   lr:
     distribution: q_log_uniform_values
-    min: 5e-6
-    max: 1e-3
+    min: 5e-4
+    max: 5e-3
     q: 1e-7
   refine_scale:
     distribution: q_log_uniform_values
     min: 5e-2
-    max: 3e-1
+    max: 2e-1
     q: 1e-2
+  dists_pref2ref_coeff:
+    distribution: uniform
+    min: 0.0
+    max: 1.0
   refine_up_depth:
-    values: [1, 2, 3]
+    values: [1]
 command:
 - ${env}
 - ${interpreter}

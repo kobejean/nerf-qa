@@ -24,15 +24,19 @@ data_rows = []
 
 # Iterate over the directory structure
 for root, dirs, files in os.walk(DATA_DIR):
-    if "color" in dirs:
+    if "color" in dirs or "gt-color" in dirs:
         # Extract scene and method from the directory path
         path_parts = root.split(os.sep)
         if len(path_parts) >= 7:
             scene = "_".join(path_parts[5:7])
             method = path_parts[-1]
-            if method != "gt-color":
-                gt_dir = os.path.join("/", *path_parts[:-1], "gt-color")
-                render_dir = os.path.join(root, "color")
+            #if method != "gt-color":
+            if True:
+                if "color" in dirs:
+                    gt_dir = os.path.join("/", *path_parts[:-1], "gt-color")
+                    render_dir = os.path.join(root, "color")
+                else:
+                    gt_dir = render_dir = os.path.join(root, 'gt-color')
                 print(gt_dir, render_dir)
 
                 # Count the number of image files in gt_dir or render_dir
@@ -62,9 +66,13 @@ for root, dirs, files in os.walk(DATA_DIR):
                         dists_scores.append(dists_score.cpu().item())
                         basenames.append(os.path.basename(gt_file))
 
-                gt_dir = os.path.join(*path_parts[5:-1], "gt-color")
-                render_dir = os.path.join(*path_parts[5:], "color")
 
+                if "color" in dirs:
+                    gt_dir = os.path.join(*path_parts[5:-1], "gt-color")
+                    render_dir = os.path.join(*path_parts[5:], "color")
+                else:
+                    gt_dir = render_dir = os.path.join(*path_parts[5:], 'gt-color')
+                print(gt_dir, render_dir)
                 # Create a data row
                 data_row = [scene, method, gt_dir, render_dir, frame_count, frame_height, frame_width, basenames, dists_scores]
                 data_rows.append(data_row)
@@ -105,7 +113,7 @@ dists_scores = pd.concat([pd.Series(x) for x in df['DISTS_list']])
 
 # Display the histogram
 plt.figure(figsize=(10, 6))
-dists_scores.hist(bins = np.arange(0, 0.51, 0.01))
+dists_scores.hist(bins = np.arange(-0.01, 0.51, 0.01))
 plt.xlabel('DISTS Score')
 plt.ylabel('Frequency')
 plt.title('Histogram of DISTS Scores')

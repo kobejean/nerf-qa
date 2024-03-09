@@ -77,6 +77,7 @@ if __name__ == '__main__':
     # Basic configurations
     parser.add_argument('--refine_up_depth', type=int, default=2, help='Random seed.')
     parser.add_argument('--refine_scale', type=float, default=0.1, help='Random seed.')
+    parser.add_argument('--dists_pref2ref_coeff', type=float, default=0.5, help='Random seed.')
     parser.add_argument('--lr', type=float, default=5e-5, help='Random seed.')
 
     # Parse arguments
