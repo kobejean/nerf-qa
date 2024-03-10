@@ -28,7 +28,7 @@ from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS
 from nerf_qa.data import NerfNRQADataset
 from nerf_qa.logger import MetricCollectionLogger
 from nerf_qa.settings import DEVICE_BATCH_SIZE
-from nerf_qa.model_nr_v2 import NRModel
+from nerf_qa.model_nr import NRModel
 import multiprocessing as mp
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -76,7 +76,7 @@ if __name__ == '__main__':
 
     # Basic configurations
     parser.add_argument('--refine_up_depth', type=int, default=2, help='Random seed.')
-    parser.add_argument('--transformer_decoder_depth', type=int, default=2, help='Random seed.')
+    #parser.add_argument('--transformer_decoder_depth', type=int, default=2, help='Random seed.')
     parser.add_argument('--refine_scale', type=float, default=0.1, help='Random seed.')
     parser.add_argument('--dists_pref2ref_coeff', type=float, default=0.5, help='Random seed.')
     parser.add_argument('--lr', type=float, default=5e-5, help='Random seed.')
@@ -85,10 +85,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     epoch_size = 3290
-    epochs = 10
+    epochs = 5
     config = {
         "epochs": epochs,
-        "loader_num_workers": 6,
+        "loader_num_workers": 4,
         "beta1": 0.9,
         "beta2": 0.999,
         "eps": 1e-7,
@@ -111,6 +111,11 @@ if __name__ == '__main__':
     val_scenes = ['nerfstudio_plane', 'nerfstudio_stump', 'mipnerf360_garden', 'mipnerf360_stump']
     train_df = scores_df[~scores_df['scene'].isin(val_scenes)].reset_index() # + ['trex', 'horns']
     val_df = scores_df[scores_df['scene'].isin(val_scenes)].reset_index()
+    black_list_val_methods = [
+        'instant-ngp-10', 'instant-ngp-20', 'instant-ngp-50', 'instant-ngp-100', 'instant-ngp-200', 'instant-ngp-500', 'instant-ngp-1000', 'instant-ngp-2000', 'instant-ngp-5000', 'instant-ngp-10000', 'instant-ngp-20000',
+        'nerfacto-10', 'nerfacto-20', 'nerfacto-50', 'nerfacto-100', 'nerfacto-200', 'nerfacto-500', 'nerfacto-1000', 'nerfacto-2000', 'nerfacto-5000', 'nerfacto-10000', 'nerfacto-20000',
+    ]
+    val_df = val_df[~val_df['method'].isin(black_list_val_methods)].reset_index()
 
     train_dataset = NerfNRQADataset(train_df, dir = DATA_DIR, mode='gt')
     val_dataset = NerfNRQADataset(val_df, dir = DATA_DIR, mode='gt')
@@ -160,3 +165,5 @@ if __name__ == '__main__':
         wandb.log({
             "Validation Metrics Dict/l1": np.mean(metrics)
         }, step=step)
+
+# %%

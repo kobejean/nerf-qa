@@ -95,10 +95,6 @@ csv_file = "/home/ccl/Datasets/NeRF-NR-QA/output.csv"
 # Read the CSV file into a DataFrame
 df = pd.read_csv(csv_file)
 
-# Print the DataFrame
-display(df)
-# %%
-print(df.head(5))
 # %%
 import matplotlib.pyplot as plt
 import ast
@@ -113,9 +109,11 @@ dists_scores = pd.concat([pd.Series(x) for x in df['DISTS_list']])
 
 # Display the histogram
 plt.figure(figsize=(10, 6))
-dists_scores.hist(bins = np.arange(-0.01, 0.51, 0.01))
+dists_scores.hist(bins = np.arange(-0.01, 0.91, 0.01))
 plt.xlabel('DISTS Score')
 plt.ylabel('Frequency')
 plt.title('Histogram of DISTS Scores')
 plt.show()
+# %%
+
 # %%

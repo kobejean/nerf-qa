@@ -170,7 +170,10 @@ class NerfNRQADataset(Dataset):
         row = self.df.iloc[df_index]
         scene = row['scene']
         method = row['method']
+        
         basenames = eval(row['basenames'])  # Convert string to list
+        if frame_index >= len(basenames):
+            print(df_index, scene, method, frame_index)
         basename = basenames[frame_index]
         dists_score = eval(row['DISTS'])[frame_index]  # Get DISTS score for the specific frame
         render_dir = row['render_dir']

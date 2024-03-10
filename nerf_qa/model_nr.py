@@ -11,7 +11,7 @@ from sklearn.linear_model import LinearRegression
 
 # local
 from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS
-
+from nerf_qa.layers import NestedTensorBlock as Block, MemEffAttention
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class ConvLayer(nn.Module):
@@ -59,6 +59,7 @@ class RefineUp(nn.Module):
         # Initialize upsampling layer if upsampling is enabled
         if self.upsample:
             self.upsample_layer = nn.ConvTranspose2d(output_chns, output_chns, kernel_size=3, stride=2, padding=1, output_padding=1)
+        
 
     def forward(self, input_feats, additional_feats):
         """
@@ -140,20 +141,25 @@ class NRModel(nn.Module):
         self.l1_loss_fn = nn.L1Loss()
         
         # Define the channel dimensions based on the encoder models' embeddings and features
-        initial_embed_dim = self.encoder.dinov2.embed_dim
+        initial_sem_dim = self.encoder.dinov2.embed_dim
+        initial_dists_dim = self.encoder.dists.chns[-1]
         self.sem_chns = [
-            initial_embed_dim, initial_embed_dim, initial_embed_dim,
-            initial_embed_dim // 2, initial_embed_dim // 4,
-            initial_embed_dim // 8, initial_embed_dim // 16,
+            initial_sem_dim, initial_sem_dim, initial_sem_dim,
+            initial_sem_dim // 2, initial_sem_dim // 4,
+            initial_sem_dim // 8, initial_sem_dim // 16,
         ]
-        self.dists_chns = [self.encoder.dists.chns[-1]] + list(reversed(self.encoder.dists.chns))
-
+        self.dists_chns = [initial_dists_dim] + list(reversed(self.encoder.dists.chns))
         
         # Initialize decoder
         num_upscales = len(self.dists_chns) - 3
+        # self.transformer_decoder = nn.Sequential(
+        #     *[Block(initial_dists_dim + initial_sem_dim, 8, attn_class=MemEffAttention) for _ in range(wandb.config.transformer_decoder_depth)],
+        # )
+        # self.trans2sem = ConvLayer(initial_dists_dim + initial_sem_dim, initial_sem_dim)
         self.decoder = nn.Sequential(
             *[self.create_refineup_layer(i, upsample=i < num_upscales) for i in range(num_upscales + 2)]
-        ).to(self.device)
+        )
+        self.to(device)
 
     def create_refineup_layer(self, index, upsample=True):
         """
@@ -165,9 +171,12 @@ class NRModel(nn.Module):
         channels_out = dists_ch_out + sem_ch_out
         return RefineUp(channels_in, channels_out, dists_ch_out, depth=self.refine_up_depth, upsample=upsample)
 
-
     def pred_gt_dists_feats(self, dists_feats, dinov2_feats):
         # Initialize the feature map by concatenating a zero tensor with the DINO v2 features
+        # encoder_feats = torch.concat([dists_feats[-1], dinov2_feats], dim=1)
+        # C = encoder_feats.shape[1]
+        # trans_decode = self.transformer_decoder(encoder_feats.reshape(-1, C, 256).permute(0,2,1)).permute(0,2,1).reshape(-1, C, 16, 16)
+        # feature_map = dinov2_feats + self.trans2sem(encoder_feats + trans_decode)
         feature_map = torch.concat([torch.zeros_like(dists_feats[-1]), dinov2_feats], dim=1)
         predicted_feats = []
 
@@ -178,7 +187,8 @@ class NRModel(nn.Module):
 
         # Return the refined features in the original order
         return list(reversed(predicted_feats))
-    
+
+
     def forward_from_feats(self, encoder_feats):
         # Separate DISTS features and DINO v2 features from the features list
         dists_feats = [feature.to(self.device) for feature in encoder_feats[:-1]]
