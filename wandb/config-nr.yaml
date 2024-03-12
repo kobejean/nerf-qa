@@ -8,21 +8,26 @@ parameters:
   lr:
     distribution: q_log_uniform_values
     min: 5e-4
-    max: 5e-3
+    max: 2e-3
     q: 1e-7
   refine_scale:
     distribution: q_log_uniform_values
-    min: 5e-2
+    min: 1.5e-2
     max: 3e-1
+    q: 1e-2
+  score_reg_scale:
+    distribution: q_log_uniform_values
+    min: 1e-2
+    max: 1e-1
     q: 1e-2
   dists_pref2ref_coeff:
     distribution: uniform
     min: 0.0
-    max: 1.0
+    max: 0.5
   refine_up_depth:
-    values: [3]
-  # transformer_decoder_depth:
-  #   values: [2]
+    values: [2]
+  transformer_decoder_depth:
+    values: [1]
 command:
 - ${env}
 - ${interpreter}

@@ -157,6 +157,10 @@ class NRModel(nn.Module):
                 *[Block(initial_dists_dim + initial_sem_dim, 8, attn_class=MemEffAttention) for _ in range(wandb.config.transformer_decoder_depth)],
             )
             self.trans2sem = ConvLayer(initial_dists_dim + initial_sem_dim, initial_sem_dim)
+        self.score_reg = nn.Sequential(
+            ConvLayer(initial_dists_dim + initial_sem_dim, initial_sem_dim),
+            ConvLayer(initial_sem_dim, 1, apply_relu=False)
+        )
         self.decoder = nn.Sequential(
             *[self.create_refineup_layer(i, upsample=i < num_upscales) for i in range(num_upscales + 2)]
         )
@@ -171,6 +175,11 @@ class NRModel(nn.Module):
         channels_in = dists_ch_in + sem_ch_in
         channels_out = dists_ch_out + sem_ch_out
         return RefineUp(channels_in, channels_out, dists_ch_out, depth=self.refine_up_depth, upsample=upsample)
+    
+    def score_regression(self, dists_feats, dinov2_feats):
+        encoder_feats = torch.concat([dists_feats[-1], dinov2_feats], dim=1)
+        score_map = self.score_reg(encoder_feats).mean([1,2,3])
+        return score_map
 
     def pred_gt_dists_feats(self, dists_feats, dinov2_feats):
         # Initialize the feature map by concatenating a zero tensor with the DINO v2 features
@@ -203,7 +212,10 @@ class NRModel(nn.Module):
         predicted_gt_feats = self.pred_gt_dists_feats(dists_feats, dinov2_feats)
         
         # Compute the final score using DISTS with the predicted features
-        return self.encoder.dists.forward_from_feats(dists_feats, predicted_gt_feats)
+        score =  self.encoder.dists.forward_from_feats(dists_feats, predicted_gt_feats)
+        score += wandb.config.score_reg_scale * self.score_regression(dists_feats, dinov2_feats)
+        return score
+
 
 
     def losses(self, gt_image, render, score):
@@ -217,6 +229,7 @@ class NRModel(nn.Module):
         predicted_score = self.encoder.dists.forward_from_feats(dists_feats, predicted_gt_feats)
         gt_dists_feats = self.encoder.dists.forward_once(gt_image)
         dists_pref2ref = self.encoder.dists.forward_from_feats(predicted_gt_feats, gt_dists_feats, batch_average=True)
+        predicted_score += wandb.config.score_reg_scale * self.score_regression(dists_feats, dinov2_feats)
         
         # Calculate L1 loss and combine it with the DISTS predicted-reference-to-reference loss
         l1_loss = self.l1_loss_fn(predicted_score, score)
