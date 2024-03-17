@@ -1,3 +1,4 @@
+
 #%%
 # system level
 import os
@@ -19,6 +20,7 @@ from sklearn.model_selection import GroupKFold
 from sklearn.linear_model import LinearRegression
 from torch.utils.data import Dataset, DataLoader, Sampler
 from torch.profiler import profile, record_function, ProfilerActivity
+import torchvision.transforms.functional as TF
 
 # data 
 import pandas as pd
@@ -150,17 +152,48 @@ def create_test_video_dataloader(row, dir, resize=True):
     dataloader = DataLoader(dataset, batch_size=DEVICE_BATCH_SIZE, shuffle=False)
     return dataloader
 
+class SceneBalancedSampler(Sampler):
+    def __init__(self, dataset):
+        self.dataset = dataset
+        self.scene_indices = self.dataset.get_scene_indices()
+        self.num_scenes = len(self.scene_indices)
+        self.samples_per_scene = min(len(indices) for indices in self.scene_indices.values())
+        self.num_samples = self.num_scenes * self.samples_per_scene
+
+    def __iter__(self):
+        indices = []
+        for scene_indices in self.scene_indices.values():
+            indices.extend(torch.randperm(len(scene_indices))[:self.samples_per_scene].tolist())
+        return iter(indices)
+
+    def __len__(self):
+        return self.num_samples
 
 class NerfNRQADataset(Dataset):
-    def __init__(self, dataframe, dir = "/home/ccl/Datasets/NeRF-NR-QA/", mode='render'):
+    def __init__(self, dataframe, dir = "/home/ccl/Datasets/NeRF-NR-QA/", mode='render', is_train=False, aug_crop_scale=0.8, aug_rot_deg=30.0):
         self.dir = dir
         self.df = dataframe
         self.total_frames = self.df['frame_count'].sum()
         self.frames = self.df['frame_count'].cumsum()
         self.mode = mode
+        self.is_train = is_train
+        self.aug_crop_scale = aug_crop_scale
+        self.aug_rot_deg = aug_rot_deg
 
     def __len__(self):
         return self.total_frames
+    
+    def get_scene_indices(self):
+        scene_indices = {}
+        for i, row in self.df.iterrows():
+            scene = row['scene']
+            start_idx = 0 if i == 0 else self.frames.iloc[i - 1]
+            end_idx = self.frames.iloc[i]
+            indices = list(range(start_idx, end_idx))
+            if scene not in scene_indices:
+                scene_indices[scene] = []
+            scene_indices[scene].extend(indices)
+        return scene_indices
 
     def __getitem__(self, index):
         df_index = self.frames.searchsorted(index, side='right')
@@ -178,34 +211,64 @@ class NerfNRQADataset(Dataset):
         basename = basenames[frame_index]
         dists_score = eval(row['DISTS'])[frame_index]  # Get DISTS score for the specific frame
         render_dir = row['render_dir']
-        if self.mode == 'features':
-            filename, _ = os.path.splitext(basename)
-            parent_dir = os.path.dirname(render_dir)  # Get the parent directory of 'color'
-            features_dir = os.path.join(self.dir, parent_dir, 'features')  # Create the 'features' directory path
-            features_path = os.path.join(features_dir, f"{filename}.pt")
-            features = torch.load(features_path, map_location=torch.device('cpu'))
-            return features, torch.tensor(dists_score), df_index, frame_index
-
+        gt_dir = row['gt_dir']
 
 
         render_path = os.path.join(self.dir, render_dir, basename)
         render_image = self.load_image(render_path)
+        gt_path = os.path.join(self.dir, gt_dir, basename)
+        
+        gt_image = self.load_image(gt_path)
+        render_image, gt_image = self.transform_pair(render_image, gt_image)
+        
         render_256 = F.interpolate(render_image.unsqueeze(0), size=(256, 256), mode='bilinear', align_corners=False).squeeze(0)
         render_224 = F.interpolate(render_image.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
         render = { "256x256": render_256, "224x224": render_224 }
 
-        if self.mode == 'render':
-            return render, torch.tensor(dists_score), df_index, frame_index
-
-        gt_dir = row['gt_dir']
-        gt_path = os.path.join(self.dir, gt_dir, basename)
-        gt_image = self.load_image(gt_path)
         gt_image = F.interpolate(gt_image.unsqueeze(0), size=(256, 256), mode='bilinear', align_corners=False).squeeze(0)
 
         return gt_image, render, torch.tensor(dists_score), df_index, frame_index
+    
+    def transform_pair(self, render_image, gt_image):
+        if self.is_train:
+            rotation_degrees = self.aug_rot_deg  # Random rotation range in degrees
+            angle = transforms.RandomRotation.get_params(degrees=(-rotation_degrees, rotation_degrees))
+            render_image = TF.rotate(render_image, angle)
+            gt_image = TF.rotate(gt_image, angle)
+
+        h, w = (int(render_image.shape[1]*0.7), int(render_image.shape[2]*0.7))
+        i, j = (render_image.shape[1]-h)//2, (render_image.shape[2]-w)//2
+        # Crop to avoid black region due to postprocessed distortion
+        render_image = TF.crop(render_image, i, j, h, w)
+        gt_image = TF.crop(gt_image, i, j, h, w)
+
+
+        if self.is_train:
+            # Define the transformations
+            crop_scale = self.aug_crop_scale
+            crop_size = int(crop_scale * h), int(crop_scale * w)  
+            # Apply the same transformations to both images
+            i, j, h, w = transforms.RandomCrop.get_params(render_image, output_size=crop_size)
+            render_image = TF.crop(render_image, i, j, h, w)
+            gt_image = TF.crop(gt_image, i, j, h, w)
+
+        return render_image, gt_image
 
     def load_image(self, path):
-        image = Image.open(path).convert('RGB')
+        image = Image.open(path)
+
+        if image.mode == 'RGBA':
+            # If the image has an alpha channel, create a white background
+            background = Image.new('RGBA', image.size, (255, 255, 255))
+            
+            # Paste the image onto the white background using alpha compositing
+            background.paste(image, mask=image.split()[3])
+            
+            # Convert the image to RGB mode
+            image = background.convert('RGB')
+        else:
+            # If the image doesn't have an alpha channel, directly convert it to RGB
+            image = image.convert('RGB')
         image = self.transform(image)
         return image
 
@@ -222,8 +285,12 @@ if __name__ == "__main__":
     csv_file = "/home/ccl/Datasets/NeRF-NR-QA/output.csv"
     # Read the CSV file
     scores_df = pd.read_csv(csv_file)
-    dataset = NerfNRQADataset(scores_df, dir=DATA_DIR)
-    dataset[100]
+    dataset = NerfNRQADataset(scores_df, dir=DATA_DIR, mode='gt',is_train=True)
+    batch = dataset[7000]
+    to_pil = transforms.ToPILImage()
+    print(batch[0].shape)
+    display(to_pil(batch[0]))
+    display(to_pil(batch[1]['256x256']))
 
 
 

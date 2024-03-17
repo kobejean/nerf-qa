@@ -157,13 +157,13 @@ class NRModel(nn.Module):
                 *[Block(initial_dists_dim + initial_sem_dim, 8, attn_class=MemEffAttention) for _ in range(wandb.config.transformer_decoder_depth)],
             )
             self.trans2sem = ConvLayer(initial_dists_dim + initial_sem_dim, initial_sem_dim)
-        # self.score_reg = nn.Sequential(
-        #     ConvLayer(initial_dists_dim + initial_sem_dim, initial_sem_dim),
-        #     ConvLayer(initial_sem_dim, 1, apply_relu=False)
-        # )
-        self.decoder = nn.Sequential(
-            *[self.create_refineup_layer(i, upsample=i < num_upscales) for i in range(num_upscales + 2)]
+        self.score_reg = nn.Sequential(
+            ConvLayer(initial_dists_dim + initial_sem_dim, initial_sem_dim),
+            ConvLayer(initial_sem_dim, 1, apply_relu=False)
         )
+        # self.decoder = nn.Sequential(
+        #     *[self.create_refineup_layer(i, upsample=i < num_upscales) for i in range(num_upscales + 2)]
+        # )
         self.to(device)
 
     def create_refineup_layer(self, index, upsample=True):
@@ -176,31 +176,38 @@ class NRModel(nn.Module):
         channels_out = dists_ch_out + sem_ch_out
         return RefineUp(channels_in, channels_out, dists_ch_out, depth=self.refine_up_depth, upsample=upsample)
     
-    # def score_regression(self, dists_feats, dinov2_feats):
-    #     encoder_feats = torch.concat([dists_feats[-1], dinov2_feats], dim=1)
-    #     score_map = self.score_reg(encoder_feats).mean([1,2,3])
-    #     return score_map
-
-    def pred_gt_dists_feats(self, dists_feats, dinov2_feats):
-        # Initialize the feature map by concatenating a zero tensor with the DINO v2 features
-
+    def score_regression(self, dists_feats, dinov2_feats):  
         if wandb.config.transformer_decoder_depth > 0:
             encoder_feats = torch.concat([dists_feats[-1], dinov2_feats], dim=1)
             C = encoder_feats.shape[1]
             trans_decode = self.transformer_decoder(encoder_feats.reshape(-1, C, 256).permute(0,2,1)).permute(0,2,1).reshape(-1, C, 16, 16)
             feature_map = dinov2_feats + self.trans2sem(encoder_feats + trans_decode)
-            feature_map = torch.concat([torch.zeros_like(dists_feats[-1]), feature_map], dim=1)
+            feature_map = torch.concat([dists_feats[-1], feature_map], dim=1)
         else:
-            feature_map = torch.concat([torch.zeros_like(dists_feats[-1]), dinov2_feats], dim=1)
-        predicted_feats = []
+            feature_map = torch.concat([dists_feats[-1], dinov2_feats], dim=1)
+        score_map = self.score_reg(feature_map).mean([1,2,3])
+        return score_map
 
-        # Refine features in reverse order using the decoder layers
-        for refiner, feature in zip(self.decoder, reversed(dists_feats)):
-            feature_map, refined_feature = refiner(feature_map, feature)
-            predicted_feats.append(refined_feature)
+    # def pred_gt_dists_feats(self, dists_feats, dinov2_feats):
+    #     # Initialize the feature map by concatenating a zero tensor with the DINO v2 features
 
-        # Return the refined features in the original order
-        return list(reversed(predicted_feats))
+    #     if wandb.config.transformer_decoder_depth > 0:
+    #         encoder_feats = torch.concat([dists_feats[-1], dinov2_feats], dim=1)
+    #         C = encoder_feats.shape[1]
+    #         trans_decode = self.transformer_decoder(encoder_feats.reshape(-1, C, 256).permute(0,2,1)).permute(0,2,1).reshape(-1, C, 16, 16)
+    #         feature_map = dinov2_feats + self.trans2sem(encoder_feats + trans_decode)
+    #         feature_map = torch.concat([torch.zeros_like(dists_feats[-1]), feature_map], dim=1)
+    #     else:
+    #         feature_map = torch.concat([torch.zeros_like(dists_feats[-1]), dinov2_feats], dim=1)
+    #     predicted_feats = []
+
+    #     # Refine features in reverse order using the decoder layers
+    #     for refiner, feature in zip(self.decoder, reversed(dists_feats)):
+    #         feature_map, refined_feature = refiner(feature_map, feature)
+    #         predicted_feats.append(refined_feature)
+
+    #     # Return the refined features in the original order
+    #     return list(reversed(predicted_feats))
 
 
     def forward_from_feats(self, encoder_feats):
@@ -209,12 +216,12 @@ class NRModel(nn.Module):
         dinov2_feats = encoder_feats[-1]['x_norm_patchtokens'].permute(0, 2, 1).reshape(-1, self.encoder.dinov2.embed_dim, 16, 16).to(self.device)
         
         # Predict ground truth DISTS features using the decoded features
-        predicted_gt_feats = self.pred_gt_dists_feats(dists_feats, dinov2_feats)
+        #predicted_gt_feats = self.pred_gt_dists_feats(dists_feats, dinov2_feats)
         
         # Compute the final score using DISTS with the predicted features
-        score =  self.encoder.dists.forward_from_feats(dists_feats, predicted_gt_feats)
+        #score =  self.encoder.dists.forward_from_feats(dists_feats, predicted_gt_feats)
         #score += wandb.config.score_reg_scale * self.score_regression(dists_feats, dinov2_feats)
-        return score
+        return self.score_regression(dists_feats, dinov2_feats)
 
 
 
@@ -223,21 +230,21 @@ class NRModel(nn.Module):
         encoder_feats = self.encoder(render)
         dists_feats = [feature.to(self.device) for feature in encoder_feats[:-1]]
         dinov2_feats = encoder_feats[-1]['x_norm_patchtokens'].permute(0, 2, 1).reshape(-1, self.encoder.dinov2.embed_dim, 16, 16).to(self.device)
-        predicted_gt_feats = self.pred_gt_dists_feats(dists_feats, dinov2_feats)
+        #predicted_gt_feats = self.pred_gt_dists_feats(dists_feats, dinov2_feats)
         
         # Predict scores and calculate the loss with the ground truth image features
-        predicted_score = self.encoder.dists.forward_from_feats(dists_feats, predicted_gt_feats)
-        gt_dists_feats = self.encoder.dists.forward_once(gt_image)
-        dists_pref2ref = self.encoder.dists.forward_from_feats(predicted_gt_feats, gt_dists_feats, batch_average=True)
-        #predicted_score += wandb.config.score_reg_scale * self.score_regression(dists_feats, dinov2_feats)
+        #predicted_score = self.encoder.dists.forward_from_feats(dists_feats, predicted_gt_feats)
+        #gt_dists_feats = self.encoder.dists.forward_once(gt_image)
+        #dists_pref2ref = self.encoder.dists.forward_from_feats(predicted_gt_feats, gt_dists_feats, batch_average=True)
+        predicted_score = self.score_regression(dists_feats, dinov2_feats)
         
         # Calculate L1 loss and combine it with the DISTS predicted-reference-to-reference loss
         l1_loss = self.l1_loss_fn(predicted_score, score)
-        coeff = wandb.config.dists_pref2ref_coeff
-        combined_loss = coeff*dists_pref2ref + (1-coeff) * l1_loss
+        #coeff = wandb.config.dists_pref2ref_coeff
+        combined_loss = l1_loss#coeff*dists_pref2ref + (1-coeff) * l1_loss
         
         return {
-            "dists_pref2ref": dists_pref2ref,
+            #"dists_pref2ref": dists_pref2ref,
             "l1": l1_loss,
             "combined": combined_loss
         }

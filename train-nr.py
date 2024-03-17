@@ -25,10 +25,10 @@ from torch.profiler import profile, record_function, ProfilerActivity
 
 # local
 from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS
-from nerf_qa.data import NerfNRQADataset
+from nerf_qa.data import NerfNRQADataset, SceneBalancedSampler
 from nerf_qa.logger import MetricCollectionLogger
 from nerf_qa.settings import DEVICE_BATCH_SIZE
-from nerf_qa.model_nr_v2 import NRModel
+from nerf_qa.model_nr_v5 import NRModel
 import multiprocessing as mp
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -135,10 +135,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Initialize a new run with wandb with custom configurations.')
 
     # Basic configurations
-    parser.add_argument('--refine_up_depth', type=int, default=2, help='Random seed.')
+    parser.add_argument('--refine_up_depth', type=int, default=2, help='Random seed.')   
+    parser.add_argument('--batch_size', type=int, default=32, help='Random seed.')
     parser.add_argument('--transformer_decoder_depth', type=int, default=1, help='Random seed.')
     parser.add_argument('--refine_scale', type=float, default=0.1, help='Random seed.')
     parser.add_argument('--score_reg_scale', type=float, default=0.05, help='Random seed.')
+    parser.add_argument('--aug_crop_scale', type=float, default=0.8, help='Random seed.')
+    parser.add_argument('--aug_rot_deg', type=float, default=30.0, help='Random seed.')
     parser.add_argument('--dists_pref2ref_coeff', type=float, default=0.5, help='Random seed.')
     parser.add_argument('--lr', type=float, default=5e-5, help='Random seed.')
 
@@ -146,18 +149,17 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     epoch_size = 3290
-    epochs = 8
+    epochs = 10
     config = {
         "epochs": epochs,
-        "loader_num_workers": 4,
+        "loader_num_workers": 5,
         "beta1": 0.9,
         "beta2": 0.999,
         "eps": 1e-7,
-        "batch_size": DEVICE_BATCH_SIZE,
     }     
     config.update(vars(args))
 
-    exp_name=f"l1-bs:{config['batch_size']}-lr:{config['lr']:.0e}-b1:{config['beta1']:.2f}-b2:{config['beta2']:.3f}"
+    exp_name=f"v5-l1-bs:{config['batch_size']}-lr:{config['lr']:.0e}-b1:{config['beta1']:.2f}-b2:{config['beta2']:.3f}"
 
     # Initialize wandb with the parsed arguments, further simplifying parameter names
     wandb.init(project='nerf-nr-qa', name=exp_name, config=config)
@@ -171,7 +173,7 @@ if __name__ == '__main__':
 
     # CSV file 
     scores_df = pd.read_csv("/home/ccl/Datasets/NeRF-NR-QA/output.csv")
-    val_scenes = ['nerfstudio_plane', 'nerfstudio_stump', 'mipnerf360_garden', 'mipnerf360_stump']
+    val_scenes = ['scannerf_airplane1', 'nerfstudio_plane', 'nerfstudio_stump', 'mipnerf360_garden', 'mipnerf360_stump']
     train_df = scores_df[~scores_df['scene'].isin(val_scenes)].reset_index() # + ['trex', 'horns']
     val_df = scores_df[scores_df['scene'].isin(val_scenes)].reset_index()
     black_list_val_methods = [
@@ -183,10 +185,12 @@ if __name__ == '__main__':
     test_df = pd.read_csv(TEST_SCORE_FILE)
     test_size = test_df.shape[0]
 
-    train_dataset = NerfNRQADataset(train_df, dir = DATA_DIR, mode='gt')
+    train_dataset = NerfNRQADataset(train_df, dir = DATA_DIR, mode='gt', is_train=True, aug_crop_scale=config.aug_crop_scale, aug_rot_deg=config.aug_rot_deg)
     val_dataset = NerfNRQADataset(val_df, dir = DATA_DIR, mode='gt')
     
-    train_dataloader = DataLoader(train_dataset, collate_fn=recursive_collate, shuffle=True, batch_size = DEVICE_BATCH_SIZE, num_workers=config.loader_num_workers, pin_memory=True)
+    train_sampler = SceneBalancedSampler(train_dataset)
+
+    train_dataloader = DataLoader(train_dataset, sampler=train_sampler, collate_fn=recursive_collate, batch_size = DEVICE_BATCH_SIZE, num_workers=config.loader_num_workers, pin_memory=True)
     val_dataloader = DataLoader(val_dataset, collate_fn=recursive_collate, batch_size = DEVICE_BATCH_SIZE, num_workers=config.loader_num_workers, pin_memory=True)
 
     
@@ -198,6 +202,8 @@ if __name__ == '__main__':
         eps=config.eps
     )
     step = 0
+    eval_step = 0
+    update_step = 0
     for epoch in range(config.epochs):
 
         model.train()
@@ -206,56 +212,63 @@ if __name__ == '__main__':
         with record_function("load_data"):
             for batch in tqdm(train_dataloader):
                 gt_image, render, score, render_id, frame_id = batch_to_device(batch, device)
-                optimizer.zero_grad()
+                
                 with record_function("model_inference"):
                     losses = model.losses(gt_image, render, score)
                 loss = losses['combined']
                 loss.backward()
-                optimizer.step()
-                for key in losses.keys():
-                    wandb.log({
-                        f"Training Metrics Dict/{key}": losses[key].cpu().item()
-                    }, step=step)
                 step += score.shape[0]  
+
+                if step - config.batch_size >= update_step:
+                    update_step = step
+                    optimizer.step()
+                    for key in losses.keys():
+                        wandb.log({
+                            f"Training Metrics Dict/{key}": losses[key].cpu().item()
+                        }, step=step)
+                    optimizer.zero_grad()
         # Note: The profiler is not thread-safe, so if your dataloader uses multiprocessing (num_workers > 0),
         # make sure to start the profiler after dataloader worker processes have been spawned.
         #print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
+                if step - 5000 >= eval_step:
+                    eval_step = step
+                    model.eval()
+                    metrics = []
+                    for batch in tqdm(val_dataloader):
+                        gt_image, render, score, render_id, frame_id = batch_to_device(batch, device)
+                        with torch.no_grad():
+                            losses = model.losses(gt_image, render, score)
+                        loss = losses['combined']
+                        metrics.append(losses['l1'].cpu().item())
+                    wandb.log({
+                        "Validation Metrics Dict/l1": np.mean(metrics)
+                    }, step=step)
 
-        model.eval()
-        metrics = []
-        for batch in tqdm(val_dataloader):
-            gt_image, render, score, render_id, frame_id = batch_to_device(batch, device)
-            with torch.no_grad():
-                losses = model.losses(gt_image, render, score)
-            loss = losses['combined']
-            metrics.append(losses['l1'].cpu().item())
-        wandb.log({
-            "Validation Metrics Dict/l1": np.mean(metrics)
-        }, step=step)
+                    # Test step
+                    model.eval()  # Set model to evaluation mode
+                    with torch.no_grad():
+                        video_scores = []
+                        for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Testing..."):
+                            # Load frames
+                            dataloader = create_test_video_dataloader(row, dir=TEST_DATA_DIR)
+                            frame_scores = []
+                            for batch in dataloader:
+                                render = batch_to_device(batch, device)
+                                pred_score = model(render)
+                                frame_scores.append(pred_score.detach().cpu())
 
-        # Test step
-        model.eval()  # Set model to evaluation mode
-        with torch.no_grad():
-            video_scores = []
-            for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Testing..."):
-                # Load frames
-                dataloader = create_test_video_dataloader(row, dir=TEST_DATA_DIR)
-                frame_scores = []
-                for batch in dataloader:
-                    render = batch_to_device(batch, device)
-                    pred_score = model(render)
-                    frame_scores.append(pred_score.detach().cpu())
+                            frame_scores = np.concatenate(frame_scores, axis=0)
+                            video_scores.append(np.mean(frame_scores))
 
-                frame_scores = np.concatenate(frame_scores, axis=0)
-                video_scores.append(np.mean(frame_scores))
+                        video_scores = np.array(video_scores)
+                        corr = compute_correlations(video_scores, test_df['MOS'].values)
+                        corr['l1'] = np.mean(np.abs(video_scores - test_df['DISTS'].values))
+                        for key in corr.keys():
+                            metric = corr[key]
+                            wandb.log({
+                                f"Test Metrics Dict/{key}": metric
+                            }, step=step)
+                    
+                    model.train()
 
-            video_scores = np.array(video_scores)
-            corr = compute_correlations(video_scores, test_df['MOS'].values)
-            corr['l1'] = np.mean(np.abs(video_scores - test_df['DISTS'].values))
-            for key in corr.keys():
-                metric = corr[key]
-                wandb.log({
-                    f"Test Metrics Dict/{key}": metric
-                }, step=step)
-
-# %%
+    # %%
