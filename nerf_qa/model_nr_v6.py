@@ -47,21 +47,24 @@ class RefineUp(nn.Module):
     """
     def __init__(self, input_chns, output_chns, feature_chns, depth=3, upsample=True):
         super(RefineUp, self).__init__()
+        self.input_chns = input_chns
+        self.output_chns = output_chns
         self.feature_chns = feature_chns
         self.upsample = upsample
-        self.refine_scale = wandb.config.refine_scale
 
         # Initialize convolutional layers
         convolutional_layers = [ConvLayer(input_chns, input_chns) for _ in range(depth - 1)]
-        convolutional_layers.append(ConvLayer(input_chns, output_chns, apply_relu=False))
+        convolutional_layers.append(ConvLayer(input_chns, input_chns, apply_relu=False))
         self.block = nn.Sequential(*convolutional_layers)
 
         # Initialize upsampling layer if upsampling is enabled
         if self.upsample:
-            self.upsample_layer = nn.ConvTranspose2d(output_chns, output_chns, kernel_size=3, stride=2, padding=1, output_padding=1)
+            self.upsample_layer = nn.ConvTranspose2d(input_chns, output_chns, kernel_size=3, stride=2, padding=1, output_padding=1)
+        else:
+            self.upsample_layer = ConvLayer(input_chns, output_chns, apply_relu=False)
         
 
-    def forward(self, input_feats, additional_feats):
+    def forward(self, input_feats, additional_feats, trans_decode):
         """
         Forward pass of the RefineUp module.
 
@@ -73,19 +76,20 @@ class RefineUp(nn.Module):
         - Tuple of the refined (and optionally upsampled) feature map and updated additional features.
         """
         # Integrate additional features into input features
-        input_feats = input_feats*self.refine_scale
+        input_feats = input_feats* wandb.config.refine_scale1
         input_feats[:, :self.feature_chns, :, :] += additional_feats[:, :self.feature_chns, :, :]
+        S = input_feats.shape[1] - self.feature_chns
+        input_feats[:, -S:, :, :] += F.interpolate(trans_decode[:, -S:, :, :], size=(input_feats.shape[2], input_feats.shape[3]), mode='bilinear', align_corners=True)
+
 
         # Apply convolutional blocks
         refined_feats = self.block(input_feats)
 
         # Update additional features with residual scaling
-        additional_feats = self.refine_scale * refined_feats[:, :self.feature_chns, :, :] + additional_feats[:, :self.feature_chns, :, :]
+        additional_feats = wandb.config.refine_scale2 * refined_feats[:, :self.feature_chns, :, :] + additional_feats[:, :self.feature_chns, :, :]
 
         # Upsample if enabled
-        if self.upsample:
-            refined_feats = self.upsample_layer(refined_feats)
-
+        refined_feats = self.upsample_layer(refined_feats)
         return refined_feats, additional_feats
     
 
@@ -145,15 +149,15 @@ class NRModel(nn.Module):
         initial_sem_dim = self.encoder.dinov2.embed_dim
         initial_dists_dim = self.encoder.dists.chns[-1]
         self.sem_chns = [
-            initial_sem_dim, initial_sem_dim, initial_sem_dim,
+            initial_sem_dim, initial_sem_dim,
             initial_sem_dim // 2, initial_sem_dim // 4,
             initial_sem_dim // 8, initial_sem_dim // 16
         ]
-        self.dists_chns = [initial_dists_dim] + list(reversed(self.encoder.dists.chns))
+        self.dists_chns = list(reversed(self.encoder.dists.chns))
         last_chns = self.sem_chns[-1] + self.dists_chns[-1]
         
         # Initialize decoder
-        num_upscales = len(self.dists_chns) - 3
+        num_upscales = len(self.dists_chns) - 2
         if wandb.config.transformer_decoder_depth > 0:
             self.transformer_decoder = nn.Sequential(
                 *[Block(initial_dists_dim + initial_sem_dim, 8, attn_class=MemEffAttention) for _ in range(wandb.config.transformer_decoder_depth)],
@@ -173,10 +177,13 @@ class NRModel(nn.Module):
         Creates a RefineUp layer for the decoder.
         """
         dists_ch_in, sem_ch_in = self.dists_chns[index], self.sem_chns[index]
-        dists_ch_out, sem_ch_out = self.dists_chns[index + 1], self.sem_chns[index + 1]
+        if index < len(self.dists_chns)-1:
+            dists_ch_out, sem_ch_out = self.dists_chns[index + 1], self.sem_chns[index + 1]
+        else:
+            dists_ch_out, sem_ch_out = dists_ch_in, sem_ch_in
         channels_in = dists_ch_in + sem_ch_in
         channels_out = dists_ch_out + sem_ch_out
-        return RefineUp(channels_in, channels_out, dists_ch_out, depth=self.refine_up_depth, upsample=upsample)
+        return RefineUp(channels_in, channels_out, dists_ch_in, depth=self.refine_up_depth, upsample=upsample)
     
     def score_regression(self, feature_map):
         score_map = self.score_reg(feature_map)
@@ -190,15 +197,15 @@ class NRModel(nn.Module):
             encoder_feats = torch.concat([dists_feats[-1], dinov2_feats], dim=1)
             C = encoder_feats.shape[1]
             trans_decode = self.transformer_decoder(encoder_feats.reshape(-1, C, 256).permute(0,2,1)).permute(0,2,1).reshape(-1, C, 16, 16)
-            feature_map = dinov2_feats + self.trans2sem(encoder_feats + trans_decode)
-            feature_map = torch.concat([torch.zeros_like(dists_feats[-1]), feature_map], dim=1)
+            trans_decode = dinov2_feats + wandb.config.refine_scale4 * self.trans2sem(encoder_feats + wandb.config.refine_scale3 * trans_decode)
         else:
-            feature_map = torch.concat([torch.zeros_like(dists_feats[-1]), dinov2_feats], dim=1)
+            trans_decode = dinov2_feats
+        feature_map = torch.concat([torch.zeros_like(dists_feats[-1]), torch.zeros_like(trans_decode)], dim=1)
         predicted_feats = []
 
         # Refine features in reverse order using the decoder layers
         for refiner, feature in zip(self.decoder, reversed(dists_feats)):
-            feature_map, refined_feature = refiner(feature_map, feature)
+            feature_map, refined_feature = refiner(feature_map, feature, trans_decode)
             predicted_feats.append(refined_feature)
 
         # Return the refined features in the original order

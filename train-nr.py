@@ -28,7 +28,7 @@ from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS
 from nerf_qa.data import NerfNRQADataset, SceneBalancedSampler
 from nerf_qa.logger import MetricCollectionLogger
 from nerf_qa.settings import DEVICE_BATCH_SIZE
-from nerf_qa.model_nr_v5 import NRModel
+from nerf_qa.model_nr_v6 import NRModel
 import multiprocessing as mp
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -138,7 +138,10 @@ if __name__ == '__main__':
     parser.add_argument('--refine_up_depth', type=int, default=2, help='Random seed.')   
     parser.add_argument('--batch_size', type=int, default=32, help='Random seed.')
     parser.add_argument('--transformer_decoder_depth', type=int, default=1, help='Random seed.')
-    parser.add_argument('--refine_scale', type=float, default=0.1, help='Random seed.')
+    parser.add_argument('--refine_scale1', type=float, default=0.1, help='Random seed.')
+    parser.add_argument('--refine_scale2', type=float, default=0.1, help='Random seed.')
+    parser.add_argument('--refine_scale3', type=float, default=0.1, help='Random seed.')
+    parser.add_argument('--refine_scale4', type=float, default=0.1, help='Random seed.')
     parser.add_argument('--score_reg_scale', type=float, default=0.05, help='Random seed.')
     parser.add_argument('--aug_crop_scale', type=float, default=0.8, help='Random seed.')
     parser.add_argument('--aug_rot_deg', type=float, default=30.0, help='Random seed.')
@@ -148,8 +151,7 @@ if __name__ == '__main__':
     # Parse arguments
     args = parser.parse_args()
 
-    epoch_size = 3290
-    epochs = 10
+    epochs = 3
     config = {
         "epochs": epochs,
         "loader_num_workers": 5,
@@ -159,7 +161,7 @@ if __name__ == '__main__':
     }     
     config.update(vars(args))
 
-    exp_name=f"v5-l1-bs:{config['batch_size']}-lr:{config['lr']:.0e}-b1:{config['beta1']:.2f}-b2:{config['beta2']:.3f}"
+    exp_name=f"v6-l1-bs:{config['batch_size']}-lr:{config['lr']:.0e}-b1:{config['beta1']:.2f}-b2:{config['beta2']:.3f}"
 
     # Initialize wandb with the parsed arguments, further simplifying parameter names
     wandb.init(project='nerf-nr-qa', name=exp_name, config=config)
@@ -203,6 +205,7 @@ if __name__ == '__main__':
     )
     step = 0
     eval_step = 0
+    test_step = 0
     update_step = 0
     for epoch in range(config.epochs):
 
@@ -230,7 +233,7 @@ if __name__ == '__main__':
         # Note: The profiler is not thread-safe, so if your dataloader uses multiprocessing (num_workers > 0),
         # make sure to start the profiler after dataloader worker processes have been spawned.
         #print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
-                if step - 5000 >= eval_step:
+                if step - 4500 >= eval_step:
                     eval_step = step
                     model.eval()
                     metrics = []
@@ -243,7 +246,10 @@ if __name__ == '__main__':
                     wandb.log({
                         "Validation Metrics Dict/l1": np.mean(metrics)
                     }, step=step)
+                    model.train()
 
+                if step - (4500*config.epochs) >= test_step:
+                    test_step = step
                     # Test step
                     model.eval()  # Set model to evaluation mode
                     with torch.no_grad():

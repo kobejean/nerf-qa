@@ -10,7 +10,22 @@ parameters:
     min: 7e-4
     max: 4e-3
     q: 1e-7
-  refine_scale:
+  refine_scale1:
+    distribution: q_log_uniform_values
+    min: 5e-3
+    max: 2e-2
+    q: 1e-3
+  refine_scale2:
+    distribution: q_log_uniform_values
+    min: 5e-3
+    max: 2e-2
+    q: 1e-3
+  refine_scale3:
+    distribution: q_log_uniform_values
+    min: 5e-3
+    max: 2e-2
+    q: 1e-3
+  refine_scale4:
     distribution: q_log_uniform_values
     min: 5e-3
     max: 2e-2
@@ -35,9 +50,9 @@ parameters:
   refine_up_depth:
     values: [2]
   transformer_decoder_depth:
-    values: [1]
+    values: [0,1,2]
   batch_size:
-    values: [16,32,64]
+    values: [16,32]
 command:
 - ${env}
 - ${interpreter}
