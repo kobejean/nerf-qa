@@ -7,23 +7,23 @@ method: random
 parameters:
   lr:
     distribution: q_log_uniform_values
-    min: 7e-4
-    max: 4e-3
+    min: 9e-4
+    max: 2e-3
     q: 1e-7
   refine_scale1:
     distribution: q_log_uniform_values
-    min: 5e-3
-    max: 2e-2
+    min: 3e-3
+    max: 9e-3
     q: 1e-3
   refine_scale2:
     distribution: q_log_uniform_values
-    min: 5e-3
-    max: 2e-2
+    min: 3e-3
+    max: 8e-3
     q: 1e-3
   refine_scale3:
     distribution: q_log_uniform_values
-    min: 5e-3
-    max: 2e-2
+    min: 3e-3
+    max: 9e-3
     q: 1e-3
   refine_scale4:
     distribution: q_log_uniform_values
@@ -33,26 +33,28 @@ parameters:
   score_reg_scale:
     distribution: q_log_uniform_values
     min: 1e-5
-    max: 2e-4
+    max: 5e-5
     q: 1e-5
   dists_pref2ref_coeff:
     distribution: uniform
-    min: 0.4
-    max: 0.6
+    min: 0.3
+    max: 0.4
   aug_crop_scale:
     distribution: uniform
-    min: 0.6
-    max: 1.0
+    min: 0.74
+    max: 0.76
   aug_rot_deg:
     distribution: uniform
-    min: 0.0
-    max: 60.0
+    min: 175.0
+    max: 180.0
   refine_up_depth:
-    values: [2]
+    values: [3]
+  reg_activation:
+    values: ['relu', 'sigmoid']
   transformer_decoder_depth:
-    values: [0,1,2]
+    values: [2]
   batch_size:
-    values: [16,32]
+    values: [32]
 command:
 - ${env}
 - ${interpreter}

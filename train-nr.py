@@ -95,6 +95,51 @@ def load_video_frames(video_path, resize=True):
     cap.release()
     return frames
 
+class MetricAggregator:
+    def __init__(self, title):
+        self.metrics = []
+        self.summed_metrics = {}
+        self.count_metrics = {}
+        self.title = title
+    
+    def add_metric(self, metric_dict):
+        """
+        Add a new set of metrics.
+        
+        Parameters:
+        - metric_dict: A dictionary of metrics where keys are metric names and values are the metric values.
+        """
+        self.metrics.append(metric_dict)
+        
+        # Update summed_metrics and count_metrics
+        for key, value in metric_dict.items():
+            if key in self.summed_metrics:
+                self.summed_metrics[key] += value.item()  # Assuming the values are tensor, calling item() to get the value
+                self.count_metrics[key] += 1
+            else:
+                self.summed_metrics[key] = value.item()
+                self.count_metrics[key] = 1
+
+    def log_summary(self, step):
+        """
+        Calculate the average for each metric and log them using wandb.
+        
+        Parameters:
+        - step: The current step to log the metrics against.
+        """
+        # Calculate the average for each metric
+        average_metrics = {key: self.summed_metrics[key] / self.count_metrics[key] for key in self.summed_metrics}
+        
+        # Log the averages with wandb
+        for key, avg_value in average_metrics.items():
+            wandb.log({f"{self.title}/{key}": avg_value}, step=step)
+
+        # Reset
+        self.metrics = []
+        self.summed_metrics = {}
+        self.count_metrics = {}
+        
+
 class CustomDataset(Dataset):
     def __init__(self, data_list):
         self.data = data_list
@@ -135,6 +180,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Initialize a new run with wandb with custom configurations.')
 
     # Basic configurations
+    parser.add_argument('--reg_activation', type=str, default='linear', help='Random seed.')   
     parser.add_argument('--refine_up_depth', type=int, default=2, help='Random seed.')   
     parser.add_argument('--batch_size', type=int, default=32, help='Random seed.')
     parser.add_argument('--transformer_decoder_depth', type=int, default=1, help='Random seed.')
@@ -151,10 +197,10 @@ if __name__ == '__main__':
     # Parse arguments
     args = parser.parse_args()
 
-    epochs = 3
+    epochs = 10
     config = {
         "epochs": epochs,
-        "loader_num_workers": 5,
+        "loader_num_workers": 4,
         "beta1": 0.9,
         "beta2": 0.999,
         "eps": 1e-7,
@@ -171,16 +217,23 @@ if __name__ == '__main__':
 
     DATA_DIR = "/home/ccl/Datasets/NeRF-NR-QA/"  # Specify the path to your DATA_DIR
 
-
+    train_metrics = MetricAggregator("Training Metrics Dict")
+    val_metrics = MetricAggregator("Validation Metrics Dict")
 
     # CSV file 
     scores_df = pd.read_csv("/home/ccl/Datasets/NeRF-NR-QA/output.csv")
     val_scenes = ['scannerf_airplane1', 'nerfstudio_plane', 'nerfstudio_stump', 'mipnerf360_garden', 'mipnerf360_stump']
     train_df = scores_df[~scores_df['scene'].isin(val_scenes)].reset_index() # + ['trex', 'horns']
+    black_list_train_methods = [
+        'instant-ngp-10', 'instant-ngp-20', 'instant-ngp-50', 'instant-ngp-100', 'instant-ngp-200',
+        'nerfacto-10', 'nerfacto-20', 'nerfacto-50', 'nerfacto-100', 'nerfacto-200',
+    ]
+    train_df = train_df[~train_df['method'].isin(black_list_train_methods)].reset_index()
+
     val_df = scores_df[scores_df['scene'].isin(val_scenes)].reset_index()
     black_list_val_methods = [
-        'instant-ngp-10', 'instant-ngp-20', 'instant-ngp-50', 'instant-ngp-100', 'instant-ngp-200', 'instant-ngp-500', 'instant-ngp-1000', 'instant-ngp-2000', 'instant-ngp-5000', 'instant-ngp-10000', 'instant-ngp-20000',
-        'nerfacto-10', 'nerfacto-20', 'nerfacto-50', 'nerfacto-100', 'nerfacto-200', 'nerfacto-500', 'nerfacto-1000', 'nerfacto-2000', 'nerfacto-5000', 'nerfacto-10000', 'nerfacto-20000',
+        'instant-ngp-10', 'instant-ngp-20', 'instant-ngp-50', 'instant-ngp-100', 'instant-ngp-200', 'instant-ngp-500', 'instant-ngp-1000', 'instant-ngp-2000', 
+        'nerfacto-10', 'nerfacto-20', 'nerfacto-50', 'nerfacto-100', 'nerfacto-200', 'nerfacto-500', 'nerfacto-1000', 'nerfacto-2000', 
     ]
     val_df = val_df[~val_df['method'].isin(black_list_val_methods)].reset_index()
 
@@ -214,67 +267,95 @@ if __name__ == '__main__':
         #with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True) as prof:
         with record_function("load_data"):
             for batch in tqdm(train_dataloader):
-                gt_image, render, score, render_id, frame_id = batch_to_device(batch, device)
+                gt_image, render, score_std, score_mean, render_id, frame_id = batch_to_device(batch, device)
                 
                 with record_function("model_inference"):
-                    losses = model.losses(gt_image, render, score)
+                    losses = model.losses(gt_image, render, score_std, score_mean)
                 loss = losses['combined']
                 loss.backward()
-                step += score.shape[0]  
+                step += score_mean.shape[0]
+                train_metrics.add_metric(losses)
 
                 if step - config.batch_size >= update_step:
                     update_step = step
                     optimizer.step()
-                    for key in losses.keys():
-                        wandb.log({
-                            f"Training Metrics Dict/{key}": losses[key].cpu().item()
-                        }, step=step)
                     optimizer.zero_grad()
-        # Note: The profiler is not thread-safe, so if your dataloader uses multiprocessing (num_workers > 0),
-        # make sure to start the profiler after dataloader worker processes have been spawned.
-        #print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
-                if step - 4500 >= eval_step:
-                    eval_step = step
-                    model.eval()
-                    metrics = []
-                    for batch in tqdm(val_dataloader):
-                        gt_image, render, score, render_id, frame_id = batch_to_device(batch, device)
-                        with torch.no_grad():
-                            losses = model.losses(gt_image, render, score)
-                        loss = losses['combined']
-                        metrics.append(losses['l1'].cpu().item())
-                    wandb.log({
-                        "Validation Metrics Dict/l1": np.mean(metrics)
-                    }, step=step)
-                    model.train()
+                    train_metrics.log_summary(step)
+                     
+            model.eval()
+            for batch in tqdm(val_dataloader):
+                gt_image, render, score_std, score_mean, render_id, frame_id = batch_to_device(batch, device)
+                with torch.no_grad():
+                    losses = model.losses(gt_image, render, score_std, score_mean)
+                val_metrics.add_metric(losses)
+            val_metrics.log_summary(step)
+            model.train()
 
-                if step - (4500*config.epochs) >= test_step:
-                    test_step = step
-                    # Test step
-                    model.eval()  # Set model to evaluation mode
-                    with torch.no_grad():
-                        video_scores = []
-                        for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Testing..."):
-                            # Load frames
-                            dataloader = create_test_video_dataloader(row, dir=TEST_DATA_DIR)
-                            frame_scores = []
-                            for batch in dataloader:
-                                render = batch_to_device(batch, device)
-                                pred_score = model(render)
-                                frame_scores.append(pred_score.detach().cpu())
+            if (epoch+1) % 10 == 0:
 
-                            frame_scores = np.concatenate(frame_scores, axis=0)
-                            video_scores.append(np.mean(frame_scores))
+                # Test step
+                model.eval()  # Set model to evaluation mode
+                with torch.no_grad():
+                    video_scores = []
+                    video_normalized_scores = []
+                    for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Testing..."):
+                        # Load frames
+                        dataloader = create_test_video_dataloader(row, dir=TEST_DATA_DIR)
+                        frame_scores = []
+                        frame_normalized_scores = []
+                        for batch in dataloader:
+                            render = batch_to_device(batch, device)
+                            pred_score, pred_normalized = model(render)
+                            frame_scores.append(pred_score.detach().cpu())
+                            frame_normalized_scores.append(pred_normalized.detach().cpu())
 
-                        video_scores = np.array(video_scores)
-                        corr = compute_correlations(video_scores, test_df['MOS'].values)
-                        corr['l1'] = np.mean(np.abs(video_scores - test_df['DISTS'].values))
-                        for key in corr.keys():
-                            metric = corr[key]
-                            wandb.log({
-                                f"Test Metrics Dict/{key}": metric
-                            }, step=step)
+                        frame_scores = np.concatenate(frame_scores, axis=0)
+                        frame_normalized_scores = np.concatenate(frame_normalized_scores, axis=0)
+                        video_scores.append(np.mean(frame_scores))
+                        video_normalized_scores.append(np.mean(frame_normalized_scores))
+
+                    video_scores = np.array(video_scores)
+                    video_normalized_scores = np.array(video_normalized_scores)
+                    test_scores_df = test_df.copy()
+                    test_scores_df['TEST_SCORE'] = video_scores
+                    test_scores_df['TEST_NORM_SCORE'] = video_normalized_scores
+                    tnt_files = ['truck_reference.mp4', 'playground_reference.mp4',
+                    'train_reference.mp4', 'm60_reference.mp4']
                     
-                    model.train()
+                    #syn_df = test_df[test_df['reference_filename'].isin(syn_files)].reset_index()
+                    tnt_df = test_scores_df[test_scores_df['reference_filename'].isin(tnt_files)].reset_index()
+                    video_scores = tnt_df['TEST_SCORE'].values
+                    video_normalized_scores = tnt_df['TEST_NORM_SCORE'].values
+                    corr = compute_correlations(video_scores, tnt_df['MOS'].values)
+                    corr['l1'] = np.mean(np.abs(video_scores - tnt_df['DISTS'].values))
+                    for key in corr.keys():
+                        metric = corr[key]
+                        wandb.log({
+                            f"Test Metrics Dict/{key}": metric
+                        }, step=step)
+
+                    corr = compute_correlations(video_scores, tnt_df['DMOS'].values)
+                    for key in corr.keys():
+                        metric = corr[key]
+                        wandb.log({
+                            f"Test Metrics Dict/dmos_{key}": metric
+                        }, step=step)
+
+                    corr = compute_correlations(video_normalized_scores, tnt_df['MOS'].values)
+                    for key in corr.keys():
+                        metric = corr[key]
+                        wandb.log({
+                            f"Test Metrics Dict/normalized_{key}": metric
+                        }, step=step)
+
+                    corr = compute_correlations(video_normalized_scores, tnt_df['DMOS'].values)
+                    for key in corr.keys():
+                        metric = corr[key]
+                        wandb.log({
+                            f"Test Metrics Dict/dmos_normalized_{key}": metric
+                        }, step=step)
+
+    
+    model.train()
 
     # %%

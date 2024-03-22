@@ -164,10 +164,13 @@ class SceneBalancedSampler(Sampler):
         indices = []
         for scene_indices in self.scene_indices.values():
             indices.extend(torch.randperm(len(scene_indices))[:self.samples_per_scene].tolist())
+        indices = torch.tensor(indices)[torch.randperm(len(indices))].tolist()
         return iter(indices)
 
     def __len__(self):
         return self.num_samples
+
+#%%
 
 class NerfNRQADataset(Dataset):
     def __init__(self, dataframe, dir = "/home/ccl/Datasets/NeRF-NR-QA/", mode='render', is_train=False, aug_crop_scale=0.8, aug_rot_deg=30.0):
@@ -209,7 +212,8 @@ class NerfNRQADataset(Dataset):
         if frame_index >= len(basenames):
             print(df_index, scene, method, frame_index)
         basename = basenames[frame_index]
-        dists_score = eval(row['DISTS'])[frame_index]  # Get DISTS score for the specific frame
+        dists_std = eval(row['DISTS_std'])[frame_index]  # Get DISTS score for the specific frame
+        dists_mean = eval(row['DISTS_mean'])[frame_index]  # Get DISTS score for the specific frame
         render_dir = row['render_dir']
         gt_dir = row['gt_dir']
 
@@ -227,7 +231,7 @@ class NerfNRQADataset(Dataset):
 
         gt_image = F.interpolate(gt_image.unsqueeze(0), size=(256, 256), mode='bilinear', align_corners=False).squeeze(0)
 
-        return gt_image, render, torch.tensor(dists_score), df_index, frame_index
+        return gt_image, render, torch.tensor(dists_std), torch.tensor(dists_mean), df_index, frame_index
     
     def transform_pair(self, render_image, gt_image):
         if self.is_train:

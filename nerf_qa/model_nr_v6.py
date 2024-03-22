@@ -76,7 +76,7 @@ class RefineUp(nn.Module):
         - Tuple of the refined (and optionally upsampled) feature map and updated additional features.
         """
         # Integrate additional features into input features
-        input_feats = input_feats* wandb.config.refine_scale1
+        input_feats = input_feats * wandb.config.refine_scale1
         input_feats[:, :self.feature_chns, :, :] += additional_feats[:, :self.feature_chns, :, :]
         S = input_feats.shape[1] - self.feature_chns
         input_feats[:, -S:, :, :] += F.interpolate(trans_decode[:, -S:, :, :], size=(input_feats.shape[2], input_feats.shape[3]), mode='bilinear', align_corners=True)
@@ -165,7 +165,7 @@ class NRModel(nn.Module):
             self.trans2sem = ConvLayer(initial_dists_dim + initial_sem_dim, initial_sem_dim)
         self.score_reg = nn.Sequential(
             ConvLayer(last_chns, last_chns),
-            ConvLayer(last_chns, 2, apply_relu=False)
+            ConvLayer(last_chns, 4, apply_relu=False)
         )
         self.decoder = nn.Sequential(
             *[self.create_refineup_layer(i, upsample=i < num_upscales) for i in range(num_upscales + 2)]
@@ -187,8 +187,20 @@ class NRModel(nn.Module):
     
     def score_regression(self, feature_map):
         score_map = self.score_reg(feature_map)
-        dists = score_map[:,0,:,:].mean([1,2])
-        return dists, score_map[:,1,:,:]
+        mean = score_map.mean([2,3])
+        dists = mean[:,0] * 0.1
+        mae_map = (score_map[:,1,:,:] * 0.1 + 0.1)
+        if wandb.config.reg_activation == 'linear':
+            pred_std = (mean[:,2] * 0.05 + 0.05)
+            pred_mean = (mean[:,3] * 0.1 + 0.1)
+        elif wandb.config.reg_activation == 'relu':
+            pred_std = nn.functional.relu_(mean[:,2] * 0.05 + 0.05)
+            pred_mean = nn.functional.relu_(mean[:,3] * 0.1 + 0.1)
+        elif wandb.config.reg_activation == 'sigmoid':
+            pred_std = nn.functional.sigmoid(mean[:,2] * 1.0 - 3.0)
+            pred_mean = nn.functional.sigmoid(mean[:,3] * 0.9 - 2.2)
+            
+        return dists, mae_map, pred_std, pred_mean 
 
     def pred_gt_dists_feats(self, dists_feats, dinov2_feats):
         # Initialize the feature map by concatenating a zero tensor with the DINO v2 features
@@ -219,39 +231,46 @@ class NRModel(nn.Module):
         
         # Predict ground truth DISTS features using the decoded features
         predicted_gt_feats, feature_map = self.pred_gt_dists_feats(dists_feats, dinov2_feats)
-        
+        dists_res, _, pred_std, pred_mean = self.score_regression(feature_map)
         # Compute the final score using DISTS with the predicted features
         score =  self.encoder.dists.forward_from_feats(dists_feats, predicted_gt_feats)
-        score += wandb.config.score_reg_scale * self.score_regression(feature_map)[0]
-        return score
+        score += wandb.config.score_reg_scale * dists_res
+        normalized = (score - pred_mean) / (pred_std+1e-7)
+        return score, normalized
 
 
 
-    def losses(self, gt_image, render, score):
+    def losses(self, gt_image, render, score_std, score_mean):
         # Encode render to extract features and predict ground truth DISTS features
-        encoder_feats = self.encoder(render)
+        with torch.no_grad():
+            encoder_feats = self.encoder(render)
         dists_feats = [feature.to(self.device) for feature in encoder_feats[:-1]]
         dinov2_feats = encoder_feats[-1]['x_norm_patchtokens'].permute(0, 2, 1).reshape(-1, self.encoder.dinov2.embed_dim, 16, 16).to(self.device)
         predicted_gt_feats, feature_map = self.pred_gt_dists_feats(dists_feats, dinov2_feats)
         
         # Predict scores and calculate the loss with the ground truth image features
         predicted_score = self.encoder.dists.forward_from_feats(dists_feats, predicted_gt_feats)
-        gt_dists_feats = self.encoder.dists.forward_once(gt_image)
-        gt_dists_score = self.encoder.dists.forward_from_feats(gt_dists_feats, dists_feats, batch_average=False)
+        with torch.no_grad():
+            gt_dists_feats = self.encoder.dists.forward_once(gt_image)
+            gt_dists_score = self.encoder.dists.forward_from_feats(gt_dists_feats, dists_feats, batch_average=False)
         dists_pref2ref = self.encoder.dists.forward_from_feats(predicted_gt_feats, gt_dists_feats, batch_average=True)
         gt_mae = torch.abs(gt_image - render['256x256']).mean([1])
-        pred_dists_score, pred_mae = self.score_regression(feature_map)
+        pred_dists_score, pred_mae, pred_std, pred_mean = self.score_regression(feature_map)
         predicted_score += wandb.config.score_reg_scale * pred_dists_score
         
         # Calculate L1 loss and combine it with the DISTS predicted-reference-to-reference loss
         l1_loss = self.l1_loss_fn(predicted_score, gt_dists_score)
+        dists_std_l1 = self.l1_loss_fn(pred_std, score_std)
+        dists_mean_l1 = self.l1_loss_fn(pred_mean, score_mean)
         mae_reg_l1_loss = self.l1_loss_fn(pred_mae, gt_mae)
         coeff = wandb.config.dists_pref2ref_coeff
-        combined_loss = coeff*dists_pref2ref + (1-coeff) * (l1_loss+mae_reg_l1_loss)
+        combined_loss = coeff*dists_pref2ref + (1-coeff) * (l1_loss+mae_reg_l1_loss+dists_std_l1+dists_mean_l1)
         
         return {
             "dists_pref2ref": dists_pref2ref,
             "l1": l1_loss,
+            "dists_std_l1": dists_std_l1,
+            "dists_mean_l1": dists_mean_l1,
             "mae_reg_l1_loss": mae_reg_l1_loss,
             "combined": combined_loss
         }
@@ -259,5 +278,5 @@ class NRModel(nn.Module):
     def forward(self, render):
         # Encode the render and predict scores from features
         encoder_feats = self.encoder(render)
-        scores = self.forward_from_feats(encoder_feats)
-        return scores
+        scores, normalized = self.forward_from_feats(encoder_feats)
+        return scores, normalized
