@@ -28,7 +28,7 @@ from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS
 from nerf_qa.data import NerfNRQADataset, SceneBalancedSampler
 from nerf_qa.logger import MetricCollectionLogger
 from nerf_qa.settings import DEVICE_BATCH_SIZE
-from nerf_qa.model_nr_v6 import NRModel
+from nerf_qa.model_nr_v7 import NRModel
 import multiprocessing as mp
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -180,7 +180,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Initialize a new run with wandb with custom configurations.')
 
     # Basic configurations
-    parser.add_argument('--reg_activation', type=str, default='linear', help='Random seed.')   
+    parser.add_argument('--reg_activation', type=str, default='linear', help='Random seed.')  
+    parser.add_argument('--vit_model', type=str, default='dinov2', help='Random seed.')    
     parser.add_argument('--refine_up_depth', type=int, default=2, help='Random seed.')   
     parser.add_argument('--batch_size', type=int, default=32, help='Random seed.')
     parser.add_argument('--transformer_decoder_depth', type=int, default=1, help='Random seed.')

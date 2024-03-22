@@ -64,7 +64,7 @@ class RefineUp(nn.Module):
             self.upsample_layer = ConvLayer(input_chns, output_chns, apply_relu=False)
         
 
-    def forward(self, input_feats, additional_feats, trans_decode):
+    def forward(self, input_feats, dists_feat, sem_feat):
         """
         Forward pass of the RefineUp module.
 
@@ -76,11 +76,7 @@ class RefineUp(nn.Module):
         - Tuple of the refined (and optionally upsampled) feature map and updated additional features.
         """
         # Integrate additional features into input features
-        input_feats = input_feats * wandb.config.refine_scale1
-        input_feats[:, :self.feature_chns, :, :] += additional_feats[:, :self.feature_chns, :, :]
-        S = input_feats.shape[1] - self.feature_chns
-        input_feats[:, -S:, :, :] += F.interpolate(trans_decode[:, -S:, :, :], size=(input_feats.shape[2], input_feats.shape[3]), mode='bilinear', align_corners=True)
-
+        input_feats = input_feats * wandb.config.refine_scale1 + torch.concat([dists_feat, sem_feat])
 
         # Apply convolutional blocks
         refined_feats = self.block(input_feats)
@@ -97,7 +93,33 @@ def freeze_parameters(model):
     for param in model.parameters():
         param.requires_grad = False
 
+    
+class SemanticEncoder(nn.Module):
+    def __init__(self, model_name='dinov2'):
+        super(SemanticEncoder, self).__init__()
+        self.device = device
+        featup = torch.hub.load("mhamilton723/FeatUp", model_name)
+        self.model = featup.model
+        self.upsampler = featup.upsampler
+        self.sem_dim = featup.dim
 
+    def upsample(self, feats, image):
+        feats_2 = self.upsampler.upsample(feats, image, self.upsampler.up1)
+        feats_4 = self.upsampler.upsample(feats_2, image, self.upsampler.up2)
+        feats_8 = self.upsampler.upsample(feats_4, image, self.upsampler.up3)
+        feats_16 = self.upsampler.upsample(feats_8, image, self.upsampler.up4)
+
+        feats = self.upsampler.fixup_proj(feats) * 0.1 + feats
+        feats_2 = self.upsampler.fixup_proj(feats_2) * 0.1 + feats_2
+        feats_4 = self.upsampler.fixup_proj(feats_4) * 0.1 + feats_4
+        feats_8 = self.upsampler.fixup_proj(feats_8) * 0.1 + feats_8
+        feats_16 = self.upsampler.fixup_proj(feats_16) * 0.1 + feats_16
+        return [feats, feats_2, feats_4, feats_8, feats_16, feats_16]
+
+    def forward(self, image):
+        feats = self.model(image)
+        return feats, self.upsample(feats, image)
+    
 class Encoder(nn.Module):
     """
     No Reference Model for NeRF Quality Assessment.
@@ -109,27 +131,22 @@ class Encoder(nn.Module):
     def __init__(self, device='cpu'):
         super(Encoder, self).__init__()
         self.device = device
-        self.initialize_components()
-        self.semantic_model = torch.hub.load("mhamilton723/FeatUp", 'dinov2')
+        self.semantic_model = SemanticEncoder(wandb.config.vit_model)
+        freeze_parameters(self.semantic_model)
 
-    def initialize_components(self):
-        """
-        Initializes the DINO v2 and DISTS models and sets their parameters to not require gradients.
-        """
-        self.dinov2 = torch.hub.load('facebookresearch/dinov2', 'dinov2_vits14_reg').to(self.device)
-        freeze_parameters(self.dinov2)
-
-        self.dists = DISTS().to(self.device)
+        self.dists = DISTS()
         freeze_parameters(self.dists)
+        self.to(self.device)
 
     def forward(self, render):
         """
         Encodes render images to feature maps using DINO v2 and DISTS models.
         """
         render_256, render_224 = render["256x256"].to(self.device), render["224x224"].to(self.device)
+        sem_feats, sem_feats_upscaled = self.semantic_model(render_224)
         dists_feats = self.dists.forward_once(render_256)
-        dinov2_feats = self.dinov2.forward_features(render_224)
-        return dists_feats + [dinov2_feats]
+        # multi_scale_feats = list(zip(reversed(dists_feats), sem_feats_upscaled))
+        return dists_feats, sem_feats, sem_feats_upscaled
 
 class NRModel(nn.Module):
     """
@@ -147,13 +164,9 @@ class NRModel(nn.Module):
         self.l1_loss_fn = nn.L1Loss()
         
         # Define the channel dimensions based on the encoder models' embeddings and features
-        initial_sem_dim = self.encoder.dinov2.embed_dim
+        initial_sem_dim = self.encoder.sem_dim
         initial_dists_dim = self.encoder.dists.chns[-1]
-        self.sem_chns = [
-            initial_sem_dim, initial_sem_dim,
-            initial_sem_dim // 2, initial_sem_dim // 4,
-            initial_sem_dim // 8, initial_sem_dim // 16
-        ]
+        self.sem_chns = [initial_sem_dim] * 6
         self.dists_chns = list(reversed(self.encoder.dists.chns))
         last_chns = self.sem_chns[-1] + self.dists_chns[-1]
         
@@ -203,22 +216,23 @@ class NRModel(nn.Module):
             
         return dists, mae_map, pred_std, pred_mean 
 
-    def pred_gt_dists_feats(self, dists_feats, dinov2_feats):
-        # Initialize the feature map by concatenating a zero tensor with the DINO v2 features
+    def pred_gt_dists_feats(self, encoder_feats):
+        dists_feats, sem_feats, sem_feats_upscaled = encoder_feats
+        print("sem_feats", sem_feats.shape)
 
         if wandb.config.transformer_decoder_depth > 0:
-            encoder_feats = torch.concat([dists_feats[-1], dinov2_feats], dim=1)
+            encoder_feats = torch.concat([dists_feats[-1], sem_feats], dim=1)
             C = encoder_feats.shape[1]
             trans_decode = self.transformer_decoder(encoder_feats.reshape(-1, C, 256).permute(0,2,1)).permute(0,2,1).reshape(-1, C, 16, 16)
-            trans_decode = dinov2_feats + wandb.config.refine_scale4 * self.trans2sem(encoder_feats + wandb.config.refine_scale3 * trans_decode)
+            trans_decode = sem_feats + wandb.config.refine_scale4 * self.trans2sem(encoder_feats + wandb.config.refine_scale3 * trans_decode)
         else:
-            trans_decode = dinov2_feats
-        feature_map = torch.concat([torch.zeros_like(dists_feats[-1]), torch.zeros_like(trans_decode)], dim=1)
+            trans_decode = sem_feats
+        feature_map = torch.concat([dists_feats[-1], trans_decode], dim=1)
         predicted_feats = []
 
         # Refine features in reverse order using the decoder layers
-        for refiner, feature in zip(self.decoder, reversed(dists_feats)):
-            feature_map, refined_feature = refiner(feature_map, feature, trans_decode)
+        for refiner, dists_feat, sem_feat in zip(self.decoder, reversed(dists_feats), sem_feats_upscaled):
+            feature_map, refined_feature = refiner(feature_map, dists_feat, sem_feat)
             predicted_feats.append(refined_feature)
 
         # Return the refined features in the original order
@@ -226,12 +240,10 @@ class NRModel(nn.Module):
 
 
     def forward_from_feats(self, encoder_feats):
-        # Separate DISTS features and DINO v2 features from the features list
-        dists_feats = [feature.to(self.device) for feature in encoder_feats[:-1]]
-        dinov2_feats = encoder_feats[-1]['x_norm_patchtokens'].permute(0, 2, 1).reshape(-1, self.encoder.dinov2.embed_dim, 16, 16).to(self.device)
+        dists_feats, sem_feats, sem_feats_upscaled = encoder_feats
         
         # Predict ground truth DISTS features using the decoded features
-        predicted_gt_feats, feature_map = self.pred_gt_dists_feats(dists_feats, dinov2_feats)
+        predicted_gt_feats, feature_map = self.pred_gt_dists_feats(encoder_feats)
         dists_res, _, pred_std, pred_mean = self.score_regression(feature_map)
         # Compute the final score using DISTS with the predicted features
         score =  self.encoder.dists.forward_from_feats(dists_feats, predicted_gt_feats)
@@ -245,9 +257,8 @@ class NRModel(nn.Module):
         # Encode render to extract features and predict ground truth DISTS features
         with torch.no_grad():
             encoder_feats = self.encoder(render)
-        dists_feats = [feature.to(self.device) for feature in encoder_feats[:-1]]
-        dinov2_feats = encoder_feats[-1]['x_norm_patchtokens'].permute(0, 2, 1).reshape(-1, self.encoder.dinov2.embed_dim, 16, 16).to(self.device)
-        predicted_gt_feats, feature_map = self.pred_gt_dists_feats(dists_feats, dinov2_feats)
+        dists_feats, sem_feats, sem_feats_upscaled = encoder_feats
+        predicted_gt_feats, feature_map = self.pred_gt_dists_feats(encoder_feats)
         
         # Predict scores and calculate the loss with the ground truth image features
         predicted_score = self.encoder.dists.forward_from_feats(dists_feats, predicted_gt_feats)
