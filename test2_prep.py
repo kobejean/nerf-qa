@@ -85,9 +85,9 @@ def compute_correlations(pred_scores, mos):
 class CustomDataset(Dataset):
     def __init__(self, gt_dir, render_dir):
 
-        gt_files = [f for f in os.listdir(gt_dir) if f.endswith((".jpg", ".png"))]
+        gt_files = [os.path.join(gt_dir, f) for f in os.listdir(gt_dir) if f.endswith((".jpg", ".png"))]
         gt_files.sort()
-        render_files = [f for f in os.listdir(render_dir) if f.endswith((".jpg", ".png"))]
+        render_files = [os.path.join(render_dir, f) for f in os.listdir(render_dir) if f.endswith((".jpg", ".png"))]
         render_files.sort()
         frame_count = max(len(gt_files), len(render_files))
 
@@ -127,19 +127,20 @@ class CustomDataset(Dataset):
 # Batch creation function
 def create_test_dataloader(row, dir):
     ref_dir = path.join(dir, "Reference")
-    syn_dir = path.join(dir, "NeRF-QA_videos")
-    dist_path = path.join(syn_dir, row['distorted_filename'])
-    ref_path = path.join(ref_dir, row['reference_filename'])
+    syn_dir = path.join(dir, "Renders")
+    dist_path = path.join(syn_dir, row['distorted_folder'])
+    ref_path = path.join(ref_dir, row['reference_folder'])
      
     # Create a dataset and dataloader for efficient batching
     dataset = CustomDataset(ref_path, dist_path)
     dataloader = DataLoader(dataset, batch_size=DEVICE_BATCH_SIZE, shuffle=False, collate_fn = recursive_collate)
     return dataloader  
 
-TEST_DATA_DIR = "/home/ccl/Datasets/NeRF-QA"
-TEST_SCORE_FILE = path.join(TEST_DATA_DIR, "NeRF_VQA_MOS.csv")
+TEST_DATA_DIR = "/home/ccl/Datasets/Test_2-datasets/"
+TEST_SCORE_FILE = path.join(TEST_DATA_DIR, "scores.csv")
 test_df = pd.read_csv(TEST_SCORE_FILE)
 test_size = test_df.shape[0]
+#%%
 adists_model = ADISTS().to(device)
 dists_model = DISTS().to(device)
 video_adists_scores = []
@@ -164,17 +165,16 @@ test_df['A-DISTS'] = video_adists_scores
 test_df['DISTS'] = video_dists_scores
 
 #%%
+display(test_df.head(3))
 #%%
-syn_files = ['ficus_reference.mp4', 'ship_reference.mp4',
- 'drums_reference.mp4']
-tnt_files = ['truck_reference.mp4', 'playground_reference.mp4',
- 'train_reference.mp4', 'm60_reference.mp4']
-print(test_df['reference_filename'].unique())
-
-syn_df = test_df[test_df['reference_filename'].isin(syn_files)].reset_index()
-tnt_df = test_df[test_df['reference_filename'].isin(tnt_files)].reset_index()
+syn_files = ['gt_chair', 'gt_mic', 'gt_hotdog', 'gt_materials']
+tnt_files = ['gt_horns', 'gt_trex', 'gt_fortress', 'gt_room']
+print(test_df['reference_folder'].unique())
 #%%
-display(test_df['reference_filename'].isin(syn_files))
+syn_df = test_df[test_df['reference_folder'].isin(syn_files)].reset_index()
+tnt_df = test_df[test_df['reference_folder'].isin(tnt_files)].reset_index()
+#%%
+display(test_df['reference_folder'].isin(syn_files))
 #%%
 corr = compute_correlations(syn_df['A-DISTS'], syn_df['MOS'])
 print("syn a-dists mos", corr)
@@ -182,12 +182,7 @@ corr = compute_correlations(tnt_df['A-DISTS'], tnt_df['MOS'])
 print("tnt a-dists mos", corr)
 corr = compute_correlations(test_df['A-DISTS'], test_df['MOS'])
 print("all a-dists mos", corr)
-corr = compute_correlations(syn_df['A-DISTS'], syn_df['DMOS'])
-print("syn a-dists dmos", corr)
-corr = compute_correlations(tnt_df['A-DISTS'], tnt_df['DMOS'])
-print("tnt a-dists dmos", corr)
-corr = compute_correlations(test_df['A-DISTS'], test_df['DMOS'])
-print("all a-dists dmos", corr)
+
 #%%
 corr = compute_correlations(syn_df['DISTS'], syn_df['MOS'])
 print("syn dists mos", corr)
@@ -195,10 +190,65 @@ corr = compute_correlations(tnt_df['DISTS'], tnt_df['MOS'])
 print("tnt dists mos", corr)
 corr = compute_correlations(test_df['DISTS'], test_df['MOS'])
 print("all dists mos", corr)
-corr = compute_correlations(syn_df['DISTS'], syn_df['DMOS'])
-print("syn dists dmos", corr)
-corr = compute_correlations(tnt_df['DISTS'], tnt_df['DMOS'])
-print("tnt dists dmos", corr)
-corr = compute_correlations(test_df['DISTS'], test_df['DMOS'])
-print("all dists dmos", corr)
+# %%
 #%%
+import plotly.express as px
+import plotly.graph_objects as go
+from scipy.optimize import curve_fit
+import numpy as np
+from scipy.optimize import curve_fit
+import plotly.graph_objects as go
+
+def hex_to_rgba(h, alpha):
+    '''
+    converts color value in hex format to rgba format with alpha transparency
+    '''
+    return tuple([int(h.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)] + [alpha])
+
+def plot_dists_mos_with_group_regression_b_ave(df, y_col='DISTS', x_col='MOS', group_col='reference_folder'):
+    colors = [
+        '#1f77b4',  # Mutated blue
+        '#ff7f0e',  # Safety orange
+        '#2ca02c',  # Cooked asparagus green
+        '#d62728',  # Brick red
+        '#9467bd',  # Muted purple
+        '#8c564b',  # Chestnut brown
+        '#e377c2',  # Raspberry yogurt pink
+        '#7f7f7f',  # Middle gray
+        '#bcbd22',  # Curry yellow-green
+        '#17becf'   # Blue-teal
+    ]
+
+    def linear_func(x, a, b):
+        return a + b * x
+
+    fig = go.Figure()
+
+    unique_groups = df[group_col].unique()
+    for i, group in enumerate(unique_groups):
+        group_df = df[df[group_col] == group]
+        group_x = group_df[x_col]
+        group_y = group_df[y_col]
+        
+        params, params_covariance = curve_fit(linear_func, group_x, group_y)
+        
+        x_range = np.linspace(min(group_x), max(group_x), 400)
+        y_pred = linear_func(x_range, *params)
+        
+        color = colors[i % len(colors)]
+        rgba_color = hex_to_rgba(color, 0.5)  # Adjust the alpha value to 0.5 for transparency
+        
+        fig.add_trace(go.Scatter(x=group_x, y=group_y, mode='markers', name=f'Data: {group}', marker_color=color))
+        fig.add_trace(go.Scatter(x=group_x, y=group_y, mode='lines', line=dict(color=rgba_color, width=2)))
+        
+        fig.add_trace(go.Scatter(x=x_range, y=y_pred, mode='lines', name=f'Regression: {group}', line=dict(color=color)))
+
+    fig.update_layout(title=f'Linear Regression per Group between {y_col} and {x_col}',
+                      xaxis_title=x_col,
+                      yaxis_title=y_col)
+    return fig
+
+display(plot_dists_mos_with_group_regression_b_ave(test_df, 'DISTS', 'MOS'))
+display(plot_dists_mos_with_group_regression_b_ave(test_df, 'A-DISTS', 'MOS'))
+
+# %%
