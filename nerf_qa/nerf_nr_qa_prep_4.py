@@ -34,8 +34,7 @@ def compute_std_mean(group):
             else:
                 score_map_dir = os.path.join(os.path.dirname(render_dir), 'gt-score-map')
             basename = basenames[frame]
-            score_map_basename = os.path.splitext(basename)[0] + '.pt'
-            score_map_path = os.path.join(DATA_DIR, score_map_dir, score_map_basename)
+            score_map_path = os.path.join(DATA_DIR, score_map_dir, basename)
             score_map = torch.load(score_map_path, map_location='cpu').detach().numpy()
             score_maps.append(score_map)
 

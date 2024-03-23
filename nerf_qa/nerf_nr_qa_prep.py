@@ -18,7 +18,7 @@ DATA_DIR = "/home/ccl/Datasets/NeRF-NR-QA/"  # Specify the path to your DATA_DIR
 csv_file = "/home/ccl/Datasets/NeRF-NR-QA/output_ADISTS.csv"
 
 # CSV headers
-headers = ["scene", "method", "gt_dir", "render_dir", "frame_count", "frame_height", "frame_width", "basenames", "A-DISTS","score_map_log_min", "score_map_log_max"]
+headers = ["scene", "method", "gt_dir", "render_dir", "frame_count", "frame_height", "frame_width", "basenames", "score_map_log_min", "score_map_log_max"]
 
 # Initialize data rows
 data_rows = []
