@@ -259,6 +259,12 @@ class NerfNRQADataset(Dataset):
         dists_std = eval(row['DISTS_std'])[frame_index]  # Get DISTS score for the specific frame
         dists_mean = eval(row['DISTS_mean'])[frame_index]  # Get DISTS score for the specific frame
         render_dir = row['render_dir']
+
+        if os.path.basename(render_dir) == 'color':
+            score_map_dir = os.path.join(os.path.dirname(render_dir), 'score-map')
+        else:
+            score_map_dir = os.path.join(os.path.dirname(render_dir), 'gt-score-map')
+
         gt_dir = row['gt_dir']
 
 
@@ -274,7 +280,10 @@ class NerfNRQADataset(Dataset):
         render = { "256x256": render_256, "224x224": render_224 }
 
         gt_image = F.interpolate(gt_image.unsqueeze(0), size=(256, 256), mode='bilinear', align_corners=False).squeeze(0)
-
+        if self.mode == 'score-map':
+            score_map_path = os.path.join(self.dir, score_map_dir, basename)
+            score_map = torch.load(score_map_path, map_location='cpu')
+            return gt_image, render, score_map, df_index, frame_index
         return gt_image, render, torch.tensor(dists_std), torch.tensor(dists_mean), df_index, frame_index
     
     def transform_pair(self, render_image, gt_image):
