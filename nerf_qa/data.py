@@ -38,6 +38,50 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #%%
 
+class Test2Dataset(Dataset):
+    def __init__(self, gt_dir, render_dir):
+        gt_dir = path.join(dir, "Reference", row['distorted_folder'])
+        render_dir = path.join(dir, "Renders", row['reference_folder'])
+
+        gt_files = [os.path.join(gt_dir, f) for f in os.listdir(gt_dir) if f.endswith((".jpg", ".png"))]
+        gt_files.sort()
+        render_files = [os.path.join(render_dir, f) for f in os.listdir(render_dir) if f.endswith((".jpg", ".png"))]
+        render_files.sort()
+        frame_count = max(len(gt_files), len(render_files))
+
+        self.files = list(zip(gt_files, render_files))
+        
+    def __len__(self):
+        return len(self.files)
+    
+    def __getitem__(self, index):
+        # Retrieve the data row at the given index
+        gt_path, render_path = self.files[index]
+        gt = self.load_image(gt_path)
+        render = self.load_image(render_path)
+        return gt, render
+    
+    def load_image(self, path):
+        image = Image.open(path)
+
+        if image.mode == 'RGBA':
+            # If the image has an alpha channel, create a white background
+            background = Image.new('RGBA', image.size, (255, 255, 255))
+            
+            # Paste the image onto the white background using alpha compositing
+            background.paste(image, mask=image.split()[3])
+            
+            # Convert the image to RGB mode
+            image = background.convert('RGB')
+        else:
+            # If the image doesn't have an alpha channel, directly convert it to RGB
+            image = image.convert('RGB')
+
+        image = torch.from_numpy(np.array(image)).permute(2, 0, 1).float() / 255.0
+        image_256 = F.interpolate(image.unsqueeze(0), size=(256, 256), mode='bilinear', align_corners=False).squeeze(0)
+        image_224 = F.interpolate(image.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
+
+        return { "256x256": image_256, "224x224": image_224 }
 
 class LargeQADataset(Dataset):
 
