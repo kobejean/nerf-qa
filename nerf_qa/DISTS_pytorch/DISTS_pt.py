@@ -195,7 +195,7 @@ class DISTS(torch.nn.Module):
             S2 = (2*xy_cov+c2)/(x_var+y_var+c2)
             dist2 = dist2+(beta[k]*S2).sum(1,keepdim=True)
 
-        score = 1 - (dist1+dist2).squeeze()
+        score = 1 - (dist1+dist2).squeeze([1,2,3])
         if batch_average:
             return score.mean()
         else:

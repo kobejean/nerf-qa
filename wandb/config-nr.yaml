@@ -7,8 +7,8 @@ method: random
 parameters:
   lr:
     distribution: q_log_uniform_values
-    min: 9e-4
-    max: 2e-3
+    min: 8e-4
+    max: 8e-3
     q: 1e-7
   refine_scale1:
     distribution: q_log_uniform_values
@@ -48,13 +48,11 @@ parameters:
     min: 175.0
     max: 180.0
   refine_up_depth:
-    values: [3]
+    values: [2]
   reg_activation:
     values: ['relu', 'sigmoid']
   transformer_decoder_depth:
     values: [2]
-  batch_size:
-    values: [32]
 command:
 - ${env}
 - ${interpreter}

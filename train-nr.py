@@ -183,7 +183,7 @@ if __name__ == '__main__':
     parser.add_argument('--reg_activation', type=str, default='linear', help='Random seed.')  
     parser.add_argument('--vit_model', type=str, default='dinov2', help='Random seed.')    
     parser.add_argument('--refine_up_depth', type=int, default=2, help='Random seed.')   
-    parser.add_argument('--batch_size', type=int, default=32, help='Random seed.')
+    #parser.add_argument('--batch_size', type=int, default=32, help='Random seed.')
     parser.add_argument('--transformer_decoder_depth', type=int, default=1, help='Random seed.')
     parser.add_argument('--refine_scale1', type=float, default=0.1, help='Random seed.')
     parser.add_argument('--refine_scale2', type=float, default=0.1, help='Random seed.')
@@ -198,17 +198,18 @@ if __name__ == '__main__':
     # Parse arguments
     args = parser.parse_args()
 
-    epochs = 10
+    epochs = 5
     config = {
         "epochs": epochs,
         "loader_num_workers": 4,
-        "beta1": 0.9,
-        "beta2": 0.999,
-        "eps": 1e-7,
+        "beta1": 0.99,
+        "beta2": 0.9999,
+        "eps": 1e-8,
+        "batch_size": DEVICE_BATCH_SIZE
     }     
     config.update(vars(args))
 
-    exp_name=f"v6-l1-bs:{config['batch_size']}-lr:{config['lr']:.0e}-b1:{config['beta1']:.2f}-b2:{config['beta2']:.3f}"
+    exp_name=f"v7-l1-bs:{config['batch_size']}-lr:{config['lr']:.0e}-b1:{config['beta1']:.2f}-b2:{config['beta2']:.3f}"
 
     # Initialize wandb with the parsed arguments, further simplifying parameter names
     wandb.init(project='nerf-nr-qa', name=exp_name, config=config)
@@ -223,7 +224,7 @@ if __name__ == '__main__':
 
     # CSV file 
     scores_df = pd.read_csv("/home/ccl/Datasets/NeRF-NR-QA/output.csv")
-    val_scenes = ['scannerf_airplane1', 'nerfstudio_plane', 'nerfstudio_stump', 'mipnerf360_garden', 'mipnerf360_stump']
+    val_scenes = ['scannerf_zebra', 'scannerf_cheetah', 'nerfstudio_stump', 'mipnerf360_garden']
     train_df = scores_df[~scores_df['scene'].isin(val_scenes)].reset_index() # + ['trex', 'horns']
     black_list_train_methods = [
         'instant-ngp-10', 'instant-ngp-20', 'instant-ngp-50', 'instant-ngp-100', 'instant-ngp-200',
@@ -233,8 +234,8 @@ if __name__ == '__main__':
 
     val_df = scores_df[scores_df['scene'].isin(val_scenes)].reset_index()
     black_list_val_methods = [
-        'instant-ngp-10', 'instant-ngp-20', 'instant-ngp-50', 'instant-ngp-100', 'instant-ngp-200', 'instant-ngp-500', 'instant-ngp-1000', 'instant-ngp-2000', 
-        'nerfacto-10', 'nerfacto-20', 'nerfacto-50', 'nerfacto-100', 'nerfacto-200', 'nerfacto-500', 'nerfacto-1000', 'nerfacto-2000', 
+        'instant-ngp-10', 'instant-ngp-20', 'instant-ngp-50', 'instant-ngp-100', 'instant-ngp-200', 'instant-ngp-500', 'instant-ngp-1000', 'instant-ngp-2000', 'instant-ngp-5000', 'instant-ngp-10000', 'instant-ngp-20000', 
+        'nerfacto-10', 'nerfacto-20', 'nerfacto-50', 'nerfacto-100', 'nerfacto-200', 'nerfacto-500', 'nerfacto-1000', 'nerfacto-2000', 'nerfacto-5000', 'nerfacto-10000', 'nerfacto-20000', 
     ]
     val_df = val_df[~val_df['method'].isin(black_list_val_methods)].reset_index()
 
@@ -263,13 +264,14 @@ if __name__ == '__main__':
     update_step = 0
     for epoch in range(config.epochs):
 
-        model.train()
-
         #with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True) as prof:
         with record_function("load_data"):
+
+            model.train()
             for batch in tqdm(train_dataloader):
                 gt_image, render, score_std, score_mean, render_id, frame_id = batch_to_device(batch, device)
                 
+                optimizer.zero_grad()
                 with record_function("model_inference"):
                     losses = model.losses(gt_image, render, score_std, score_mean)
                 loss = losses['combined']
@@ -277,12 +279,9 @@ if __name__ == '__main__':
                 step += score_mean.shape[0]
                 train_metrics.add_metric(losses)
 
-                if step - config.batch_size >= update_step:
-                    update_step = step
-                    optimizer.step()
-                    optimizer.zero_grad()
-                    train_metrics.log_summary(step)
-                     
+                optimizer.step()
+                train_metrics.log_summary(step)
+
             model.eval()
             for batch in tqdm(val_dataloader):
                 gt_image, render, score_std, score_mean, render_id, frame_id = batch_to_device(batch, device)
@@ -290,9 +289,9 @@ if __name__ == '__main__':
                     losses = model.losses(gt_image, render, score_std, score_mean)
                 val_metrics.add_metric(losses)
             val_metrics.log_summary(step)
-            model.train()
+                     
 
-            if (epoch+1) % 10 == 0:
+            if (epoch+1) % 5 == 0:
 
                 # Test step
                 model.eval()  # Set model to evaluation mode

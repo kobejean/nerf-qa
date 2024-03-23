@@ -8,26 +8,46 @@ import torch.optim as optim
 import wandb
 from sklearn.linear_model import LinearRegression
 
-
+from featup.layers import ChannelNorm
 # local
 from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS
 from nerf_qa.layers import NestedTensorBlock as Block, MemEffAttention
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 #%%
 class ConvLayer(nn.Module):
-    def __init__(self, in_chns, out_chns, apply_relu=True):
+    def __init__(self, in_chns, out_chns, activation_enabled=True):
         super(ConvLayer, self).__init__()
+        self.dropout = nn.Dropout2d(p=0.2)
         self.conv = nn.Conv2d(in_chns, out_chns, kernel_size = 3, stride=1, padding='same', dilation=1, groups=1, bias=True)
-        self.batch_norm = nn.BatchNorm2d(out_chns)
-        self.apply_relu = apply_relu
-        if self.apply_relu:
-            self.relu = nn.ReLU()
+        self.norm_layer = ChannelNorm(out_chns)
+        self.activation_enabled = activation_enabled
+        if self.activation_enabled:
+            self.act_layer = nn.GELU()
 
     def forward(self, x):
+        x = self.dropout(x)
         x = self.conv(x)
-        x = self.batch_norm(x)
-        if self.apply_relu:
-            x = self.relu(x)
+        x = self.norm_layer(x)
+        if self.activation_enabled:
+            x = self.act_layer(x)
+        return x
+
+class ConvTransposeLayer(nn.Module):
+    def __init__(self, in_chns, out_chns, activation_enabled=True):
+        super(ConvTransposeLayer, self).__init__()
+        self.dropout = nn.Dropout2d(p=0.2)
+        self.conv = nn.ConvTranspose2d(in_chns, out_chns, kernel_size=3, stride=2, padding=1, output_padding=1)
+        self.norm_layer = ChannelNorm(out_chns)
+        self.activation_enabled = activation_enabled
+        if self.activation_enabled:
+            self.act_layer = nn.GELU()
+
+    def forward(self, x):
+        x = self.dropout(x)
+        x = self.conv(x)
+        x = self.norm_layer(x)
+        if self.activation_enabled:
+            x = self.act_layer(x)
         return x
     
 class RefineUp(nn.Module):
@@ -54,39 +74,29 @@ class RefineUp(nn.Module):
 
         # Initialize convolutional layers
         convolutional_layers = [ConvLayer(input_chns, input_chns) for _ in range(depth - 1)]
-        convolutional_layers.append(ConvLayer(input_chns, input_chns, apply_relu=False))
+        convolutional_layers.append(ConvLayer(input_chns, input_chns, activation_enabled=False))
         self.block = nn.Sequential(*convolutional_layers)
 
         # Initialize upsampling layer if upsampling is enabled
         if self.upsample:
-            self.upsample_layer = nn.ConvTranspose2d(input_chns, output_chns, kernel_size=3, stride=2, padding=1, output_padding=1)
+            self.upsample_layer = ConvTransposeLayer(input_chns, output_chns, activation_enabled=False)
         else:
-            self.upsample_layer = ConvLayer(input_chns, output_chns, apply_relu=False)
+            self.upsample_layer = ConvLayer(input_chns, output_chns, activation_enabled=False)
         
 
     def forward(self, input_feats, dists_feat, sem_feat):
-        """
-        Forward pass of the RefineUp module.
-
-        Parameters:
-        - input_feats: The input feature map.
-        - additional_feats: Additional feature channels to integrate.
-
-        Returns:
-        - Tuple of the refined (and optionally upsampled) feature map and updated additional features.
-        """
         # Integrate additional features into input features
-        input_feats = input_feats * wandb.config.refine_scale1 + torch.concat([dists_feat, sem_feat])
+        input_feats = input_feats * wandb.config.refine_scale1 + torch.concat([dists_feat, sem_feat], dim=1)
 
         # Apply convolutional blocks
-        refined_feats = self.block(input_feats)
+        feature_map = self.block(input_feats)
 
         # Update additional features with residual scaling
-        additional_feats = wandb.config.refine_scale2 * refined_feats[:, :self.feature_chns, :, :] + additional_feats[:, :self.feature_chns, :, :]
+        pred_feats = wandb.config.refine_scale2 * feature_map[:, :self.feature_chns, :, :] + dists_feat
 
         # Upsample if enabled
-        refined_feats = self.upsample_layer(refined_feats)
-        return refined_feats, additional_feats
+        feature_map = self.upsample_layer(feature_map)
+        return feature_map, pred_feats
     
 
 def freeze_parameters(model):
@@ -101,7 +111,7 @@ class SemanticEncoder(nn.Module):
         featup = torch.hub.load("mhamilton723/FeatUp", model_name)
         self.model = featup.model
         self.upsampler = featup.upsampler
-        self.sem_dim = featup.dim
+        self.dim = featup.dim
 
     def upsample(self, feats, image):
         feats_2 = self.upsampler.upsample(feats, image, self.upsampler.up1)
@@ -133,7 +143,7 @@ class Encoder(nn.Module):
         self.device = device
         self.semantic_model = SemanticEncoder(wandb.config.vit_model)
         freeze_parameters(self.semantic_model)
-
+        
         self.dists = DISTS()
         freeze_parameters(self.dists)
         self.to(self.device)
@@ -164,7 +174,7 @@ class NRModel(nn.Module):
         self.l1_loss_fn = nn.L1Loss()
         
         # Define the channel dimensions based on the encoder models' embeddings and features
-        initial_sem_dim = self.encoder.sem_dim
+        initial_sem_dim = self.encoder.semantic_model.dim
         initial_dists_dim = self.encoder.dists.chns[-1]
         self.sem_chns = [initial_sem_dim] * 6
         self.dists_chns = list(reversed(self.encoder.dists.chns))
@@ -179,7 +189,7 @@ class NRModel(nn.Module):
             self.trans2sem = ConvLayer(initial_dists_dim + initial_sem_dim, initial_sem_dim)
         self.score_reg = nn.Sequential(
             ConvLayer(last_chns, last_chns),
-            ConvLayer(last_chns, 4, apply_relu=False)
+            ConvLayer(last_chns, 4, activation_enabled=False)
         )
         self.decoder = nn.Sequential(
             *[self.create_refineup_layer(i, upsample=i < num_upscales) for i in range(num_upscales + 2)]
@@ -218,7 +228,6 @@ class NRModel(nn.Module):
 
     def pred_gt_dists_feats(self, encoder_feats):
         dists_feats, sem_feats, sem_feats_upscaled = encoder_feats
-        print("sem_feats", sem_feats.shape)
 
         if wandb.config.transformer_decoder_depth > 0:
             encoder_feats = torch.concat([dists_feats[-1], sem_feats], dim=1)
@@ -261,7 +270,7 @@ class NRModel(nn.Module):
         predicted_gt_feats, feature_map = self.pred_gt_dists_feats(encoder_feats)
         
         # Predict scores and calculate the loss with the ground truth image features
-        predicted_score = self.encoder.dists.forward_from_feats(dists_feats, predicted_gt_feats)
+        predicted_score = self.encoder.dists.forward_from_feats(dists_feats, predicted_gt_feats, batch_average=False)
         with torch.no_grad():
             gt_dists_feats = self.encoder.dists.forward_once(gt_image)
             gt_dists_score = self.encoder.dists.forward_from_feats(gt_dists_feats, dists_feats, batch_average=False)
@@ -276,7 +285,7 @@ class NRModel(nn.Module):
         dists_mean_l1 = self.l1_loss_fn(pred_mean, score_mean)
         mae_reg_l1_loss = self.l1_loss_fn(pred_mae, gt_mae)
         coeff = wandb.config.dists_pref2ref_coeff
-        combined_loss = coeff*dists_pref2ref + (1-coeff) * (l1_loss+mae_reg_l1_loss+dists_std_l1+dists_mean_l1)
+        combined_loss = coeff*dists_pref2ref + (1-coeff) * (l1_loss+0.2*(mae_reg_l1_loss+dists_std_l1+dists_mean_l1))
         
         return {
             "dists_pref2ref": dists_pref2ref,
@@ -292,7 +301,4 @@ class NRModel(nn.Module):
         encoder_feats = self.encoder(render)
         scores, normalized = self.forward_from_feats(encoder_feats)
         return scores, normalized
-#%%
-# %%
-#from featup.adaptive_conv_cuda import cuda_impl
-# %%
+

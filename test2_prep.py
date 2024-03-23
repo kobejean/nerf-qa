@@ -83,16 +83,25 @@ def compute_correlations(pred_scores, mos):
     }
 
 class CustomDataset(Dataset):
-    def __init__(self, data_list):
-        self.data = data_list
+    def __init__(self, gt_dir, render_dir):
+
+        gt_files = [f for f in os.listdir(gt_dir) if f.endswith((".jpg", ".png"))]
+        gt_files.sort()
+        render_files = [f for f in os.listdir(render_dir) if f.endswith((".jpg", ".png"))]
+        render_files.sort()
+        frame_count = max(len(gt_files), len(render_files))
+
+        self.files = list(zip(gt_files, render_files))
         
     def __len__(self):
-        return len(self.data)
+        return len(self.files)
     
     def __getitem__(self, index):
         # Retrieve the data row at the given index
-        data_row = self.data[index]
-        return data_row
+        gt_path, render_path = self.files[index]
+        gt = self.load_image(gt_path)
+        render = self.load_image(render_path)
+        return gt, render
     
     def load_image(self, path):
         image = Image.open(path)
@@ -122,10 +131,8 @@ def create_test_dataloader(row, dir):
     dist_path = path.join(syn_dir, row['distorted_filename'])
     ref_path = path.join(ref_dir, row['reference_filename'])
      
-    ref = load_video_frames(ref_path, resize=resize)
-    dist = load_video_frames(dist_path, resize=resize)
     # Create a dataset and dataloader for efficient batching
-    dataset = CustomDataset(list(zip(ref, dist)))
+    dataset = CustomDataset(ref_path, dist_path)
     dataloader = DataLoader(dataset, batch_size=DEVICE_BATCH_SIZE, shuffle=False, collate_fn = recursive_collate)
     return dataloader  
 
@@ -138,7 +145,7 @@ dists_model = DISTS().to(device)
 video_adists_scores = []
 video_dists_scores = []
 for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Processing..."):
-    frames_data = create_test_video_dataloader(row, TEST_DATA_DIR)
+    frames_data = create_test_dataloader(row, TEST_DATA_DIR)
     frame_adists_scores = []
     frame_dists_scores = []
     for ref, render in frames_data:
