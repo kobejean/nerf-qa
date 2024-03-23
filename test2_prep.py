@@ -131,7 +131,7 @@ class Test2Dataset(Dataset):
 def create_test_dataloader(row, dir):
     # Create a dataset and dataloader for efficient batching
     dataset = Test2Dataset(row, dir)
-    dataloader = DataLoader(dataset, batch_size=DEVICE_BATCH_SIZE, shuffle=False, collate_fn = recursive_collate)
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn = recursive_collate)
     return dataloader  
 
 TEST_DATA_DIR = "/home/ccl/Datasets/Test_2-datasets/"
@@ -140,27 +140,27 @@ test_df = pd.read_csv(TEST_SCORE_FILE)
 test_size = test_df.shape[0]
 #%%
 adists_model = ADISTS().to(device)
-dists_model = DISTS().to(device)
+#dists_model = DISTS().to(device)
 video_adists_scores = []
-video_dists_scores = []
+#video_dists_scores = []
 for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Processing..."):
     frames_data = create_test_dataloader(row, TEST_DATA_DIR)
     frame_adists_scores = []
-    frame_dists_scores = []
+    #frame_dists_scores = []
     for ref, render in frames_data:
         batch_adists_scores = adists_model(ref.to(device), render.to(device), as_loss=False)
         frame_adists_scores.append(batch_adists_scores.detach().cpu().numpy())
 
-        batch_dists_scores = dists_model(ref.to(device), render.to(device), batch_average=False)
-        frame_dists_scores.append(batch_dists_scores.detach().cpu().numpy())
+        #batch_dists_scores = dists_model(ref.to(device), render.to(device), batch_average=False)
+        #frame_dists_scores.append(batch_dists_scores.detach().cpu().numpy())
     video_adists_score = np.mean(np.concatenate(frame_adists_scores))
-    video_dists_score = np.mean(np.concatenate(frame_dists_scores))
+    #video_dists_score = np.mean(np.concatenate(frame_dists_scores))
     print(video_adists_score, batch_adists_scores)
-    print(video_dists_score, batch_dists_scores)
+    #print(video_dists_score, batch_dists_scores)
     video_adists_scores.append(video_adists_score)
-    video_dists_scores.append(video_dists_score)
+    #video_dists_scores.append(video_dists_score)
 test_df['A-DISTS'] = video_adists_scores
-test_df['DISTS'] = video_dists_scores
+#test_df['DISTS'] = video_dists_scores
 
 #%%
 display(test_df.head(3))
@@ -197,3 +197,4 @@ display(plot_group_regression_lines(test_df, 'A-DISTS', 'MOS'))
 
 # %%
 test_df.to_csv(path.join(TEST_DATA_DIR, "scores_new.csv"))
+# %%

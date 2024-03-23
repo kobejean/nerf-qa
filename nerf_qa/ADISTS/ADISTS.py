@@ -159,6 +159,8 @@ class ADISTS(torch.nn.Module):
         weight = weight.clamp(min=weight_mean - 0.5 * weight_std, max=weight_mean + 0.5 * weight_std)
         weight = weight / weight.sum(dim=(1, 2), keepdim=True)
         weight_list = torch.split(weight, self.chns, dim=1)
+        B, _, H, W = x.shape
+        D_map_full = torch.zeros([B, H, W]).to(device)
 
         for k in range(len(self.chns) - 1, -1, -1):
             feat_x = F.normalize(feats_x[k], dim=(2, 3))
@@ -182,9 +184,14 @@ class ADISTS(torch.nn.Module):
 
             ps = ps_x[k].expand(x_mean.shape[0], x_mean.shape[1], -1, -1)
             pt = 1 - ps
-            D_map = (pt * T + ps * S) * weight_list[k].unsqueeze(3)
+            D_map = ((pt * T + ps * S) * weight_list[k].unsqueeze(3)).sum(1,keepdim=True)
+            if as_map:
+                D_map_full = D_map_full + F.interpolate(D_map, size=(H, W), mode='bilinear', align_corners=False)
+
             D = D + D_map.mean([2, 3]).sum(1)
-        if as_loss:
+        if as_map:
+            return 1 - D_map_full
+        elif as_loss:
             return 1 - D.mean()
         else:
             return 1 - D
@@ -213,5 +220,5 @@ if __name__ == '__main__':
     model = ADISTS().to(device)
     ref = ref.to(device)
     dist = dist.to(device)
-    score = model(ref, dist,as_loss=False)
+    score = model(ref, dist, as_loss=False)
     print(score.item())

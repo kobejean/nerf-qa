@@ -6,18 +6,19 @@ from tqdm import tqdm
 from PIL import Image
 import torchvision.transforms.functional as TF
 from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS, prepare_image
+from nerf_qa.ADISTS import ADISTS
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 #%%
-dists_model = DISTS().to(device)
+dists_model = ADISTS().to(device)
 
 DATA_DIR = "/home/ccl/Datasets/NeRF-NR-QA/"  # Specify the path to your DATA_DIR
 
 # CSV file path
-csv_file = "/home/ccl/Datasets/NeRF-NR-QA/output.csv"
+csv_file = "/home/ccl/Datasets/NeRF-NR-QA/output_ADISTS.csv"
 
 # CSV headers
-headers = ["scene", "method", "gt_dir", "render_dir", "frame_count", "frame_height", "frame_width", "basenames", "DISTS"]
+headers = ["scene", "method", "gt_dir", "render_dir", "frame_count", "frame_height", "frame_width", "basenames", "A-DISTS"]
 
 # Initialize data rows
 data_rows = []
@@ -53,9 +54,12 @@ for root, dirs, files in os.walk(DATA_DIR):
                 if "color" in dirs:
                     gt_dir = os.path.join("/", *path_parts[:-1], "gt-color")
                     render_dir = os.path.join(root, "color")
+                    score_map_dir = os.path.join(root, "score-map")
                 else:
                     gt_dir = render_dir = os.path.join(root, 'gt-color')
+                    score_map_dir = os.path.join(root, "gt-score-map")
                     method = 'gt'
+                os.makedirs(score_map_dir, exist_ok=True)
                 print(gt_dir, render_dir)
 
                 # Count the number of image files in gt_dir or render_dir
@@ -81,19 +85,24 @@ for root, dirs, files in os.walk(DATA_DIR):
                     gt_im = prepare_image(load_image(os.path.join(gt_dir, gt_file)), resize=False)
                     render_im = prepare_image(load_image(os.path.join(render_dir, render_file)), resize=False)
                     
-                    h, w = (int(render_im.shape[1]*0.7), int(render_im.shape[2]*0.7))
-                    i, j = (render_im.shape[1]-h)//2, (render_im.shape[2]-w)//2
+                    h, w = (int(render_im.shape[2]*0.7), int(render_im.shape[3]*0.7))
+                    i, j = (render_im.shape[2]-h)//2, (render_im.shape[3]-w)//2
                     # Crop to avoid black region due to postprocessed distortion
                     render_im = TF.crop(render_im, i, j, h, w)
                     gt_im = TF.crop(gt_im, i, j, h, w)
-                    render_im = TF.resize(render_im,(256, 256))
-                    gt_im = TF.resize(gt_im,(256, 256))
+                    #render_im = TF.resize(render_im,(256, 256))
+                    #gt_im = TF.resize(gt_im,(256, 256))
 
                     with torch.no_grad():
-                        dists_score = dists_model(render_im.to(device), gt_im.to(device), require_grad=False, batch_average=False)
-                        dists_scores.append(dists_score.cpu().item())
-                        basenames.append(os.path.basename(gt_file))
-
+                        dists_score = dists_model(render_im.to(device), gt_im.to(device), as_map=True)
+                        #dists_scores.append(dists_score.cpu().item())
+                        basename = os.path.basename(gt_file)
+                        basenames.append(basename)
+                        score_map_path = os.path.splitext(basename)[0] + '.pt'
+                        score_map_path = os.path.join(score_map_dir, score_map_path)
+                        print(dists_score.shape)
+                        torch.save(dists_score.squeeze(0), score_map_path)
+                        dists_scores.append(dists_score.mean().detach().cpu().item())
 
                 if "color" in dirs:
                     gt_dir = os.path.join(*path_parts[5:-1], "gt-color")

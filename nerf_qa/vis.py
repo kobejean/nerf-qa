@@ -9,7 +9,8 @@ def hex_to_rgba(h, alpha):
     '''
     converts color value in hex format to rgba format with alpha transparency
     '''
-    return tuple([int(h.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)] + [alpha])
+    return "rgba" +str(tuple([int(h.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)] + [alpha]))
+
 
 def plot_group_regression_lines(df, y_col='DISTS', x_col='MOS', group_col='reference_folder'):
     colors = [
@@ -42,10 +43,10 @@ def plot_group_regression_lines(df, y_col='DISTS', x_col='MOS', group_col='refer
         y_pred = linear_func(x_range, *params)
         
         color = colors[i % len(colors)]
-        rgba_color = hex_to_rgba(color, 0.5)  # Adjust the alpha value to 0.5 for transparency
+        rgba_color = hex_to_rgba(color, 0.2)  # Adjust the alpha value to 0.5 for transparency
         
         fig.add_trace(go.Scatter(x=group_x, y=group_y, mode='markers', name=f'Data: {group}', marker_color=color))
-        fig.add_trace(go.Scatter(x=group_x, y=group_y, mode='lines', line=dict(color=rgba_color, width=2)))
+        fig.add_trace(go.Scatter(x=group_x, y=group_y, mode='lines', line=dict(color=rgba_color, width=1)))
         
         fig.add_trace(go.Scatter(x=x_range, y=y_pred, mode='lines', name=f'Regression: {group}', line=dict(color=color)))
 
