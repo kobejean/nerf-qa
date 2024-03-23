@@ -282,7 +282,14 @@ class NerfNRQADataset(Dataset):
         gt_image = F.interpolate(gt_image.unsqueeze(0), size=(256, 256), mode='bilinear', align_corners=False).squeeze(0)
         if self.mode == 'score-map':
             score_map_path = os.path.join(self.dir, score_map_dir, basename)
-            score_map = torch.load(score_map_path, map_location='cpu')
+            score_map = Image.open(score_map_path)
+            log_min = eval(row['score_map_log_min'])[frame_index].item()
+            log_max = eval(row['score_map_log_max'])[frame_index].item()
+            score_map = self.transform(score_map)
+            if score_map.shape[0] == 1:
+                score_map = (log_max-log_min) * score_map + log_min
+            else:
+                score_map[1] = (log_max-log_min) * score_map[1] + log_min
             return gt_image, render, score_map, df_index, frame_index
         return gt_image, render, torch.tensor(dists_std), torch.tensor(dists_mean), df_index, frame_index
     
