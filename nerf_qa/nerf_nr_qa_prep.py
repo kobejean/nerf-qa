@@ -18,7 +18,7 @@ DATA_DIR = "/home/ccl/Datasets/NeRF-NR-QA/"  # Specify the path to your DATA_DIR
 csv_file = "/home/ccl/Datasets/NeRF-NR-QA/output_ADISTS.csv"
 
 # CSV headers
-headers = ["scene", "method", "gt_dir", "render_dir", "frame_count", "frame_height", "frame_width", "basenames", "score_map_log_min", "score_map_log_max"]
+headers = ["scene", "method", "gt_dir", "render_dir", "frame_count", "frame_height", "frame_width", "basenames","score_map_log_min", "score_map_log_max"]
 
 # Initialize data rows
 data_rows = []
@@ -99,15 +99,12 @@ for root, dirs, files in os.walk(DATA_DIR):
                         #dists_scores.append(dists_score.cpu().item())
                         basename = os.path.basename(gt_file)
                         basenames.append(basename)
-                        score_map_path = os.path.splitext(basename)[0] + '.pt'
-                        score_map_path = os.path.join(score_map_dir, os.path.splitext(basename)[0] + '.pt')
-                        if os.path.exists(score_map_path):
-                            os.remove(score_map_path)
 
                         # Ensure tensor is on CPU and is a float32 tensor
                         dists_score = dists_score.detach().cpu()
                         dists_scores.append(dists_score.mean().item())
                         score_maps.append(torch.clamp(dists_score, min=1e-10, max=1.0))
+                        
                 score_maps = torch.concat(score_maps, dim=0)
                 score_maps_min = score_maps.amin(dim=[2,3]).squeeze(1)
                 score_maps_max = score_maps.amax(dim=[2,3]).squeeze(1)
@@ -133,7 +130,7 @@ for root, dirs, files in os.walk(DATA_DIR):
                     gt_dir = render_dir = os.path.join(*path_parts[5:], 'gt-color')
                 print(gt_dir, render_dir)
                 # Create a data row
-                data_row = [scene, method, gt_dir, render_dir, frame_count, frame_height, frame_width, basenames, dists_scores, score_log_min, score_log_max]
+                data_row = [scene, method, gt_dir, render_dir, frame_count, frame_height, frame_width, basenames, score_log_min, score_log_max]
                 data_rows.append(data_row)
 
 # Write data rows to the CSV file
