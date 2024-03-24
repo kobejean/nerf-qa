@@ -44,8 +44,8 @@ def compute_std_mean(group):
     basenames = eval(group['basenames'].values[0])
     render_dirs = group['render_dir'].values
     gt_dirs = group['gt_dir'].values
-    score_map_log_mins = [[]] * len(basenames)
-    score_map_log_maxs = [[]] * len(basenames)
+    score_map_log_mins = [[] for _ in range(len(basenames))] 
+    score_map_log_maxs = [[] for _ in range(len(basenames))] 
     score_map_log_std_maxs = []
     score_map_log_std_mins = []
     score_map_log_mean_maxs = []
