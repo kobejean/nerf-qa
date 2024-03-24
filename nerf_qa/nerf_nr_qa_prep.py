@@ -103,7 +103,7 @@ for root, dirs, files in os.walk(DATA_DIR):
                         # Ensure tensor is on CPU and is a float32 tensor
                         dists_score = dists_score.detach().cpu()
                         dists_scores.append(dists_score.mean().item())
-                        score_maps.append(torch.clamp(dists_score, min=1e-10, max=1.0))
+                        score_maps.append(torch.clamp(dists_score, min=1e-30, max=1.0))
                         
                 score_maps = torch.concat(score_maps, dim=0)
                 score_maps_min = score_maps.amin(dim=[2,3]).squeeze(1)
