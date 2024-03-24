@@ -4,17 +4,21 @@ import csv
 import torch
 from tqdm import tqdm
 from PIL import Image
+import torchvision.transforms.functional as TF
 
 from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS, prepare_image
+from nerf_qa.ADISTS import ADISTS
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+#%%
+adists_model = ADISTS().to(device)
 #%%
 import pandas as pd
 
 DATA_DIR = "/home/ccl/Datasets/NeRF-NR-QA/"  # Specify the path to your DATA_DIR
 
 # CSV file path
-csv_file = "/home/ccl/Datasets/NeRF-NR-QA/output_ADISTS.csv"
+csv_file = "/home/ccl/Datasets/NeRF-NR-QA/output.csv"
 
 # Read the CSV file into a DataFrame
 df = pd.read_csv(csv_file)
@@ -22,33 +26,48 @@ df = pd.read_csv(csv_file)
 display(df.head(10))
 # %%
 import numpy as np
+
+
+def load_image(path):
+    image = Image.open(path)
+
+    if image.mode == 'RGBA':
+        background = Image.new('RGBA', image.size, (255, 255, 255))
+        background.paste(image, mask=image.split()[3])
+        image = background.convert('RGB')
+    else:
+        image = image.convert('RGB')
+    return image
+
 def compute_std_mean(group):
     frame_count = group['frame_count'].values[0]
     basenames = eval(group['basenames'].values[0])
     render_dirs = group['render_dir'].values
-    score_map_log_mins = group['score_map_log_min'].apply(eval)
-    score_map_log_maxs = group['score_map_log_max'].apply(eval)
+    gt_dirs = group['gt_dir'].values
+    score_map_log_mins = [[]] * len(basenames)
+    score_map_log_maxs = [[]] * len(basenames)
     score_map_log_std_maxs = []
     score_map_log_std_mins = []
     score_map_log_mean_maxs = []
     score_map_log_mean_mins = []
+
     print(group['scene'].unique())
     for frame in tqdm(range(frame_count)):
         score_maps = []
-        for render_dir, score_map_log_min, score_map_log_max in zip(render_dirs, score_map_log_mins, score_map_log_maxs):
-            log_min = score_map_log_min[frame]
-            log_max = score_map_log_max[frame]
-            if os.path.basename(render_dir) == 'color':
-                score_map_dir = os.path.join(os.path.dirname(render_dir), 'score-map')
-            else:
-                score_map_dir = os.path.join(os.path.dirname(render_dir), 'gt-score-map')
+        for gt_dir, render_dir in zip(gt_dirs, render_dirs):
             basename = basenames[frame]
-            score_map_path = os.path.join(DATA_DIR, score_map_dir, basename)
-            score_map = Image.open(score_map_path)
-            score_map = torch.from_numpy(np.array(score_map)).unsqueeze(0).double() / 255.0
-            assert score_map.shape[0] == 1
-            score_map = (log_max-log_min) * score_map + log_min
-            score_map = torch.pow(10, score_map)
+            gt_im = prepare_image(load_image(os.path.join(gt_dir, basename)), resize=False)
+            render_im = prepare_image(load_image(os.path.join(render_dir, basename)), resize=False)
+            
+            h, w = (int(render_im.shape[2]*0.7), int(render_im.shape[3]*0.7))
+            i, j = (render_im.shape[2]-h)//2, (render_im.shape[3]-w)//2
+            # Crop to avoid black region due to postprocessed distortion
+            render_im = TF.crop(render_im, i, j, h, w)
+            gt_im = TF.crop(gt_im, i, j, h, w)
+            #render_im = TF.resize(render_im,(256, 256))
+            #gt_im = TF.resize(gt_im,(256, 256))
+            with torch.no_grad():
+                score_map = adists_model(render_im.to(device), gt_im.to(device), as_map=True)
             score_maps.append(score_map)
 
         score_maps = torch.stack(score_maps)
@@ -60,6 +79,10 @@ def compute_std_mean(group):
         score_maps_max = score_maps.amax(dim=[2,3]).squeeze(1)
         score_log_max = (-torch.log10(score_maps_min)).numpy().tolist()
         score_log_min = (-torch.log10(score_maps_max)).numpy().tolist()
+
+        for i, (log_max, log_min) in enumerate(zip(score_log_max, score_log_min)):
+            score_map_log_maxs[i].append(log_max)
+            score_map_log_mins[i].append(log_min)
 
         score_maps_std_min = score_maps_std.amin(dim=[2,3]).squeeze()
         score_maps_std_max = score_maps_std.amax(dim=[2,3]).squeeze()
@@ -112,12 +135,17 @@ def compute_std_mean(group):
             image = Image.fromarray(score_map.permute([1,2,0]).numpy(), mode='RGB')
             image.save(score_map_path, format='PNG')
 
-    return pd.Series({
-        "score_map_log_std_max": score_map_log_std_maxs,
-        "score_map_log_std_min": score_map_log_std_mins,
-        "score_map_log_mean_max": score_map_log_mean_maxs,
-        "score_map_log_mean_min": score_map_log_mean_mins,
-    })
+    def to_str(array):
+        array = ['{:.4e}'.format(num) for num in array]
+        return str(array)
+    
+    group["score_map_log_max"] = list(map(to_str, score_map_log_maxs))
+    group["score_map_log_min"] = list(map(to_str, score_map_log_mins))
+    group["score_map_log_std_max"] = to_str(score_map_log_std_maxs)
+    group["score_map_log_std_min"] = to_str(score_map_log_std_mins)
+    group["score_map_log_mean_max"] = to_str(score_map_log_mean_maxs)
+    group["score_map_log_mean_min"] = to_str(score_map_log_mean_mins)
+    return group
 
 black_list_train_methods = [
         #'mip-splatting', 'gaussian-splatting', 'gt'
