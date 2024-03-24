@@ -44,8 +44,8 @@ def compute_std_mean(group):
     basenames = eval(group['basenames'].values[0])
     render_dirs = group['render_dir'].values
     gt_dirs = group['gt_dir'].values
-    score_map_log_mins = [[] for _ in range(len(basenames))] 
-    score_map_log_maxs = [[] for _ in range(len(basenames))] 
+    score_map_log_mins = [[] for _ in range(len(render_dirs))] 
+    score_map_log_maxs = [[] for _ in range(len(render_dirs))] 
     score_map_log_std_maxs = []
     score_map_log_std_mins = []
     score_map_log_mean_maxs = []
@@ -56,8 +56,8 @@ def compute_std_mean(group):
         score_maps = []
         for gt_dir, render_dir in zip(gt_dirs, render_dirs):
             basename = basenames[frame]
-            gt_im = prepare_image(load_image(os.path.join(gt_dir, basename)), resize=False)
-            render_im = prepare_image(load_image(os.path.join(render_dir, basename)), resize=False)
+            gt_im = prepare_image(load_image(os.path.join(DATA_DIR, gt_dir, basename)), resize=False)
+            render_im = prepare_image(load_image(os.path.join(DATA_DIR, render_dir, basename)), resize=False)
             
             h, w = (int(render_im.shape[2]*0.7), int(render_im.shape[3]*0.7))
             i, j = (render_im.shape[2]-h)//2, (render_im.shape[3]-w)//2
@@ -68,12 +68,12 @@ def compute_std_mean(group):
             #gt_im = TF.resize(gt_im,(256, 256))
             with torch.no_grad():
                 score_map = adists_model(render_im.to(device), gt_im.to(device), as_map=True)
-            score_maps.append(score_map)
+            score_maps.append(score_map.detach().cpu().double())
 
-        score_maps = torch.stack(score_maps)
-        score_maps_std = torch.std(score_maps, dim=0, keepdim=True)
-        score_maps_mean = torch.mean(score_maps, dim=0, keepdim=True)
-        #score_maps = torch.concat([score_maps, score_maps_std, score_maps_mean], dim=1)
+        score_maps = torch.concat(score_maps, dim=0)
+        score_map_std = torch.std(score_maps, dim=0, keepdim=True)
+        score_map_mean = torch.mean(score_maps, dim=0, keepdim=True)
+        #score_maps = torch.concat([score_maps, score_map_std, score_map_mean], dim=1)
         
         score_maps_min = score_maps.amin(dim=[2,3]).squeeze(1)
         score_maps_max = score_maps.amax(dim=[2,3]).squeeze(1)
@@ -84,36 +84,35 @@ def compute_std_mean(group):
             score_map_log_maxs[i].append(log_max)
             score_map_log_mins[i].append(log_min)
 
-        score_maps_std_min = score_maps_std.amin(dim=[2,3]).squeeze()
-        score_maps_std_max = score_maps_std.amax(dim=[2,3]).squeeze()
-        score_maps_mean_min = score_maps_mean.amin(dim=[2,3]).squeeze()
-        score_maps_mean_max = score_maps_mean.amax(dim=[2,3]).squeeze()
-        score_log_std_max = (-torch.log10(score_maps_std_min))
-        score_log_std_min = (-torch.log10(score_maps_std_max))
-        score_log_mean_max = (-torch.log10(score_maps_mean_min))
-        score_log_mean_min = (-torch.log10(score_maps_mean_max))
+        score_map_std_min = score_map_std.amin(dim=[2,3]).squeeze()
+        score_map_std_max = score_map_std.amax(dim=[2,3]).squeeze()
+        score_map_mean_min = score_map_mean.amin(dim=[2,3]).squeeze()
+        score_map_mean_max = score_map_mean.amax(dim=[2,3]).squeeze()
+        score_log_std_max = (-torch.log10(score_map_std_min))
+        score_log_std_min = (-torch.log10(score_map_std_max))
+        score_log_mean_max = (-torch.log10(score_map_mean_min))
+        score_log_mean_min = (-torch.log10(score_map_mean_max))
 
         score_map_log_std_maxs.append(score_log_std_max.item())
         score_map_log_std_mins.append(score_log_std_min.item())
         score_map_log_mean_maxs.append(score_log_mean_max.item())
         score_map_log_mean_mins.append(score_log_mean_min.item())
 
-        score_maps_std = score_maps_std.squeeze(0)
-        score_maps_mean = score_maps_mean.squeeze(0)
+        score_map_std = score_map_std.squeeze(0)
+        score_map_mean = score_map_mean.squeeze(0)
         
         
         log_min = score_log_std_min
         log_max = score_log_std_max
-        score_map_std = -torch.log10(score_maps_std)
+        score_map_std = -torch.log10(score_map_std)
         spread = (log_max-log_min)
-        score_map_std = 255 * (score_map_std-log_min)/spread if spread > 0 else torch.zeros_like(score_map_std)
+        score_map_std = 255 * (log_max - score_map_std)/spread if spread > 0 else torch.zeros_like(score_map_std)
         
         log_min = score_log_mean_min
         log_max = score_log_mean_max
-        score_map_mean = -torch.log10(score_maps_mean)
+        score_map_mean = -torch.log10(score_map_mean)
         spread = (log_max-log_min)
-        score_map_mean = 255 * (score_map_mean-log_min)/spread if spread > 0 else torch.zeros_like(score_map_mean)
-        print(spread, log_min, log_max)
+        score_map_mean = 255 * (log_max - score_map_mean)/spread if spread > 0 else torch.zeros_like(score_map_mean)
 
         for i, render_dir in enumerate(render_dirs):
             if os.path.basename(render_dir) == 'color':
@@ -121,13 +120,13 @@ def compute_std_mean(group):
             else:
                 score_map_dir = os.path.join(os.path.dirname(render_dir), 'gt-score-map')
             
-            score_map_path = os.path.join(DATA_DIR, score_map_dir, 'stats_' + basename)
+            score_map_path = os.path.join(DATA_DIR, score_map_dir, basename)
             
             log_min = score_log_min[i]
             log_max = score_log_max[i]
             score_map = -torch.log10(score_maps[i])
             spread = (log_max-log_min)
-            score_map = 255 * (score_map-log_min)/spread if spread > 0 else torch.zeros_like(score_map)
+            score_map = 255 * (log_max - score_map)/spread if spread > 0 else torch.zeros_like(score_map)
             
             score_map = torch.concat([score_map_mean, score_map, score_map_std])
             
@@ -145,15 +144,17 @@ def compute_std_mean(group):
     group["score_map_log_std_min"] = to_str(score_map_log_std_mins)
     group["score_map_log_mean_max"] = to_str(score_map_log_mean_maxs)
     group["score_map_log_mean_min"] = to_str(score_map_log_mean_mins)
+    print(len(group))
     return group
 
 black_list_train_methods = [
-        #'mip-splatting', 'gaussian-splatting', 'gt'
+        #'instant-ngp-10', 'instant-ngp-20', 'instant-ngp-50', 'instant-ngp-100', 'instant-ngp-200', 
+        #'nerfacto-10', 'nerfacto-20', 'nerfacto-50', 'nerfacto-100', 'nerfacto-200', 
     ]
 filtered_df = df[~df['method'].isin(black_list_train_methods)].reset_index()
 
 # Group by 'scene', apply the compute_std_mean function, and reset index to flatten the DataFrame
-result = filtered_df.groupby('scene').apply(compute_std_mean)
+result = filtered_df.groupby('scene').apply(compute_std_mean).reset_index()
 #%%
 display(result)
 #%%

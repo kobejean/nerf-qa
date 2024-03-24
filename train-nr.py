@@ -198,7 +198,7 @@ if __name__ == '__main__':
     # Parse arguments
     args = parser.parse_args()
 
-    epochs = 5
+    epochs = 4
     config = {
         "epochs": epochs,
         "loader_num_workers": 4,
@@ -234,8 +234,8 @@ if __name__ == '__main__':
 
     val_df = scores_df[scores_df['scene'].isin(val_scenes)].reset_index()
     black_list_val_methods = [
-        'instant-ngp-10', 'instant-ngp-20', 'instant-ngp-50', 'instant-ngp-100', 'instant-ngp-200', 'instant-ngp-500', 'instant-ngp-1000', 'instant-ngp-2000', 'instant-ngp-5000', 'instant-ngp-10000', 'instant-ngp-20000', 
-        'nerfacto-10', 'nerfacto-20', 'nerfacto-50', 'nerfacto-100', 'nerfacto-200', 'nerfacto-500', 'nerfacto-1000', 'nerfacto-2000', 'nerfacto-5000', 'nerfacto-10000', 'nerfacto-20000', 
+        'instant-ngp-10', 'instant-ngp-20', 'instant-ngp-50', 'instant-ngp-100', 'instant-ngp-200', 
+        'nerfacto-10', 'nerfacto-20', 'nerfacto-50', 'nerfacto-100', 'nerfacto-200', 
     ]
     val_df = val_df[~val_df['method'].isin(black_list_val_methods)].reset_index()
 
@@ -291,7 +291,7 @@ if __name__ == '__main__':
             val_metrics.log_summary(step)
                      
 
-            if (epoch+1) % 5 == 0:
+            if (epoch+1) % 2 == 0:
 
                 # Test step
                 model.eval()  # Set model to evaluation mode
