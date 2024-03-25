@@ -108,28 +108,6 @@ step = 0
 for epoch in range(wandb.config.epochs):
     print(f"Epoch {epoch+1}/{wandb.config.epochs}")
 
-    # Test step
-    model.eval()  # Set model to evaluation mode
-    with torch.no_grad():
-        for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Testing..."):
-            # Load frames
-            dataloader = create_test_video_dataloader(row, dir=TEST_DATA_DIR, resize=config.resize, keep_aspect_ratio=True)
-            
-            # Compute score
-            predicted_score = model.forward_dataloader(dataloader)
-            target_score = torch.tensor(row['MOS'], device=device, dtype=torch.float32)
-        
-            # Store metrics in logger
-            video_ids = row['distorted_filename']
-            scene_ids = row['reference_filename']
-            test_logger.add_entries({
-                'mse': mse_fn(predicted_score, target_score).detach().cpu(),
-                'mos': row['MOS'],
-                'pred_score': predicted_score.detach().cpu(),
-            }, video_ids=video_ids, scene_ids=scene_ids)
-
-        # Log results
-        test_logger.log_summary(step)
 
     # Train step
     model.train()  # Set model to training mode
@@ -199,5 +177,28 @@ for epoch in range(wandb.config.epochs):
 
         # Log accumulated metrics
         val_logger.log_summary(step)
+    
+    # Test step
+    model.eval()  # Set model to evaluation mode
+    with torch.no_grad():
+        for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Testing..."):
+            # Load frames
+            dataloader = create_test_video_dataloader(row, dir=TEST_DATA_DIR, resize=config.resize, keep_aspect_ratio=True)
+            
+            # Compute score
+            predicted_score = model.forward_dataloader(dataloader)
+            target_score = torch.tensor(row['MOS'], device=device, dtype=torch.float32)
+        
+            # Store metrics in logger
+            video_ids = row['distorted_filename']
+            scene_ids = row['reference_filename']
+            test_logger.add_entries({
+                'mse': mse_fn(predicted_score, target_score).detach().cpu(),
+                'mos': row['MOS'],
+                'pred_score': predicted_score.detach().cpu(),
+            }, video_ids=video_ids, scene_ids=scene_ids)
+
+        # Log results
+        test_logger.log_summary(step)
 
 wandb.finish()
