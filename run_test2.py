@@ -20,7 +20,7 @@ from tqdm import tqdm
 
 # local
 from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS
-from nerf_qa.data import create_test2_dataloader, create_test_video_dataloader
+from nerf_qa.data import create_test2_dataloader, create_test_video_dataloader, create_large_qa_dataloader
 from nerf_qa.logger import MetricCollectionLogger
 from nerf_qa.settings import DEVICE_BATCH_SIZE
 from nerf_qa.model import NeRFQAModel
@@ -31,6 +31,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 #%%
 DATA_DIR = "/home/ccl/Datasets/Test_2-datasets"
 SCORE_FILE = path.join(DATA_DIR, "scores_new.csv")
+VAL_DATA_DIR = "/home/ccl/Datasets/NeRF-QA-Large-1"
+VAL_SCORE_FILE = path.join(VAL_DATA_DIR, "scores.csv")
 TEST_DATA_DIR = "/home/ccl/Datasets/NeRF-QA"
 TEST_SCORE_FILE = path.join(TEST_DATA_DIR, "NeRF_VQA_MOS.csv")
 
@@ -50,10 +52,12 @@ args = parser.parse_args()
 # Read the CSV file
 scores_df = pd.read_csv(SCORE_FILE)
 scores_df['scene'] = scores_df['reference_folder'].str.replace('gt_', '', regex=False)
+
+val_df = pd.read_csv(VAL_SCORE_FILE)
 # filter test
-val_scenes = ['ship', 'lego', 'drums', 'ficus', 'train', 'm60', 'playground', 'truck'] + ['room', 'hotdog', 'trex', 'chair']
+val_scenes = ['ship', 'lego', 'drums', 'ficus', 'train', 'm60', 'playground', 'truck'] #+ ['room', 'hotdog', 'trex', 'chair']
 train_df = scores_df[~scores_df['scene'].isin(val_scenes)].reset_index() # + ['trex', 'horns']
-val_df = scores_df[scores_df['scene'].isin(val_scenes)].reset_index()
+val_df = val_df[val_df['scene'].isin(val_scenes)].reset_index()
 
 test_df = pd.read_csv(TEST_SCORE_FILE)
 test_size = test_df.shape[0]
@@ -63,7 +67,8 @@ val_logger = MetricCollectionLogger('Val Metrics Dict')
 test_logger = MetricCollectionLogger('Test Metrics Dict')
 
 train_dataloader = create_test2_dataloader(train_df, dir=DATA_DIR)
-val_dataloader = create_test2_dataloader(val_df, dir=DATA_DIR)
+# val_dataloader = create_test2_dataloader(val_df, dir=DATA_DIR)
+val_dataloader = create_large_qa_dataloader(val_df, dir=VAL_DATA_DIR, resize=True)
 train_size = len(train_dataloader)
 val_size = len(val_dataloader)
 print(train_size)
@@ -166,7 +171,7 @@ for epoch in range(wandb.config.epochs):
             
             # Store metrics in logger
             scene_ids = val_df['scene'].iloc[i.numpy()].values
-            video_ids = val_df['distorted_folder'].iloc[i.numpy()].values
+            video_ids = val_df['distorted_filename'].iloc[i.numpy()].values
             val_logger.add_entries(
                 {
                 'loss': loss.detach().cpu(),
