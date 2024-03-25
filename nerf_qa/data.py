@@ -85,11 +85,18 @@ class Test2DatasetVideo(Dataset):
 class Test2Dataset(Dataset):
 
     def __init__(self, dir, scores_df):
-        self.ref_dir = path.join(dir, "Reference")
-        self.dist_dir = path.join(dir, "Renders")
+        self.ref_dir = ref_dir = path.join(dir, "Reference")
+        self.dist_dir = dist_dir = path.join(dir, "Renders")
         self.scores_df = scores_df
         self.total_size = self.scores_df['frame_count'].sum()
         self.cumulative_frame_counts = self.scores_df['frame_count'].cumsum()
+        def get_files(row, base_dir, column_name):
+            folder_path = os.path.join(base_dir, row[column_name])
+            file_list = [f for f in os.listdir(folder_path) if f.endswith((".jpg", ".png"))]
+            file_list.sort()
+            return file_list
+        self.scores_df['render_files'] = self.scores_df.apply(get_files, axis=1, args=(dist_dir, 'distorted_folder'))
+        self.scores_df['gt_files'] = self.scores_df.apply(get_files, axis=1, args=(ref_dir, 'reference_folder'))
 
     def __len__(self):
         return self.total_size
@@ -103,12 +110,14 @@ class Test2Dataset(Dataset):
             frame_within_video = idx
 
         # Get the filenames for the distorted and referenced frames
-        distorted_filename = self.scores_df.iloc[video_idx]['distorted_folder']
-        referenced_filename = self.scores_df.iloc[video_idx]['reference_folder']
+        distorted_foldername = self.scores_df.iloc[video_idx]['distorted_folder']
+        referenced_foldername = self.scores_df.iloc[video_idx]['reference_folder']
+        distorted_filename = self.scores_df.iloc[video_idx]['render_files'][frame_within_video]
+        referenced_filename = self.scores_df.iloc[video_idx]['gt_files'][frame_within_video]
 
         # Construct the full paths
-        distorted_path = os.path.join(self.dist_dir, distorted_filename, f"{frame_within_video:03d}.png")
-        referenced_path = os.path.join(self.ref_dir, referenced_filename, f"{frame_within_video:03d}.png")
+        distorted_path = os.path.join(self.dist_dir, distorted_foldername, distorted_filename)
+        referenced_path = os.path.join(self.ref_dir, referenced_foldername, referenced_filename)
 
         # Load and optionally resize images
         distorted_image = prepare_image(Image.open(distorted_path).convert("RGB"), resize=True, keep_aspect_ratio=True).squeeze(0)
@@ -210,7 +219,7 @@ def create_large_qa_dataloader(scores_df, dir, resize=True):
 
 
 # Example function to load a video and process it frame by frame
-def load_video_frames(video_path, resize=True):
+def load_video_frames(video_path, resize=True, keep_aspect_ratio=False):
     cap = cv2.VideoCapture(video_path)
     frames = []
     while cap.isOpened():
@@ -221,13 +230,13 @@ def load_video_frames(video_path, resize=True):
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame = torch.from_numpy(frame).permute(2, 0, 1).float() / 255.0
         frame = transforms.ToPILImage()(frame)
-        frame = prepare_image(frame, resize=resize).squeeze(0)
+        frame = prepare_image(frame, resize=resize, keep_aspect_ratio=keep_aspect_ratio).squeeze(0)
         frames.append(frame)
     cap.release()
     return torch.stack(frames)
 
 # Batch creation function
-def create_test_video_dataloader(row, dir, resize=True):
+def create_test_video_dataloader(row, dir, resize=True, keep_aspect_ratio=False):
     ref_dir = path.join(dir, "Reference")
     syn_dir = path.join(dir, "NeRF-QA_videos")
     dist_video_path = path.join(syn_dir, row['distorted_filename'])

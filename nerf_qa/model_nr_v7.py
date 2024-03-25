@@ -277,15 +277,22 @@ class NRModel(nn.Module):
         dists_pref2ref = self.encoder.dists.forward_from_feats(predicted_gt_feats, gt_dists_feats, batch_average=True)
         gt_mae = torch.abs(gt_image - render['256x256']).mean([1])
         pred_dists_score, pred_mae, pred_std, pred_mean = self.score_regression(feature_map)
-        predicted_score += wandb.config.score_reg_scale * pred_dists_score
+        if wandb.config.score_reg_enabled == 'True':
+            predicted_score += wandb.config.score_reg_scale * pred_dists_score
         
         # Calculate L1 loss and combine it with the DISTS predicted-reference-to-reference loss
         l1_loss = self.l1_loss_fn(predicted_score, gt_dists_score)
         dists_std_l1 = self.l1_loss_fn(pred_std, score_std)
         dists_mean_l1 = self.l1_loss_fn(pred_mean, score_mean)
         mae_reg_l1_loss = self.l1_loss_fn(pred_mae, gt_mae)
-        coeff = wandb.config.dists_pref2ref_coeff
-        combined_loss = coeff*dists_pref2ref + (1-coeff) * (l1_loss+0.2*(mae_reg_l1_loss+dists_std_l1+dists_mean_l1))
+        
+        combined_loss = (
+            wandb.config.dists_pref2ref_coeff * dists_pref2ref + 
+            (1-wandb.config.dists_pref2ref_coeff) * (
+                wandb.config.l1_coeff * l1_loss + (1 - wandb.config.l1_coeff) * (
+                    mae_reg_l1_loss+dists_std_l1+dists_mean_l1)
+            )
+        )
         
         return {
             "dists_pref2ref": dists_pref2ref,
