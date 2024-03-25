@@ -35,6 +35,8 @@ parameters:
   #   min: 1e-5
   #   max: 5e-5
   #   q: 1e-5
+  score_reg_enabled:
+    values: ['True', 'False']
   dists_pref2ref_coeff:
     distribution: uniform
     min: 0.30
