@@ -198,7 +198,7 @@ if __name__ == '__main__':
     # Parse arguments
     args = parser.parse_args()
 
-    epochs = 4
+    epochs = 20
     config = {
         "epochs": epochs,
         "loader_num_workers": 4,

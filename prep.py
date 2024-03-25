@@ -187,6 +187,20 @@ print("tnt dists dmos", corr)
 corr = compute_correlations(test_df['DISTS'], test_df['DMOS'])
 print("all dists dmos", corr)
 #%%
+
+corr = compute_correlations(np.sqrt(syn_df['DISTS'].values), syn_df['MOS'])
+print("syn dists mos", corr)
+corr = compute_correlations(np.sqrt(tnt_df['DISTS'].values), tnt_df['MOS'])
+print("tnt dists mos", corr)
+corr = compute_correlations(np.sqrt(test_df['DISTS'].values), test_df['MOS'])
+print("all dists mos", corr)
+corr = compute_correlations(np.sqrt(syn_df['DISTS'].values), syn_df['DMOS'])
+print("syn dists dmos", corr)
+corr = compute_correlations(np.sqrt(tnt_df['DISTS'].values), tnt_df['DMOS'])
+print("tnt dists dmos", corr)
+corr = compute_correlations(np.sqrt(test_df['DISTS'].values), test_df['DMOS'])
+print("all dists dmos", corr)
+#%%
 import plotly.express as px
 import plotly.graph_objects as go
 from scipy.optimize import curve_fit
@@ -238,6 +252,6 @@ def plot_dists_mos_with_group_regression_b_ave(df, y_col='DISTS', x_col='MOS', g
                       xaxis_title=x_col,
                       yaxis_title=y_col)
     return fig
-display(plot_dists_mos_with_group_regression_b_ave(test_df, 'A-DISTS', 'MOS'))
-display(plot_dists_mos_with_group_regression_b_ave(test_df, 'A-DISTS', 'DMOS'))
+display(plot_dists_mos_with_group_regression_b_ave(test_df, 'DISTS', 'MOS'))
+display(plot_dists_mos_with_group_regression_b_ave(test_df, 'DISTS', 'DMOS'))
 # %%

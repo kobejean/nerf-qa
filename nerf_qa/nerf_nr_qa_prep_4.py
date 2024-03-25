@@ -68,7 +68,7 @@ def compute_std_mean(group):
             #gt_im = TF.resize(gt_im,(256, 256))
             with torch.no_grad():
                 score_map = adists_model(render_im.to(device), gt_im.to(device), as_map=True)
-            score_maps.append(score_map.detach().cpu().double())
+            score_maps.append(score_map.clamp(1e-10).detach().cpu().double())
 
         score_maps = torch.concat(score_maps, dim=0)
         score_map_std = torch.std(score_maps, dim=0, keepdim=True)
@@ -154,16 +154,19 @@ black_list_train_methods = [
 filtered_df = df[~df['method'].isin(black_list_train_methods)].reset_index()
 
 # Group by 'scene', apply the compute_std_mean function, and reset index to flatten the DataFrame
-result = filtered_df.groupby('scene').apply(compute_std_mean).reset_index()
+result = filtered_df.groupby('scene').apply(compute_std_mean)
+result_ = result.reset_index(drop=True)
 #%%
-display(result)
+display(result_.head(2))
+#%%
+result_.to_csv("/home/ccl/Datasets/NeRF-NR-QA/output_ADISTS.csv")
+
 #%%
 df = df.drop(['DISTS_std', 'DISTS_mean'], axis=1)
 df_result = df.merge(result, on='scene')
 display(df_result)
 #%%
 
-df_result.to_csv("/home/ccl/Datasets/NeRF-NR-QA/output.csv")
 df_test = pd.read_csv("/home/ccl/Datasets/NeRF-NR-QA/output.csv")
 
 df_test['DISTS_std'] = df_test['DISTS_std'].apply(eval)

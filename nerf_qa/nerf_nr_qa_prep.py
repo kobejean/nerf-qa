@@ -91,8 +91,8 @@ for root, dirs, files in os.walk(DATA_DIR):
                     # Crop to avoid black region due to postprocessed distortion
                     render_im = TF.crop(render_im, i, j, h, w)
                     gt_im = TF.crop(gt_im, i, j, h, w)
-                    #render_im = TF.resize(render_im,(256, 256))
-                    #gt_im = TF.resize(gt_im,(256, 256))
+                    render_im = TF.resize(render_im,(256, 256))
+                    gt_im = TF.resize(gt_im,(256, 256))
 
                     with torch.no_grad():
                         dists_score = dists_model(render_im.to(device), gt_im.to(device), as_map=True)
@@ -103,26 +103,8 @@ for root, dirs, files in os.walk(DATA_DIR):
                         # Ensure tensor is on CPU and is a float32 tensor
                         dists_score = dists_score.detach().cpu()
                         dists_scores.append(dists_score.mean().item())
-                        score_maps.append(torch.clamp(dists_score, min=1e-30, max=1.0))
+                        #score_maps.append(torch.clamp(dists_score, min=1e-30, max=1.0))
                         
-                score_maps = torch.concat(score_maps, dim=0)
-                score_maps_min = score_maps.amin(dim=[2,3]).squeeze(1)
-                score_maps_max = score_maps.amax(dim=[2,3]).squeeze(1)
-                score_log_max = (-torch.log10(score_maps_min)).numpy().tolist()
-                score_log_min = (-torch.log10(score_maps_max)).numpy().tolist()
-                
-                for i, basename in tqdm(enumerate(basenames)):
-                    score_map_path = os.path.join(score_map_dir, basename)
-                    log_min = score_log_min[i]
-                    log_max = score_log_max[i]
-                    dists_score = -torch.log10(score_maps[i])
-                    spread = (log_max-log_min)
-                    dists_score = 255 * (dists_score-log_min)/spread if spread > 0 else torch.zeros_like(dists_score)
-                    dists_score = dists_score.byte() # quantize
-                    dists_score = dists_score.squeeze([0])
-                    image = Image.fromarray(dists_score.numpy(), mode='L')
-                    image.save(score_map_path, format='PNG')
-
                 if "color" in dirs:
                     gt_dir = os.path.join(*path_parts[5:-1], "gt-color")
                     render_dir = os.path.join(*path_parts[5:], "color")
@@ -146,11 +128,12 @@ import pandas as pd
 DATA_DIR = "/home/ccl/Datasets/NeRF-NR-QA/"  # Specify the path to your DATA_DIR
 
 # CSV file path
-csv_file = "/home/ccl/Datasets/NeRF-NR-QA/output.csv"
+csv_file = "/home/ccl/Datasets/NeRF-NR-QA/output_ADISTS.csv"
 
 # Read the CSV file into a DataFrame
 df = pd.read_csv(csv_file)
-
+#%%
+df.head(2)
 # %%
 import matplotlib.pyplot as plt
 import ast
@@ -171,5 +154,28 @@ plt.ylabel('Frequency')
 plt.title('Histogram of DISTS Scores')
 plt.show()
 # %%
+import matplotlib.pyplot as plt
+import numpy as np
+df['DISTS_list'] = df['DISTS'].apply(eval)
+
+# Assuming df is your DataFrame with 'DISTS_list' and 'frame_count'
+
+# Flatten 'DISTS_list'
+dists_scores = pd.concat([pd.Series(x) for x in df['DISTS_list']])
+weights = (pd.concat([pd.Series([1.0/x]*x) for x in df['frame_count']]).values) #* np.clip(dists_scores.values, 1e-7, 1.0)
+
+# Verify that the lengths of dists_scores and weights match
+assert len(dists_scores) == len(weights), "Length of scores and weights must match"
+
+# Plot the weighted histogram
+plt.figure(figsize=(10, 6))
+plt.hist(np.clip(dists_scores.values, 0.0, 1.0), bins=np.arange(-0.01, 0.91, 0.01), weights=weights)
+plt.show()
+# %%
+plt.figure(figsize=(10, 6))
+plt.hist((10+np.log(np.clip(dists_scores.values, 0.000001, 1.0)))/10.0, density=True, bins=np.arange(0.0001, 1.0, 0.01), weights=weights)
+plt.show()
+# %%
+print(np.power(np.arange(0.0, 1.0, 0.01),2).shape, dists_scores.values.shape)
 
 # %%

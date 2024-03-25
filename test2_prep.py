@@ -13,6 +13,7 @@ from torch import nn
 import torch.optim as optim
 import wandb
 from sklearn.linear_model import LinearRegression
+import torchvision.transforms.functional as TF
 
 # data 
 import pandas as pd
@@ -83,15 +84,14 @@ def compute_correlations(pred_scores, mos):
     }
 
 class Test2Dataset(Dataset):
-    def __init__(self, gt_dir, render_dir):
-        gt_dir = path.join(dir, "Reference", row['distorted_folder'])
-        render_dir = path.join(dir, "Renders", row['reference_folder'])
+    def __init__(self, row, dir):
+        gt_dir = path.join(dir, "Reference", row['reference_folder'])
+        render_dir = path.join(dir, "Renders", row['distorted_folder'])
 
         gt_files = [os.path.join(gt_dir, f) for f in os.listdir(gt_dir) if f.endswith((".jpg", ".png"))]
         gt_files.sort()
         render_files = [os.path.join(render_dir, f) for f in os.listdir(render_dir) if f.endswith((".jpg", ".png"))]
         render_files.sort()
-        frame_count = max(len(gt_files), len(render_files))
 
         self.files = list(zip(gt_files, render_files))
         
@@ -122,7 +122,11 @@ class Test2Dataset(Dataset):
             image = image.convert('RGB')
 
         image = torch.from_numpy(np.array(image)).permute(2, 0, 1).float() / 255.0
-        W=H=min(image.shape[1], image.shape[2])
+        W=H=256
+        h, w = (int(image.shape[1]*0.7), int(image.shape[2]*0.7))
+        i, j = (image.shape[1]-h)//2, (image.shape[2]-w)//2
+        # Crop to avoid black region due to postprocessed distortion
+        image = TF.crop(image, i, j, h, w)
         image = F.interpolate(image.unsqueeze(0), size=(H, W), mode='bilinear', align_corners=False).squeeze(0)
 
         return image
@@ -140,27 +144,32 @@ test_df = pd.read_csv(TEST_SCORE_FILE)
 test_size = test_df.shape[0]
 #%%
 adists_model = ADISTS().to(device)
-#dists_model = DISTS().to(device)
+dists_model = DISTS().to(device)
 video_adists_scores = []
-#video_dists_scores = []
+video_dists_scores = []
+video_frames = []
+
 for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Processing..."):
     frames_data = create_test_dataloader(row, TEST_DATA_DIR)
     frame_adists_scores = []
-    #frame_dists_scores = []
+    frame_dists_scores = []
     for ref, render in frames_data:
         batch_adists_scores = adists_model(ref.to(device), render.to(device), as_loss=False)
         frame_adists_scores.append(batch_adists_scores.detach().cpu().numpy())
 
-        #batch_dists_scores = dists_model(ref.to(device), render.to(device), batch_average=False)
-        #frame_dists_scores.append(batch_dists_scores.detach().cpu().numpy())
+        batch_dists_scores = dists_model(ref.to(device), render.to(device), batch_average=False)
+        frame_dists_scores.append(batch_dists_scores.detach().cpu().numpy())
     video_adists_score = np.mean(np.concatenate(frame_adists_scores))
-    #video_dists_score = np.mean(np.concatenate(frame_dists_scores))
+    video_dists_score = np.mean(np.concatenate(frame_dists_scores))
     print(video_adists_score, batch_adists_scores)
-    #print(video_dists_score, batch_dists_scores)
+    print(video_dists_score, batch_dists_scores)
     video_adists_scores.append(video_adists_score)
-    #video_dists_scores.append(video_dists_score)
+    video_dists_scores.append(video_dists_score)
+    video_frames.append(len(frames_data))
+
 test_df['A-DISTS'] = video_adists_scores
-#test_df['DISTS'] = video_dists_scores
+test_df['DISTS'] = video_dists_scores
+test_df['frame_count'] = video_frames
 
 #%%
 display(test_df.head(3))
