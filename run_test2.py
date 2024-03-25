@@ -29,8 +29,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 #%%
-DATA_DIR = "/home/ccl/Datasets/NeRF-QA-Large-1"
-SCORE_FILE = path.join(DATA_DIR, "scores.csv")
+DATA_DIR = "/home/ccl/Datasets/Test_2-datasets"
+SCORE_FILE = path.join(DATA_DIR, "scores_new.csv")
 TEST_DATA_DIR = "/home/ccl/Datasets/NeRF-QA"
 TEST_SCORE_FILE = path.join(TEST_DATA_DIR, "NeRF_VQA_MOS.csv")
 
@@ -49,10 +49,11 @@ args = parser.parse_args()
 
 # Read the CSV file
 scores_df = pd.read_csv(SCORE_FILE)
+scores_df['scene'] = scores_df['reference_folder'].str.replace('gt_', '', regex=False)
 # filter test
-test_scenes = ['ship', 'lego', 'drums', 'ficus', 'train', 'm60', 'playground', 'truck']
-train_df = scores_df[~scores_df['scene'].isin(test_scenes)].reset_index() # + ['trex', 'horns']
-val_df = scores_df[scores_df['scene'].isin(test_scenes)].reset_index()
+val_scenes = ['ship', 'lego', 'drums', 'ficus', 'train', 'm60', 'playground', 'truck'] + ['room', 'hotdog', 'trex', 'chair']
+train_df = scores_df[~scores_df['scene'].isin(val_scenes)].reset_index() # + ['trex', 'horns']
+val_df = scores_df[scores_df['scene'].isin(val_scenes)].reset_index()
 
 test_df = pd.read_csv(TEST_SCORE_FILE)
 test_size = test_df.shape[0]
@@ -65,17 +66,18 @@ train_dataloader = create_test2_dataloader(train_df, dir=DATA_DIR)
 val_dataloader = create_test2_dataloader(val_df, dir=DATA_DIR)
 train_size = len(train_dataloader)
 val_size = len(val_dataloader)
-
+print(train_size)
 batches_per_step = -(train_size // -DEVICE_BATCH_SIZE)
 epochs = 100
 config = {
     "epochs": epochs,
     "batches_per_step": batches_per_step,
-    "lr": 1e-5,
+    "lr": 1e-3,
     "beta1": 0.9,
     "beta2": 0.999,
     "eps": 1e-7,
     "batch_size": train_size,
+    "resize": True
 }     
 config.update(vars(args))
 
@@ -111,7 +113,7 @@ for epoch in range(wandb.config.epochs):
     with torch.no_grad():
         for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Testing..."):
             # Load frames
-            dataloader = create_test_video_dataloader(row, dir=TEST_DATA_DIR, resize=config.resize)
+            dataloader = create_test_video_dataloader(row, dir=TEST_DATA_DIR, resize=config.resize, keep_aspect_ratio=True)
             
             # Compute score
             predicted_score = model.forward_dataloader(dataloader)
@@ -146,7 +148,7 @@ for epoch in range(wandb.config.epochs):
 
         # Store metrics in logger
         scene_ids =  train_df['scene'].iloc[i.numpy()].values
-        video_ids =  train_df['distorted_filename'].iloc[i.numpy()].values
+        video_ids =  train_df['distorted_folder'].iloc[i.numpy()].values
         train_logger.add_entries(
             {
             'loss': loss.detach().cpu(),
@@ -186,7 +188,7 @@ for epoch in range(wandb.config.epochs):
             
             # Store metrics in logger
             scene_ids = val_df['scene'].iloc[i.numpy()].values
-            video_ids = val_df['distorted_filename'].iloc[i.numpy()].values
+            video_ids = val_df['distorted_folder'].iloc[i.numpy()].values
             val_logger.add_entries(
                 {
                 'loss': loss.detach().cpu(),
