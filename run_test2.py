@@ -20,7 +20,7 @@ from tqdm import tqdm
 
 # local
 from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS
-from nerf_qa.data import create_large_qa_dataloader, create_test_video_dataloader
+from nerf_qa.data import create_test2_dataloader, create_test_video_dataloader
 from nerf_qa.logger import MetricCollectionLogger
 from nerf_qa.settings import DEVICE_BATCH_SIZE
 from nerf_qa.model import NeRFQAModel
@@ -46,28 +46,6 @@ parser.add_argument('--seed', type=int, default=42, help='Random seed.')
 # Parse arguments
 args = parser.parse_args()
 
-epoch_size = 3290
-batches_per_step = -(epoch_size // -DEVICE_BATCH_SIZE)
-epochs = 100
-config = {
-    "epochs": epochs,
-    "batches_per_step": batches_per_step,
-    "lr": 1e-5,
-    "beta1": 0.9,
-    "beta2": 0.999,
-    "eps": 1e-7,
-    "batch_size": epoch_size,
-    "resize": True,
-}     
-config.update(vars(args))
-
-
-#%%
-exp_name=f"l1-bs:{config['batch_size']}-lr:{config['lr']:.0e}-b1:{config['beta1']:.2f}-b2:{config['beta2']:.3f}"
-
-# Initialize wandb with the parsed arguments, further simplifying parameter names
-wandb.init(project='nerf-qa', name=exp_name, config=config)
-config = wandb.config
 
 # Read the CSV file
 scores_df = pd.read_csv(SCORE_FILE)
@@ -78,6 +56,36 @@ val_df = scores_df[scores_df['scene'].isin(test_scenes)].reset_index()
 
 test_df = pd.read_csv(TEST_SCORE_FILE)
 test_size = test_df.shape[0]
+
+train_logger = MetricCollectionLogger('Train Metrics Dict')
+val_logger = MetricCollectionLogger('Val Metrics Dict')
+test_logger = MetricCollectionLogger('Test Metrics Dict')
+
+train_dataloader = create_test2_dataloader(train_df, dir=DATA_DIR)
+val_dataloader = create_test2_dataloader(val_df, dir=DATA_DIR)
+train_size = len(train_dataloader)
+val_size = len(val_dataloader)
+
+batches_per_step = -(train_size // -DEVICE_BATCH_SIZE)
+epochs = 100
+config = {
+    "epochs": epochs,
+    "batches_per_step": batches_per_step,
+    "lr": 1e-5,
+    "beta1": 0.9,
+    "beta2": 0.999,
+    "eps": 1e-7,
+    "batch_size": train_size,
+}     
+config.update(vars(args))
+
+
+#%%
+exp_name=f"l1-bs:{config['batch_size']}-lr:{config['lr']:.0e}-b1:{config['beta1']:.2f}-b2:{config['beta2']:.3f}"
+
+# Initialize wandb with the parsed arguments, further simplifying parameter names
+wandb.init(project='nerf-qa', name=exp_name, config=config)
+config = wandb.config
 
 mse_fn = nn.MSELoss(reduction='none')
 loss_fn = nn.L1Loss(reduction='none')
@@ -92,15 +100,6 @@ optimizer = optim.Adam(model.parameters(),
     eps=config.eps
 )
 
-
-train_logger = MetricCollectionLogger('Train Metrics Dict')
-val_logger = MetricCollectionLogger('Val Metrics Dict')
-test_logger = MetricCollectionLogger('Test Metrics Dict')
-
-train_dataloader = create_large_qa_dataloader(train_df, dir=DATA_DIR, resize=config.resize)
-val_dataloader = create_large_qa_dataloader(val_df, dir=DATA_DIR, resize=config.resize)
-train_size = len(train_dataloader)
-val_size = len(val_dataloader)
 
 # Training loop
 step = 0

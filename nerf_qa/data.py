@@ -38,8 +38,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #%%
 
-class Test2Dataset(Dataset):
-    def __init__(self, gt_dir, render_dir):
+class Test2DatasetVideo(Dataset):
+    def __init__(self, row, dir):
         gt_dir = path.join(dir, "Reference", row['distorted_folder'])
         render_dir = path.join(dir, "Renders", row['reference_folder'])
 
@@ -47,7 +47,6 @@ class Test2Dataset(Dataset):
         gt_files.sort()
         render_files = [os.path.join(render_dir, f) for f in os.listdir(render_dir) if f.endswith((".jpg", ".png"))]
         render_files.sort()
-        frame_count = max(len(gt_files), len(render_files))
 
         self.files = list(zip(gt_files, render_files))
         
@@ -82,6 +81,50 @@ class Test2Dataset(Dataset):
         image_224 = F.interpolate(image.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
 
         return { "256x256": image_256, "224x224": image_224 }
+
+class Test2Dataset(Dataset):
+
+    def __init__(self, dir, scores_df):
+        self.ref_dir = path.join(dir, "Reference")
+        self.dist_dir = path.join(dir, "Renders")
+        self.scores_df = scores_df
+        self.total_size = self.scores_df['frame_count'].sum()
+        self.cumulative_frame_counts = self.scores_df['frame_count'].cumsum()
+
+    def __len__(self):
+        return self.total_size
+
+    def __getitem__(self, idx):
+        # Determine which video the index falls into
+        video_idx = (self.cumulative_frame_counts > idx).idxmax()
+        if video_idx > 0:
+            frame_within_video = idx - self.cumulative_frame_counts.iloc[video_idx - 1]
+        else:
+            frame_within_video = idx
+
+        # Get the filenames for the distorted and referenced frames
+        distorted_filename = self.scores_df.iloc[video_idx]['distorted_folder']
+        referenced_filename = self.scores_df.iloc[video_idx]['reference_folder']
+
+        # Construct the full paths
+        distorted_path = os.path.join(self.dist_dir, distorted_filename, f"{frame_within_video:03d}.png")
+        referenced_path = os.path.join(self.ref_dir, referenced_filename, f"{frame_within_video:03d}.png")
+
+        # Load and optionally resize images
+        distorted_image = prepare_image(Image.open(distorted_path).convert("RGB"), resize=True, keep_aspect_ratio=True).squeeze(0)
+        referenced_image = prepare_image(Image.open(referenced_path).convert("RGB"), resize=True, keep_aspect_ratio=True).squeeze(0)
+
+        row = self.scores_df.iloc[video_idx]
+        score = row['MOS']
+        return distorted_image, referenced_image, score, video_idx
+
+# Batch creation function
+def create_test2_dataloader(scores_df, dir):
+    # Create a dataset and dataloader for efficient batching
+    dataset = Test2Dataset(dir=dir, scores_df=scores_df)
+    sampler = ComputeBatchSampler(dataset, DEVICE_BATCH_SIZE)
+    dataloader = DataLoader(dataset, batch_sampler=sampler)
+    return dataloader
 
 class LargeQADataset(Dataset):
 
@@ -121,8 +164,7 @@ class LargeQADataset(Dataset):
         row = self.scores_df.iloc[video_idx]
         score = row['MOS']
         return distorted_image, referenced_image, score, video_idx
-
-
+    
 class ComputeBatchSampler(Sampler):
     def __init__(self, dataset, compute_batch_size):
         self.dataset = dataset
@@ -165,6 +207,7 @@ def create_large_qa_dataloader(scores_df, dir, resize=True):
     sampler = ComputeBatchSampler(dataset, DEVICE_BATCH_SIZE)
     dataloader = DataLoader(dataset, batch_sampler=sampler)
     return dataloader
+
 
 # Example function to load a video and process it frame by frame
 def load_video_frames(video_path, resize=True):
