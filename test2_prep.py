@@ -123,10 +123,10 @@ class Test2Dataset(Dataset):
 
         image = torch.from_numpy(np.array(image)).permute(2, 0, 1).float() / 255.0
         W=H=256
-        h, w = (int(image.shape[1]*0.7), int(image.shape[2]*0.7))
-        i, j = (image.shape[1]-h)//2, (image.shape[2]-w)//2
-        # Crop to avoid black region due to postprocessed distortion
-        image = TF.crop(image, i, j, h, w)
+        # h, w = (int(image.shape[1]*0.7), int(image.shape[2]*0.7))
+        # i, j = (image.shape[1]-h)//2, (image.shape[2]-w)//2
+        # # Crop to avoid black region due to postprocessed distortion
+        # image = TF.crop(image, i, j, h, w)
         image = F.interpolate(image.unsqueeze(0), size=(H, W), mode='bilinear', align_corners=False).squeeze(0)
 
         return image
