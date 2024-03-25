@@ -138,6 +138,10 @@ def create_test_dataloader(row, dir):
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn = recursive_collate)
     return dataloader  
 
+def to_str(array):
+    array = ['{:.6e}'.format(num) for num in array]
+    return str(array)
+
 TEST_DATA_DIR = "/home/ccl/Datasets/Test_2-datasets/"
 TEST_SCORE_FILE = path.join(TEST_DATA_DIR, "scores.csv")
 test_df = pd.read_csv(TEST_SCORE_FILE)
@@ -147,6 +151,8 @@ adists_model = ADISTS().to(device)
 dists_model = DISTS().to(device)
 video_adists_scores = []
 video_dists_scores = []
+frame_bias_adistss = []
+frame_bias_distss = []
 video_frames = []
 
 for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Processing..."):
@@ -159,20 +165,31 @@ for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Processing..."
 
         batch_dists_scores = dists_model(ref.to(device), render.to(device), batch_average=False)
         frame_dists_scores.append(batch_dists_scores.detach().cpu().numpy())
-    video_adists_score = np.mean(np.concatenate(frame_adists_scores))
-    video_dists_score = np.mean(np.concatenate(frame_dists_scores))
+    frame_adists_scores = np.concatenate(frame_adists_scores)
+    frame_dists_scores = np.concatenate(frame_dists_scores)
+    video_adists_score = np.mean(frame_adists_scores)
+    video_dists_score = np.mean(frame_dists_scores)
+    frame_bias_adists = video_adists_score - frame_adists_scores
+    frame_bias_dists = video_dists_score - frame_dists_scores
     print(video_adists_score, batch_adists_scores)
     print(video_dists_score, batch_dists_scores)
     video_adists_scores.append(video_adists_score)
     video_dists_scores.append(video_dists_score)
+    frame_bias_adistss.append(to_str(frame_bias_adists))
+    frame_bias_distss.append(to_str(frame_bias_dists))
     video_frames.append(len(frames_data))
 
 test_df['A-DISTS'] = video_adists_scores
 test_df['DISTS'] = video_dists_scores
 test_df['frame_count'] = video_frames
+test_df['frame_bias_adists'] = frame_bias_adistss
+test_df['frame_bias_dists'] = frame_bias_distss
 
 #%%
 display(test_df.head(3))
+#%%
+
+test_df.to_csv(path.join(TEST_DATA_DIR, "scores_new.csv"))
 #%%
 syn_files = ['gt_chair', 'gt_mic', 'gt_hotdog', 'gt_materials']
 tnt_files = ['gt_horns', 'gt_trex', 'gt_fortress', 'gt_room']
