@@ -204,8 +204,8 @@ if __name__ == '__main__':
     config = {
         "epochs": epochs,
         "loader_num_workers": 4,
-        "beta1": 0.95,
-        "beta2": 0.9995,
+        "beta1": 0.99,
+        "beta2": 0.9999,
         "eps": 1e-8,
         "batch_size": DEVICE_BATCH_SIZE
     }     
