@@ -181,24 +181,26 @@ if __name__ == '__main__':
 
     # Basic configurations
     parser.add_argument('--reg_activation', type=str, default='linear', help='Random seed.')  
-    parser.add_argument('--vit_model', type=str, default='dinov2', help='Random seed.')    
+    parser.add_argument('--vit_model', type=str, default='dinov2', help='Random seed.') 
+    parser.add_argument('--score_reg_enabled', type=str, default='True', help='Random seed.')       
     parser.add_argument('--refine_up_depth', type=int, default=2, help='Random seed.')   
     #parser.add_argument('--batch_size', type=int, default=32, help='Random seed.')
     parser.add_argument('--transformer_decoder_depth', type=int, default=1, help='Random seed.')
-    parser.add_argument('--refine_scale1', type=float, default=0.1, help='Random seed.')
-    parser.add_argument('--refine_scale2', type=float, default=0.1, help='Random seed.')
-    parser.add_argument('--refine_scale3', type=float, default=0.1, help='Random seed.')
-    parser.add_argument('--refine_scale4', type=float, default=0.1, help='Random seed.')
+    parser.add_argument('--refine_scale1', type=float, default=0.01, help='Random seed.')
+    parser.add_argument('--refine_scale2', type=float, default=0.01, help='Random seed.')
+    parser.add_argument('--refine_scale3', type=float, default=0.01, help='Random seed.')
+    parser.add_argument('--refine_scale4', type=float, default=0.01, help='Random seed.')
     parser.add_argument('--score_reg_scale', type=float, default=0.05, help='Random seed.')
-    parser.add_argument('--aug_crop_scale', type=float, default=0.8, help='Random seed.')
-    parser.add_argument('--aug_rot_deg', type=float, default=30.0, help='Random seed.')
-    parser.add_argument('--dists_pref2ref_coeff', type=float, default=0.5, help='Random seed.')
-    parser.add_argument('--lr', type=float, default=5e-5, help='Random seed.')
+    parser.add_argument('--aug_crop_scale', type=float, default=0.75, help='Random seed.')
+    parser.add_argument('--aug_rot_deg', type=float, default=180.0, help='Random seed.')
+    parser.add_argument('--dists_pref2ref_coeff', type=float, default=0.35, help='Random seed.')
+    parser.add_argument('--l1_coeff', type=float, default=0.8, help='Random seed.')
+    parser.add_argument('--lr', type=float, default=5e-3, help='Random seed.')
 
     # Parse arguments
     args = parser.parse_args()
 
-    epochs = 20
+    epochs = 2
     config = {
         "epochs": epochs,
         "loader_num_workers": 4,
