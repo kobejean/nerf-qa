@@ -321,8 +321,10 @@ if __name__ == '__main__':
                     test_scores_df['TEST_NORM_SCORE'] = video_normalized_scores
                     tnt_files = ['truck_reference.mp4', 'playground_reference.mp4',
                     'train_reference.mp4', 'm60_reference.mp4']
+                    syn_files = ['lego_reference.mp4', 'drums_reference.mp4',
+                    'ficus_reference.mp4', 'ship_reference.mp4']
                     
-                    syn_df = test_df[test_df['reference_filename'].isin(syn_files)].reset_index()
+                    syn_df = test_scores_df[test_scores_df['reference_filename'].isin(syn_files)].reset_index()
                     tnt_df = test_scores_df[test_scores_df['reference_filename'].isin(tnt_files)].reset_index()
                     video_scores = tnt_df['TEST_SCORE'].values
                     video_normalized_scores = tnt_df['TEST_NORM_SCORE'].values
@@ -355,6 +357,8 @@ if __name__ == '__main__':
                             f"Test Metrics Dict/tnt/dmos/normalized/{key}": metric
                         }, step=step)
                     
+                    video_scores = syn_df['TEST_SCORE'].values
+                    video_normalized_scores = syn_df['TEST_NORM_SCORE'].values
                     corr = compute_correlations(video_scores, syn_df['MOS'].values)
                     corr['l1'] = np.mean(np.abs(video_scores - syn_df['DISTS'].values))
                     for key in corr.keys():
@@ -382,6 +386,37 @@ if __name__ == '__main__':
                         metric = corr[key]
                         wandb.log({
                             f"Test Metrics Dict/syn/dmos/normalized/{key}": metric
+                        }, step=step)
+
+                    video_scores = test_scores_df['TEST_SCORE'].values
+                    video_normalized_scores = test_scores_df['TEST_NORM_SCORE'].values
+                    corr = compute_correlations(video_scores, test_scores_df['MOS'].values)
+                    corr['l1'] = np.mean(np.abs(video_scores - test_scores_df['DISTS'].values))
+                    for key in corr.keys():
+                        metric = corr[key]
+                        wandb.log({
+                            f"Test Metrics Dict/mos/{key}": metric
+                        }, step=step)
+
+                    corr = compute_correlations(video_scores, test_scores_df['DMOS'].values)
+                    for key in corr.keys():
+                        metric = corr[key]
+                        wandb.log({
+                            f"Test Metrics Dict/dmos/{key}": metric
+                        }, step=step)
+
+                    corr = compute_correlations(video_normalized_scores, test_scores_df['MOS'].values)
+                    for key in corr.keys():
+                        metric = corr[key]
+                        wandb.log({
+                            f"Test Metrics Dict/mos/normalized/{key}": metric
+                        }, step=step)
+
+                    corr = compute_correlations(video_normalized_scores, test_scores_df['DMOS'].values)
+                    for key in corr.keys():
+                        metric = corr[key]
+                        wandb.log({
+                            f"Test Metrics Dict/dmos/normalized/{key}": metric
                         }, step=step)
 
     
