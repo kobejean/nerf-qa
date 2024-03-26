@@ -60,6 +60,7 @@ train_df = scores_df[~scores_df['scene'].isin(val_scenes)].reset_index() # + ['t
 val_df = val_df[val_df['scene'].isin(val_scenes)].reset_index()
 
 test_df = pd.read_csv(TEST_SCORE_FILE)
+test_df['scene'] = test_df['reference_filename'].str.replace('_reference.mp4', '', regex=False)
 test_size = test_df.shape[0]
 
 train_logger = MetricCollectionLogger('Train Metrics Dict')
@@ -196,7 +197,7 @@ for epoch in range(wandb.config.epochs):
         
             # Store metrics in logger
             video_ids = row['distorted_filename']
-            scene_ids = row['reference_filename']
+            scene_ids = row['scene']
             test_logger.add_entries({
                 'mse': mse_fn(predicted_score, target_score).detach().cpu(),
                 'mos': row['MOS'],

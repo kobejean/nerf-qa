@@ -171,15 +171,33 @@ class MetricCollectionLogger():
 
             logs.update({ f"{self.collection_name}/plot/scene_regression": plot_with_group_regression(video_pred_scores, video_mos, scene_video_ids) })
 
+            real_scene_ids = ['train', 'm60', 'playground', 'truck', 'fortress', 'horns', 'trex', 'room']
+            synth_scene_ids = ['ship', 'lego', 'drums', 'ficus', 'hotdog', 'materials', 'mic']
+
             # Aggregate and compute correlations by scene_id
             scene_correlations = {}
+            real_scene_pred_scores = []
+            real_scene_mos = []
+            synth_scene_pred_scores = []
+            synth_scene_mos = []
             for scene_id in unique_scenes:
                 scene_video_pred_scores = np.array([video_pred_scores[vid] for vid in scene_video_ids[scene_id]])
                 scene_video_mos = np.array([video_mos[vid] for vid in scene_video_ids[scene_id]])
 
                 if len(scene_video_pred_scores) > 1:  # Ensure there are at least two videos to compute correlations
                     scene_correlations[scene_id] = self.compute_correlations(scene_video_pred_scores, scene_video_mos)
-                    
+                if scene_id in real_scene_ids:
+                    real_scene_pred_scores.append(scene_video_pred_scores)
+                    real_scene_mos.append(scene_video_mos)
+                elif scene_id in synth_scene_ids:
+                    synth_scene_pred_scores.append(scene_video_pred_scores)
+                    synth_scene_mos.append(scene_video_mos)
+
+            real_correlations = self.compute_correlations(real_scene_pred_scores, real_scene_mos)
+            logs.update({ f"{self.collection_name}/correlations/real/{metric}": value for metric, value in real_correlations.items() })
+            synth_correlations = self.compute_correlations(synth_scene_pred_scores, synth_scene_mos)
+            logs.update({ f"{self.collection_name}/correlations/synthetic/{metric}": value for metric, value in synth_correlations.items() })
+
             # Log correlations for each scene
             for scene_id, corr_values in scene_correlations.items():
                 logs.update({f"{self.collection_name}/correlations/scene/{scene_id}/{metric}": value for metric, value in corr_values.items()})
