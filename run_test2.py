@@ -170,6 +170,7 @@ for epoch in range(wandb.config.epochs):
         }, video_ids = video_ids, scene_ids = scene_ids)
 
         # Accumulate gradients
+        loss = loss.mean()
         loss.backward()
 
         # Log accumulated train metrics
