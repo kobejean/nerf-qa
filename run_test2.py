@@ -104,7 +104,7 @@ epochs = 100
 config = {
     "epochs": epochs,
     "batches_per_step": batches_per_step,
-    "lr": 1e-4,
+    "lr": 5e-5,
     "beta1": 0.9,
     "beta2": 0.999,
     "eps": 1e-7,
