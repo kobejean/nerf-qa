@@ -3,7 +3,7 @@ metric:
   name: Cross-Validation Metrics Dict/weighted_score_mean
   goal: maximize
 
-method: bayes
+method: random
 parameters:
   lr:
     distribution: q_log_uniform_values

@@ -130,7 +130,7 @@ class Test2Dataset(Dataset):
     def get_scene_indices(self):
         scene_indices = {}
         for i, row in self.scores_df.iterrows():
-            scene = row['scene']
+            scene = row['distorted_folder']
             start_idx = 0 if i == 0 else self.cumulative_frame_counts.iloc[i - 1]
             end_idx = self.cumulative_frame_counts.iloc[i]
             indices = list(range(start_idx, end_idx))
@@ -189,7 +189,7 @@ class LargeQADataset(Dataset):
     def get_scene_indices(self):
         scene_indices = {}
         for i, row in self.scores_df.iterrows():
-            scene = row['scene']
+            scene = row['distorted_folder']
             start_idx = 0 if i == 0 else self.cumulative_frame_counts.iloc[i - 1]
             end_idx = self.cumulative_frame_counts.iloc[i]
             indices = list(range(start_idx, end_idx))
@@ -283,8 +283,10 @@ class SceneBalancedSampler(Sampler):
     def __iter__(self):
         indices = []
         for scene_indices in self.scene_indices.values():
-            new_indices = torch.tensor(scene_indices[:self.samples_per_scene])
-            new_indices = new_indices[torch.randperm(self.samples_per_scene)].tolist()
+            N = len(scene_indices)
+            new_indices = torch.tensor(scene_indices)
+            new_indices = new_indices[torch.randperm(N)]
+            new_indices = new_indices[:self.samples_per_scene].tolist()
             indices.extend(new_indices)
         indices = torch.tensor(indices)[torch.randperm(len(indices))].tolist()
         return iter(indices)
