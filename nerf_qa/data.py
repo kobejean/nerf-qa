@@ -189,7 +189,7 @@ class LargeQADataset(Dataset):
     def get_scene_indices(self):
         scene_indices = {}
         for i, row in self.scores_df.iterrows():
-            scene = row['distorted_folder']
+            scene = row['distorted_filename']
             start_idx = 0 if i == 0 else self.cumulative_frame_counts.iloc[i - 1]
             end_idx = self.cumulative_frame_counts.iloc[i]
             indices = list(range(start_idx, end_idx))
