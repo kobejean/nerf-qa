@@ -68,11 +68,16 @@ def adjust_dists(group):
     a, b = params
     
     group['DISTS_scene_adjusted'] = (group_y - b) / a
+    group['DISTS_scene_a'] = a
+    group['DISTS_scene_b'] = b
     
     return group
 
 # Apply the adjustment for each group and get the adjusted DISTS values
-scores_df['DISTS_scene_adjusted'] = scores_df.groupby('scene').apply(adjust_dists)
+adjusted_df = scores_df.groupby('scene').apply(adjust_dists)
+scores_df['DISTS_scene_adjusted'] = adjusted_df['DISTS_scene_adjusted']
+scores_df['DISTS_scene_a'] = adjusted_df['DISTS_scene_a']
+scores_df['DISTS_scene_b'] = adjusted_df['DISTS_scene_b']
 
 val_df = pd.read_csv(VAL_SCORE_FILE)
 # filter test
