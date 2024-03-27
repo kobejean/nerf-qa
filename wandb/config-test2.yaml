@@ -1,6 +1,6 @@
 program: run_test2.py
 metric:
-  name: Cross-Validation Metrics Dict/weighted_score_mean
+  name: Val Metrics Dict/correlations/plcc
   goal: maximize
 
 method: random
