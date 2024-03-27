@@ -186,6 +186,18 @@ class LargeQADataset(Dataset):
         score = row['MOS']
         return distorted_image, referenced_image, score, video_idx
     
+    def get_scene_indices(self):
+        scene_indices = {}
+        for i, row in self.scores_df.iterrows():
+            scene = row['scene']
+            start_idx = 0 if i == 0 else self.cumulative_frame_counts.iloc[i - 1]
+            end_idx = self.cumulative_frame_counts.iloc[i]
+            indices = list(range(start_idx, end_idx))
+            if scene not in scene_indices:
+                scene_indices[scene] = []
+            scene_indices[scene].extend(indices)
+        return scene_indices
+    
 class ComputeBatchSampler(Sampler):
     def __init__(self, dataset, compute_batch_size):
         self.dataset = dataset
