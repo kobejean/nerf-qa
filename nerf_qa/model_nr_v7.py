@@ -287,7 +287,7 @@ class NRModel(nn.Module):
         mae_reg_l1_loss = self.l1_loss_fn(pred_mae, gt_mae)
 
         if wandb.config.mae_reg_enabled == 'False':
-            mae_reg_enabled = mae_reg_enabled.detach()
+            mae_reg_l1_loss = mae_reg_l1_loss.detach()
         
         combined_loss = (
             wandb.config.dists_pref2ref_coeff * dists_pref2ref + 
