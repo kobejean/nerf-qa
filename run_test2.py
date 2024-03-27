@@ -74,7 +74,7 @@ def adjust_dists(group):
     return group
 
 # Apply the adjustment for each group and get the adjusted DISTS values
-adjusted_df = scores_df.groupby('scene').apply(adjust_dists)
+adjusted_df = scores_df.groupby('scene').apply(adjust_dists).reset_index(drop=True)
 scores_df['DISTS_scene_adjusted'] = adjusted_df['DISTS_scene_adjusted']
 scores_df['DISTS_scene_a'] = adjusted_df['DISTS_scene_a']
 scores_df['DISTS_scene_b'] = adjusted_df['DISTS_scene_b']
