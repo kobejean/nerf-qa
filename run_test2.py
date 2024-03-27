@@ -139,6 +139,28 @@ optimizer = optim.Adam(model.parameters(),
 step = 0
 for epoch in range(wandb.config.epochs):
     print(f"Epoch {epoch+1}/{wandb.config.epochs}")
+    # Test step
+    model.eval()  # Set model to evaluation mode
+    with torch.no_grad():
+        for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Testing..."):
+            # Load frames
+            dataloader = create_test_video_dataloader(row, dir=TEST_DATA_DIR, resize=config.resize, keep_aspect_ratio=True)
+            
+            # Compute score
+            predicted_score = model.forward_dataloader(dataloader)
+            target_score = torch.tensor(row['MOS'], device=device, dtype=torch.float32)
+        
+            # Store metrics in logger
+            video_ids = row['distorted_filename']
+            scene_ids = row['scene']
+            test_logger.add_entries({
+                'mse': mse_fn(predicted_score, target_score).detach().cpu(),
+                'mos': row['MOS'],
+                'pred_score': predicted_score.detach().cpu(),
+            }, video_ids=video_ids, scene_ids=scene_ids)
+
+        # Log results
+        test_logger.log_summary(step)
 
 
     # Train step
@@ -151,13 +173,14 @@ for epoch in range(wandb.config.epochs):
         predicted_score = model(dist.to(device),ref.to(device))
         #target_score = score.to(device).float()
 
-        target_score = torch.tensor(train_df['DISTS_scene_adjusted'].iloc[i.numpy()].values).float().to(device).detach()
+        target_score_adjusted = torch.tensor(train_df['DISTS_scene_adjusted'].iloc[i.numpy()].values).float().to(device).detach()
         scene_a = torch.tensor(train_df['DISTS_scene_a'].iloc[i.numpy()].values).float().to(device).detach()
         scene_b = torch.tensor(train_df['DISTS_scene_b'].iloc[i.numpy()].values).float().to(device).detach()
-        predicted_score = (predicted_score - scene_b) / scene_a
+        predicted_score_adjusted = (predicted_score - scene_b) / scene_a
         
         # Compute loss
-        loss = loss_fn(predicted_score, target_score)
+        # loss = loss_fn(predicted_score_adjusted, target_score)
+        loss = loss_fn(predicted_score_adjusted, target_score_adjusted)
         weights = 1 / torch.tensor(train_df['frame_count'].iloc[i.numpy()].values, device=device, dtype=torch.float32)
         step += target_score.shape[0]
 
@@ -219,27 +242,5 @@ for epoch in range(wandb.config.epochs):
         # Log accumulated metrics
         val_logger.log_summary(step)
     
-    # Test step
-    model.eval()  # Set model to evaluation mode
-    with torch.no_grad():
-        for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Testing..."):
-            # Load frames
-            dataloader = create_test_video_dataloader(row, dir=TEST_DATA_DIR, resize=config.resize, keep_aspect_ratio=True)
-            
-            # Compute score
-            predicted_score = model.forward_dataloader(dataloader)
-            target_score = torch.tensor(row['MOS'], device=device, dtype=torch.float32)
-        
-            # Store metrics in logger
-            video_ids = row['distorted_filename']
-            scene_ids = row['scene']
-            test_logger.add_entries({
-                'mse': mse_fn(predicted_score, target_score).detach().cpu(),
-                'mos': row['MOS'],
-                'pred_score': predicted_score.detach().cpu(),
-            }, video_ids=video_ids, scene_ids=scene_ids)
-
-        # Log results
-        test_logger.log_summary(step)
 
 wandb.finish()
