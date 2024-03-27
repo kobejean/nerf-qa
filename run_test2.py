@@ -151,9 +151,9 @@ for epoch in range(wandb.config.epochs):
         predicted_score = model(dist.to(device),ref.to(device))
         #target_score = score.to(device).float()
 
-        target_score = train_df['DISTS_scene_adjusted'].iloc[i.numpy()].values
-        scene_a = train_df['DISTS_scene_a'].iloc[i.numpy()].values
-        scene_b = train_df['DISTS_scene_b'].iloc[i.numpy()].values
+        target_score = torch.tensor(train_df['DISTS_scene_adjusted'].iloc[i.numpy()].values).to(device).detach()
+        scene_a = torch.tensor(train_df['DISTS_scene_a'].iloc[i.numpy()].values).to(device).detach()
+        scene_b = torch.tensor(train_df['DISTS_scene_b'].iloc[i.numpy()].values).to(device).detach()
         predicted_score = (predicted_score - scene_b) / scene_a
         
         # Compute loss
