@@ -85,7 +85,6 @@ class Test2DatasetVideo(Dataset):
 class Test2Dataset(Dataset):
 
     def __init__(self, dir, scores_df):
-        self.df = scores_df
         self.ref_dir = ref_dir = path.join(dir, "Reference")
         self.dist_dir = dist_dir = path.join(dir, "Renders")
         self.scores_df = scores_df
@@ -130,7 +129,7 @@ class Test2Dataset(Dataset):
     
     def get_scene_indices(self):
         scene_indices = {}
-        for i, row in self.df.iterrows():
+        for i, row in self.scores_df.iterrows():
             scene = row['scene']
             start_idx = 0 if i == 0 else self.cumulative_frame_counts.iloc[i - 1]
             end_idx = self.cumulative_frame_counts.iloc[i]
@@ -145,7 +144,7 @@ def create_test2_dataloader(scores_df, dir):
     # Create a dataset and dataloader for efficient batching
     dataset = Test2Dataset(dir=dir, scores_df=scores_df)
     sampler = SceneBalancedSampler(dataset)
-    dataloader = DataLoader(dataset, batch_sampler=sampler)
+    dataloader = DataLoader(dataset, batch_sampler=sampler, batch_size = DEVICE_BATCH_SIZE)
     return dataloader
 
 class LargeQADataset(Dataset):
@@ -226,8 +225,8 @@ class ComputeBatchSampler(Sampler):
 def create_large_qa_dataloader(scores_df, dir, resize=True):
     # Create a dataset and dataloader for efficient batching
     dataset = LargeQADataset(dir=dir, scores_df=scores_df, resize=resize)
-    sampler = SceneBalancedSampler(dataset, DEVICE_BATCH_SIZE)
-    dataloader = DataLoader(dataset, batch_sampler=sampler)
+    sampler = SceneBalancedSampler(dataset)
+    dataloader = DataLoader(dataset, batch_sampler=sampler, batch_size = DEVICE_BATCH_SIZE)
     return dataloader
 
 
