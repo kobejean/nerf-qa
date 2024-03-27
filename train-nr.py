@@ -252,7 +252,7 @@ if __name__ == '__main__':
     val_sampler = SceneBalancedSampler(val_dataset)
 
     train_dataloader = DataLoader(train_dataset, sampler=train_sampler, collate_fn=recursive_collate, batch_size = DEVICE_BATCH_SIZE, num_workers=config.loader_num_workers, pin_memory=True)
-    val_dataloader = DataLoader(val_dataset, val_sampler=val_sampler, collate_fn=recursive_collate, batch_size = DEVICE_BATCH_SIZE, num_workers=config.loader_num_workers, pin_memory=True)
+    val_dataloader = DataLoader(val_dataset, sampler=val_sampler, collate_fn=recursive_collate, batch_size = DEVICE_BATCH_SIZE, num_workers=config.loader_num_workers, pin_memory=True)
 
     
 
