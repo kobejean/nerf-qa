@@ -190,7 +190,7 @@ if __name__ == '__main__':
     parser.add_argument('--refine_scale2', type=float, default=0.01, help='Random seed.')
     parser.add_argument('--refine_scale3', type=float, default=0.01, help='Random seed.')
     parser.add_argument('--refine_scale4', type=float, default=0.01, help='Random seed.')
-    parser.add_argument('--score_reg_scale', type=float, default=0.05, help='Random seed.')
+    parser.add_argument('--score_reg_scale', type=float, default=0.00003, help='Random seed.')
     parser.add_argument('--aug_crop_scale', type=float, default=0.75, help='Random seed.')
     parser.add_argument('--aug_rot_deg', type=float, default=180.0, help='Random seed.')
     parser.add_argument('--dists_pref2ref_coeff', type=float, default=0.35, help='Random seed.')
