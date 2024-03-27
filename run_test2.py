@@ -191,8 +191,12 @@ for epoch in range(wandb.config.epochs):
         for dist, ref, score, i in tqdm(val_dataloader, total=val_size, desc="Validating..."):
             # Compute score
             predicted_score = model(dist.to(device), ref.to(device))
-            target_score = score.to(device).float()
-        
+            #target_score = score.to(device).float()
+            target_score = val_df['DISTS_scene_adjusted'].iloc[i.numpy()].values
+            scene_a = val_df['DISTS_scene_a'].iloc[i.numpy()].values
+            scene_b = val_df['DISTS_scene_b'].iloc[i.numpy()].values
+            predicted_score = (predicted_score - scene_b) / scene_a
+
             # Compute loss
             loss = loss_fn(predicted_score, target_score)
             
