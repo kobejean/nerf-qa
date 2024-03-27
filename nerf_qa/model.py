@@ -21,7 +21,7 @@ class NeRFQAModel(nn.Module):
         self.linearization_type = linearization_type
         # Reshape data (scikit-learn expects X to be a 2D array)
         # X = train_df['DISTS_no_resize'].values.reshape(-1, 1)  # Predictor
-        X = train_df['DISTS'].values.reshape(-1, 1)  # Predictor
+        X = train_df['DISTS_scene_adjusted'].values.reshape(-1, 1)  # Predictor
         y = train_df['MOS'].values  # Response
 
         # Create a linear regression model to initialize linear layer

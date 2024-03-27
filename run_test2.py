@@ -13,6 +13,7 @@ from torch import nn
 import torch.optim as optim
 import wandb
 from sklearn.linear_model import LinearRegression
+from scipy.optimize import curve_fit
 
 # data 
 import pandas as pd
@@ -52,6 +53,26 @@ args = parser.parse_args()
 # Read the CSV file
 scores_df = pd.read_csv(SCORE_FILE)
 scores_df['scene'] = scores_df['reference_folder'].str.replace('gt_', '', regex=False)
+
+def linear_func(x, a, b):
+    return a * x + b
+
+def adjust_dists(group):
+    group_x = group['DISTS']
+    group_y = group['MOS']
+    
+    # Perform linear regression
+    params, _ = curve_fit(linear_func, group_x, group_y)
+    
+    # Extract the parameters
+    a, b = params
+    
+    group['DISTS_scene_adjusted'] = (group_y - b) / a
+    
+    return group
+
+# Apply the adjustment for each group and get the adjusted DISTS values
+scores_df['DISTS_scene_adjusted'] = scores_df.groupby('scene').apply(adjust_dists)
 
 val_df = pd.read_csv(VAL_SCORE_FILE)
 # filter test
