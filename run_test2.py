@@ -45,6 +45,7 @@ parser = argparse.ArgumentParser(description='Initialize a new run with wandb wi
 
 # Basic configurations
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
+parser.add_argument('--lr', type=float, default=1e-3, help='Random seed.')
 
 # Parse arguments
 args = parser.parse_args()
@@ -98,17 +99,15 @@ train_dataloader = create_test2_dataloader(train_df, dir=DATA_DIR)
 val_dataloader = create_large_qa_dataloader(val_df, dir=VAL_DATA_DIR, resize=True)
 train_size = len(train_dataloader)
 val_size = len(val_dataloader)
-print(train_size)
-batches_per_step = -(train_size // -DEVICE_BATCH_SIZE)
-epochs = 100
+
+epochs = 30
 config = {
     "epochs": epochs,
-    "batches_per_step": batches_per_step,
     "lr": 5e-5,
-    "beta1": 0.9,
-    "beta2": 0.999,
+    "beta1": 0.99,
+    "beta2": 0.9999,
     "eps": 1e-7,
-    "batch_size": train_size,
+    "batch_size": DEVICE_BATCH_SIZE,
     "resize": True
 }     
 config.update(vars(args))
@@ -140,26 +139,24 @@ step = 0
 for epoch in range(wandb.config.epochs):
     print(f"Epoch {epoch+1}/{wandb.config.epochs}")
 
-
     # Train step
     model.train()  # Set model to training mode
-    optimizer.zero_grad()  # Initialize gradients to zero at the start of each epoch
-    weight_sum = 0
 
     for index, (dist,ref,score,i) in tqdm(enumerate(train_dataloader, 1), total=train_size, desc="Training..."):  # Start index from 1 for easier modulus operation            
+        optimizer.zero_grad()  # Zero the gradients after updating
+
         # Load scores
         predicted_score = model(dist.to(device),ref.to(device))
         target_score = score.to(device).float()
-        target_score_adjusted = torch.tensor(train_df['DISTS_scene_adjusted'].iloc[i.numpy()].values).float().to(device).detach()
-        scene_a = torch.tensor(train_df['DISTS_scene_a'].iloc[i.numpy()].values).float().to(device).detach()
-        scene_b = torch.tensor(train_df['DISTS_scene_b'].iloc[i.numpy()].values).float().to(device).detach()
-        predicted_score_adjusted = (predicted_score - scene_b) / scene_a
+        # target_score_adjusted = torch.tensor(train_df['DISTS_scene_adjusted'].iloc[i.numpy()].values).float().to(device).detach()
+        # scene_a = torch.tensor(train_df['DISTS_scene_a'].iloc[i.numpy()].values).float().to(device).detach()
+        # scene_b = torch.tensor(train_df['DISTS_scene_b'].iloc[i.numpy()].values).float().to(device).detach()
+        # predicted_score_adjusted = (predicted_score - scene_b) / scene_a
         
         # Compute loss
-        # loss = loss_fn(predicted_score_adjusted, target_score)
-        loss = loss_fn(predicted_score_adjusted, target_score_adjusted)
-        weights = 1 / torch.tensor(train_df['frame_count'].iloc[i.numpy()].values, device=device, dtype=torch.float32)
-        step += target_score_adjusted.shape[0]
+        loss = loss_fn(predicted_score, target_score)
+        #loss = loss_fn(predicted_score_adjusted, target_score_adjusted)
+        step += score.shape[0]
 
         # Store metrics in logger
         scene_ids =  train_df['scene'].iloc[i.numpy()].values
@@ -173,21 +170,13 @@ for epoch in range(wandb.config.epochs):
         }, video_ids = video_ids, scene_ids = scene_ids)
 
         # Accumulate gradients
-        loss = torch.dot(loss, weights)
         loss.backward()
-        weight_sum += weights.sum().item()
 
-    # Scale gradients
-    for param in model.parameters():
-        if param.grad is not None:
-            param.grad /= weight_sum
-
-    # Log accumulated train metrics
-    train_logger.log_summary(step)
-    
-    # Update parameters every batches_per_step steps or on the last iteration
-    optimizer.step()
-    optimizer.zero_grad()  # Zero the gradients after updating
+        # Log accumulated train metrics
+        train_logger.log_summary(step)
+        
+        # Update parameters every batches_per_step steps or on the last iteration
+        optimizer.step()
 
 
     # Validation step

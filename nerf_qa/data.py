@@ -85,6 +85,7 @@ class Test2DatasetVideo(Dataset):
 class Test2Dataset(Dataset):
 
     def __init__(self, dir, scores_df):
+        self.df = scores_df
         self.ref_dir = ref_dir = path.join(dir, "Reference")
         self.dist_dir = dist_dir = path.join(dir, "Renders")
         self.scores_df = scores_df
@@ -120,18 +121,30 @@ class Test2Dataset(Dataset):
         referenced_path = os.path.join(self.ref_dir, referenced_foldername, referenced_filename)
 
         # Load and optionally resize images
-        distorted_image = prepare_image(Image.open(distorted_path).convert("RGB"), resize=True, keep_aspect_ratio=True).squeeze(0)
-        referenced_image = prepare_image(Image.open(referenced_path).convert("RGB"), resize=True, keep_aspect_ratio=True).squeeze(0)
+        distorted_image = prepare_image(Image.open(distorted_path).convert("RGB"), resize=True).squeeze(0)
+        referenced_image = prepare_image(Image.open(referenced_path).convert("RGB"), resize=True).squeeze(0)
 
         row = self.scores_df.iloc[video_idx]
         score = row['MOS']
         return distorted_image, referenced_image, score, video_idx
+    
+    def get_scene_indices(self):
+        scene_indices = {}
+        for i, row in self.df.iterrows():
+            scene = row['scene']
+            start_idx = 0 if i == 0 else self.cumulative_frame_counts.iloc[i - 1]
+            end_idx = self.cumulative_frame_counts.iloc[i]
+            indices = list(range(start_idx, end_idx))
+            if scene not in scene_indices:
+                scene_indices[scene] = []
+            scene_indices[scene].extend(indices)
+        return scene_indices
 
 # Batch creation function
 def create_test2_dataloader(scores_df, dir):
     # Create a dataset and dataloader for efficient batching
     dataset = Test2Dataset(dir=dir, scores_df=scores_df)
-    sampler = ComputeBatchSampler(dataset, DEVICE_BATCH_SIZE)
+    sampler = SceneBalancedSampler(dataset)
     dataloader = DataLoader(dataset, batch_sampler=sampler)
     return dataloader
 

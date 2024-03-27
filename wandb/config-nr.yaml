@@ -8,7 +8,7 @@ parameters:
   lr:
     distribution: q_log_uniform_values
     min: 3e-3
-    max: 8e-3
+    max: 5e-3
     q: 1e-7
   # refine_scale1:
   #   distribution: q_log_uniform_values
@@ -35,15 +35,17 @@ parameters:
   #   min: 1e-5
   #   max: 5e-5
   #   q: 1e-5
-  score_reg_enabled:
+  mae_reg_enabled:
     values: ['True', 'False']
+  score_reg_enabled:
+    values: ['True'] #, 'False']
   dists_pref2ref_coeff:
     distribution: uniform
-    min: 0.30
-    max: 0.45
+    min: 0.32
+    max: 0.38
   l1_coeff:
     distribution: uniform
-    min: 0.7
+    min: 0.88
     max: 0.95
   # aug_crop_scale:
   #   distribution: uniform
