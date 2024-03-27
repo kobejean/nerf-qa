@@ -149,8 +149,7 @@ for epoch in range(wandb.config.epochs):
     for index, (dist,ref,score,i) in tqdm(enumerate(train_dataloader, 1), total=train_size, desc="Training..."):  # Start index from 1 for easier modulus operation            
         # Load scores
         predicted_score = model(dist.to(device),ref.to(device))
-        #target_score = score.to(device).float()
-
+        target_score = score.to(device).float()
         target_score_adjusted = torch.tensor(train_df['DISTS_scene_adjusted'].iloc[i.numpy()].values).float().to(device).detach()
         scene_a = torch.tensor(train_df['DISTS_scene_a'].iloc[i.numpy()].values).float().to(device).detach()
         scene_b = torch.tensor(train_df['DISTS_scene_b'].iloc[i.numpy()].values).float().to(device).detach()
