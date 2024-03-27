@@ -182,7 +182,8 @@ if __name__ == '__main__':
     # Basic configurations
     parser.add_argument('--reg_activation', type=str, default='linear', help='Random seed.')  
     parser.add_argument('--vit_model', type=str, default='dinov2', help='Random seed.') 
-    parser.add_argument('--score_reg_enabled', type=str, default='True', help='Random seed.')       
+    parser.add_argument('--score_reg_enabled', type=str, default='True', help='Random seed.')
+    parser.add_argument('--mae_reg_enabled', type=str, default='True', help='Random seed.')        
     parser.add_argument('--refine_up_depth', type=int, default=2, help='Random seed.')   
     #parser.add_argument('--batch_size', type=int, default=32, help='Random seed.')
     parser.add_argument('--transformer_decoder_depth', type=int, default=1, help='Random seed.')
