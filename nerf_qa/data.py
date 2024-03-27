@@ -237,8 +237,8 @@ class ComputeBatchSampler(Sampler):
 def create_large_qa_dataloader(scores_df, dir, resize=True):
     # Create a dataset and dataloader for efficient batching
     dataset = LargeQADataset(dir=dir, scores_df=scores_df, resize=resize)
-    # sampler = SceneBalancedSampler(dataset)
-    dataloader = DataLoader(dataset, batch_size = DEVICE_BATCH_SIZE)
+    sampler = SceneBalancedSampler(dataset)
+    dataloader = DataLoader(dataset, sampler=sampler, batch_size = DEVICE_BATCH_SIZE)
     return dataloader
 
 
