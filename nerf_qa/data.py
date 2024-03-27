@@ -282,7 +282,6 @@ class SceneBalancedSampler(Sampler):
 
     def __iter__(self):
         indices = []
-        print("Scenes:", self.scene_indices.keys(), self.samples_per_scene)
         for scene_indices in self.scene_indices.values():
             new_indices = torch.tensor(scene_indices[:self.samples_per_scene])
             new_indices = new_indices[torch.randperm(self.samples_per_scene)].tolist()
