@@ -184,7 +184,7 @@ loss_fn = nn.L1Loss(reduction='none')
 
 # Reset model and optimizer for each fold (if you want to start fresh for each fold)
 model = NeRFQAModel(train_df=train_df).to(device)
-optimizer = optim.Adam(model.parameters(),
+optimizer = optim.Adam(model.get_param_lr(),
     lr=config.lr,
     betas=(config.beta1, config.beta2),
     eps=config.eps
