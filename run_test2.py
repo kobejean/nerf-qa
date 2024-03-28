@@ -55,6 +55,22 @@ args = parser.parse_args()
 scores_df = pd.read_csv(SCORE_FILE)
 scores_df['scene'] = scores_df['reference_folder'].str.replace('gt_', '', regex=False)
 
+# Lists of scene IDs
+real_scene_ids = ['train', 'm60', 'playground', 'truck', 'fortress', 'horns', 'trex', 'room']
+synth_scene_ids = ['ship', 'lego', 'drums', 'ficus', 'hotdog', 'materials', 'mic']
+
+# Function to determine the scene type
+def get_scene_type(scene):
+    if scene in real_scene_ids:
+        return 'real'
+    elif scene in synth_scene_ids:
+        return 'synthetic'
+    else:
+        return 'unknown'
+
+# Apply the function to create the 'scene_type' column
+scores_df['scene_type'] = scores_df['scene'].apply(get_scene_type)
+
 def linear_func(x, a, b):
     return a * x + b
 
@@ -79,6 +95,28 @@ adjusted_df = scores_df.groupby('scene').apply(adjust_dists).reset_index(drop=Tr
 scores_df['DISTS_scene_adjusted'] = adjusted_df['DISTS_scene_adjusted']
 scores_df['DISTS_scene_a'] = adjusted_df['DISTS_scene_a']
 scores_df['DISTS_scene_b'] = adjusted_df['DISTS_scene_b']
+
+def adjust_dists(group):
+    group_x = group['DISTS']
+    group_y = group['MOS']
+    
+    # Perform linear regression
+    params, _ = curve_fit(linear_func, group_x, group_y)
+    
+    # Extract the parameters
+    a, b = params
+    
+    group['DISTS_scene_type_adjusted'] = (group_y - b) / a
+    group['DISTS_scene_type_a'] = a
+    group['DISTS_scene_type_b'] = b
+    
+    return group
+
+# Apply the adjustment for each group and get the adjusted DISTS values
+adjusted_df = scores_df.groupby('scene_type').apply(adjust_dists).reset_index(drop=True)
+scores_df['DISTS_scene_type_adjusted'] = adjusted_df['DISTS_scene_type_adjusted']
+scores_df['DISTS_scene_type_a'] = adjusted_df['DISTS_scene_type_a']
+scores_df['DISTS_scene_type_b'] = adjusted_df['DISTS_scene_type_b']
 
 val_df = pd.read_csv(VAL_SCORE_FILE)
 # filter test
@@ -148,14 +186,14 @@ for epoch in range(wandb.config.epochs):
         # Load scores
         predicted_score = model(dist.to(device),ref.to(device))
         target_score = score.to(device).float()
-        # target_score_adjusted = torch.tensor(train_df['DISTS_scene_adjusted'].iloc[i.numpy()].values).float().to(device).detach()
-        # scene_a = torch.tensor(train_df['DISTS_scene_a'].iloc[i.numpy()].values).float().to(device).detach()
-        # scene_b = torch.tensor(train_df['DISTS_scene_b'].iloc[i.numpy()].values).float().to(device).detach()
-        # predicted_score_adjusted = (predicted_score - scene_b) / scene_a
+        target_score_adjusted = torch.tensor(train_df['DISTS_scene_type_adjusted'].iloc[i.numpy()].values).float().to(device).detach()
+        scene_a = torch.tensor(train_df['DISTS_scene_type_a'].iloc[i.numpy()].values).float().to(device).detach()
+        scene_b = torch.tensor(train_df['DISTS_scene_type_b'].iloc[i.numpy()].values).float().to(device).detach()
+        predicted_score_adjusted = (predicted_score - scene_b) / scene_a
         
         # Compute loss
-        loss = loss_fn(predicted_score, target_score)
-        #loss = loss_fn(predicted_score_adjusted, target_score_adjusted)
+        # loss = loss_fn(predicted_score, target_score)
+        loss = loss_fn(predicted_score_adjusted, target_score_adjusted)
         step += score.shape[0]
 
         # Store metrics in logger
@@ -165,8 +203,8 @@ for epoch in range(wandb.config.epochs):
             {
             'loss': loss.detach().cpu(),
             'mse': mse_fn(predicted_score, target_score).detach().cpu(),
-            # 'mos': score,
-            # 'pred_score': predicted_score.detach().cpu(),
+            'mos': score,
+            'pred_score': predicted_score.detach().cpu(),
         }, video_ids = video_ids, scene_ids = scene_ids)
 
         # Accumulate gradients
@@ -179,57 +217,57 @@ for epoch in range(wandb.config.epochs):
         # Update parameters every batches_per_step steps or on the last iteration
         optimizer.step()
 
+    if (epoch+1) % 5 == 0:
+        # Validation step
+        model.eval()  # Set model to evaluation mode
+        with torch.no_grad():
+            for dist, ref, score, i in tqdm(val_dataloader, total=val_size, desc="Validating..."):
+                # Compute score
+                predicted_score = model(dist.to(device), ref.to(device))
+                target_score = score.to(device).float()
+                # target_score = val_df['DISTS_scene_adjusted'].iloc[i.numpy()].values
+                # scene_a = val_df['DISTS_scene_a'].iloc[i.numpy()].values
+                # scene_b = val_df['DISTS_scene_b'].iloc[i.numpy()].values
+                # predicted_score = (predicted_score - scene_b) / scene_a
 
-    # Validation step
-    model.eval()  # Set model to evaluation mode
-    with torch.no_grad():
-        for dist, ref, score, i in tqdm(val_dataloader, total=val_size, desc="Validating..."):
-            # Compute score
-            predicted_score = model(dist.to(device), ref.to(device))
-            target_score = score.to(device).float()
-            # target_score = val_df['DISTS_scene_adjusted'].iloc[i.numpy()].values
-            # scene_a = val_df['DISTS_scene_a'].iloc[i.numpy()].values
-            # scene_b = val_df['DISTS_scene_b'].iloc[i.numpy()].values
-            # predicted_score = (predicted_score - scene_b) / scene_a
+                # Compute loss
+                loss = loss_fn(predicted_score, target_score)
+                
+                # Store metrics in logger
+                scene_ids = val_df['scene'].iloc[i.numpy()].values
+                video_ids = val_df['distorted_filename'].iloc[i.numpy()].values
+                val_logger.add_entries(
+                    {
+                    'loss': loss.detach().cpu(),
+                    'mse': mse_fn(predicted_score, target_score).detach().cpu(),
+                    'mos': score,
+                    'pred_score': predicted_score.detach().cpu(),
+                }, video_ids = video_ids, scene_ids = scene_ids)
 
-            # Compute loss
-            loss = loss_fn(predicted_score, target_score)
-            
-            # Store metrics in logger
-            scene_ids = val_df['scene'].iloc[i.numpy()].values
-            video_ids = val_df['distorted_filename'].iloc[i.numpy()].values
-            val_logger.add_entries(
-                {
-                'loss': loss.detach().cpu(),
-                'mse': mse_fn(predicted_score, target_score).detach().cpu(),
-                'mos': score,
-                'pred_score': predicted_score.detach().cpu(),
-            }, video_ids = video_ids, scene_ids = scene_ids)
-
-        # Log accumulated metrics
-        val_logger.log_summary(step)
-    
-    # Test step
-    model.eval()  # Set model to evaluation mode
-    with torch.no_grad():
-        for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Testing..."):
-            # Load frames
-            dataloader = create_test_video_dataloader(row, dir=TEST_DATA_DIR, resize=config.resize, keep_aspect_ratio=True)
-            
-            # Compute score
-            predicted_score = model.forward_dataloader(dataloader)
-            target_score = torch.tensor(row['MOS'], device=device, dtype=torch.float32)
+            # Log accumulated metrics
+            val_logger.log_summary(step)
         
-            # Store metrics in logger
-            video_ids = row['distorted_filename']
-            scene_ids = row['scene']
-            test_logger.add_entries({
-                'mse': mse_fn(predicted_score, target_score).detach().cpu(),
-                'mos': row['MOS'],
-                'pred_score': predicted_score.detach().cpu(),
-            }, video_ids=video_ids, scene_ids=scene_ids)
+        # Test step
+        model.eval()  # Set model to evaluation mode
+        with torch.no_grad():
+            for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Testing..."):
+                # Load frames
+                dataloader = create_test_video_dataloader(row, dir=TEST_DATA_DIR, resize=config.resize, keep_aspect_ratio=True)
+                
+                # Compute score
+                predicted_score = model.forward_dataloader(dataloader)
+                target_score = torch.tensor(row['MOS'], device=device, dtype=torch.float32)
+            
+                # Store metrics in logger
+                video_ids = row['distorted_filename']
+                scene_ids = row['scene']
+                test_logger.add_entries({
+                    'mse': mse_fn(predicted_score, target_score).detach().cpu(),
+                    'mos': row['MOS'],
+                    'pred_score': predicted_score.detach().cpu(),
+                }, video_ids=video_ids, scene_ids=scene_ids)
 
-        # Log results
-        test_logger.log_summary(step)
+            # Log results
+            test_logger.log_summary(step)
 
 wandb.finish()
