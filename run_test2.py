@@ -231,7 +231,7 @@ for epoch in range(wandb.config.epochs):
         }, video_ids = video_ids, scene_ids = scene_ids)
 
         # Accumulate gradients
-        loss = loss.mean() + wandb.congig.scene_type_bias_weight_loss_coef * model.scene_type_bias_weight
+        loss = loss.mean() + wandb.config.scene_type_bias_weight_loss_coef * model.scene_type_bias_weight
         model.scene_type_bias_weight.retain_grad()
         model.dists_bias.retain_grad()
         loss.backward()
