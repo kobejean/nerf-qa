@@ -231,8 +231,10 @@ for epoch in range(wandb.config.epochs):
         loss = loss.mean() + 0.01 * model.scene_type_bias_weight
         model.scene_type_bias_weight.retain_grad()
         model.dists_bias.retain_grad()
-        model.dists_scene_type_weight.retain_grad()
-        model.dists_scene_type_bias.retain_grad()
+        model.dists_scene_type_weight[0].retain_grad()
+        model.dists_scene_type_weight[1].retain_grad()
+        model.dists_scene_type_bias[0].retain_grad()
+        model.dists_scene_type_bias[1].retain_grad()
         loss.backward()
 
         # Log accumulated train metrics
