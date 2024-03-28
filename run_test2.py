@@ -138,7 +138,7 @@ val_dataloader = create_large_qa_dataloader(val_df, dir=VAL_DATA_DIR, resize=Tru
 train_size = len(train_dataloader)
 val_size = len(val_dataloader)
 
-epochs = 30
+epochs = 100
 config = {
     "epochs": epochs,
     "lr": 5e-5,
@@ -217,7 +217,7 @@ for epoch in range(wandb.config.epochs):
         # Update parameters every batches_per_step steps or on the last iteration
         optimizer.step()
 
-    if (epoch+1) % 5 == 0:
+    if (epoch+1) % 2 == 0:
         # Validation step
         model.eval()  # Set model to evaluation mode
         with torch.no_grad():
@@ -225,10 +225,6 @@ for epoch in range(wandb.config.epochs):
                 # Compute score
                 predicted_score = model(dist.to(device), ref.to(device))
                 target_score = score.to(device).float()
-                # target_score = val_df['DISTS_scene_adjusted'].iloc[i.numpy()].values
-                # scene_a = val_df['DISTS_scene_a'].iloc[i.numpy()].values
-                # scene_b = val_df['DISTS_scene_b'].iloc[i.numpy()].values
-                # predicted_score = (predicted_score - scene_b) / scene_a
 
                 # Compute loss
                 loss = loss_fn(predicted_score, target_score)
@@ -247,6 +243,7 @@ for epoch in range(wandb.config.epochs):
             # Log accumulated metrics
             val_logger.log_summary(step)
         
+    if (epoch+1) % 20 == 0:
         # Test step
         model.eval()  # Set model to evaluation mode
         with torch.no_grad():
