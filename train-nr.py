@@ -180,10 +180,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Initialize a new run with wandb with custom configurations.')
 
     # Basic configurations
-    parser.add_argument('--reg_activation', type=str, default='linear', help='Random seed.')  
+    parser.add_argument('--reg_activation', type=str, default='sigmoid', help='Random seed.')  
     parser.add_argument('--vit_model', type=str, default='dinov2', help='Random seed.') 
-    parser.add_argument('--score_reg_enabled', type=str, default='True', help='Random seed.')
-    parser.add_argument('--mae_reg_enabled', type=str, default='True', help='Random seed.')        
+    parser.add_argument('--score_reg_enabled', type=str, default='False', help='Random seed.')
+    parser.add_argument('--mae_reg_enabled', type=str, default='False', help='Random seed.')        
     parser.add_argument('--refine_up_depth', type=int, default=2, help='Random seed.')   
     #parser.add_argument('--batch_size', type=int, default=32, help='Random seed.')
     parser.add_argument('--transformer_decoder_depth', type=int, default=1, help='Random seed.')
@@ -191,7 +191,7 @@ if __name__ == '__main__':
     parser.add_argument('--refine_scale2', type=float, default=0.01, help='Random seed.')
     parser.add_argument('--refine_scale3', type=float, default=0.01, help='Random seed.')
     parser.add_argument('--refine_scale4', type=float, default=0.01, help='Random seed.')
-    parser.add_argument('--score_reg_scale', type=float, default=0.00003, help='Random seed.')
+    parser.add_argument('--score_reg_scale', type=float, default=0.000003, help='Random seed.')
     parser.add_argument('--aug_crop_scale', type=float, default=0.75, help='Random seed.')
     parser.add_argument('--aug_rot_deg', type=float, default=180.0, help='Random seed.')
     parser.add_argument('--dists_pref2ref_coeff', type=float, default=0.35, help='Random seed.')
@@ -301,28 +301,28 @@ if __name__ == '__main__':
                 model.eval()  # Set model to evaluation mode
                 with torch.no_grad():
                     video_scores = []
-                    video_normalized_scores = []
+                    # video_normalized_scores = []
                     for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Testing..."):
                         # Load frames
                         dataloader = create_test_video_dataloader(row, dir=TEST_DATA_DIR)
                         frame_scores = []
-                        frame_normalized_scores = []
+                        # frame_normalized_scores = []
                         for batch in dataloader:
                             render = batch_to_device(batch, device)
                             pred_score, pred_normalized = model(render)
                             frame_scores.append(pred_score.detach().cpu())
-                            frame_normalized_scores.append(pred_normalized.detach().cpu())
+                            # frame_normalized_scores.append(pred_normalized.detach().cpu())
 
                         frame_scores = np.concatenate(frame_scores, axis=0)
-                        frame_normalized_scores = np.concatenate(frame_normalized_scores, axis=0)
+                        # frame_normalized_scores = np.concatenate(frame_normalized_scores, axis=0)
                         video_scores.append(np.mean(frame_scores))
-                        video_normalized_scores.append(np.mean(frame_normalized_scores))
+                        # video_normalized_scores.append(np.mean(frame_normalized_scores))
 
                     video_scores = np.array(video_scores)
-                    video_normalized_scores = np.array(video_normalized_scores)
+                    # video_normalized_scores = np.array(video_normalized_scores)
                     test_scores_df = test_df.copy()
                     test_scores_df['TEST_SCORE'] = video_scores
-                    test_scores_df['TEST_NORM_SCORE'] = video_normalized_scores
+                    # test_scores_df['TEST_NORM_SCORE'] = video_normalized_scores
                     tnt_files = ['truck_reference.mp4', 'playground_reference.mp4',
                     'train_reference.mp4', 'm60_reference.mp4']
                     syn_files = ['lego_reference.mp4', 'drums_reference.mp4',
@@ -331,7 +331,7 @@ if __name__ == '__main__':
                     syn_df = test_scores_df[test_scores_df['reference_filename'].isin(syn_files)].reset_index()
                     tnt_df = test_scores_df[test_scores_df['reference_filename'].isin(tnt_files)].reset_index()
                     video_scores = tnt_df['TEST_SCORE'].values
-                    video_normalized_scores = tnt_df['TEST_NORM_SCORE'].values
+                    # video_normalized_scores = tnt_df['TEST_NORM_SCORE'].values
                     corr = compute_correlations(video_scores, tnt_df['MOS'].values)
                     corr['l1'] = np.mean(np.abs(video_scores - tnt_df['DISTS'].values))
                     for key in corr.keys():
@@ -347,19 +347,19 @@ if __name__ == '__main__':
                             f"Test Metrics Dict/tnt/dmos/{key}": metric
                         }, step=step)
 
-                    corr = compute_correlations(video_normalized_scores, tnt_df['MOS'].values)
-                    for key in corr.keys():
-                        metric = corr[key]
-                        wandb.log({
-                            f"Test Metrics Dict/tnt/mos/normalized/{key}": metric
-                        }, step=step)
+                    # corr = compute_correlations(video_normalized_scores, tnt_df['MOS'].values)
+                    # for key in corr.keys():
+                    #     metric = corr[key]
+                    #     wandb.log({
+                    #         f"Test Metrics Dict/tnt/mos/normalized/{key}": metric
+                    #     }, step=step)
 
-                    corr = compute_correlations(video_normalized_scores, tnt_df['DMOS'].values)
-                    for key in corr.keys():
-                        metric = corr[key]
-                        wandb.log({
-                            f"Test Metrics Dict/tnt/dmos/normalized/{key}": metric
-                        }, step=step)
+                    # corr = compute_correlations(video_normalized_scores, tnt_df['DMOS'].values)
+                    # for key in corr.keys():
+                    #     metric = corr[key]
+                    #     wandb.log({
+                    #         f"Test Metrics Dict/tnt/dmos/normalized/{key}": metric
+                    #     }, step=step)
                     
                     video_scores = syn_df['TEST_SCORE'].values
                     video_normalized_scores = syn_df['TEST_NORM_SCORE'].values

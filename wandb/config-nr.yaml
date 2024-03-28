@@ -7,46 +7,26 @@ method: random
 parameters:
   lr:
     distribution: q_log_uniform_values
-    min: 3e-3
-    max: 5e-3
+    min: 1e-3
+    max: 4e-3
     q: 1e-7
-  # refine_scale1:
-  #   distribution: q_log_uniform_values
-  #   min: 3e-3
-  #   max: 9e-3
-  #   q: 1e-3
-  # refine_scale2:
-  #   distribution: q_log_uniform_values
-  #   min: 3e-3
-  #   max: 8e-3
-  #   q: 1e-3
-  # refine_scale3:
-  #   distribution: q_log_uniform_values
-  #   min: 3e-3
-  #   max: 9e-3
-  #   q: 1e-3
-  # refine_scale4:
-  #   distribution: q_log_uniform_values
-  #   min: 5e-3
-  #   max: 2e-2
-  #   q: 1e-3
   # score_reg_scale:
   #   distribution: q_log_uniform_values
   #   min: 1e-5
   #   max: 5e-5
   #   q: 1e-5
   mae_reg_enabled:
-    values: ['True', 'False']
+    value: 'False'
   score_reg_enabled:
-    values: ['True'] #, 'False']
+    value: 'False'
   dists_pref2ref_coeff:
     distribution: uniform
     min: 0.32
     max: 0.38
-  l1_coeff:
-    distribution: uniform
-    min: 0.88
-    max: 0.95
+  # l1_coeff:
+  #   distribution: uniform
+  #   min: 0.88
+  #   max: 0.95
   # aug_crop_scale:
   #   distribution: uniform
   #   min: 0.74
