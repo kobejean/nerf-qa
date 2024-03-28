@@ -203,8 +203,8 @@ for epoch in range(wandb.config.epochs):
             {
             'loss': loss.detach().cpu(),
             'mse': mse_fn(predicted_score, target_score).detach().cpu(),
-            'mos': score,
-            'pred_score': predicted_score.detach().cpu(),
+            # 'mos': score,
+            # 'pred_score': predicted_score.detach().cpu(),
         }, video_ids = video_ids, scene_ids = scene_ids)
 
         # Accumulate gradients
