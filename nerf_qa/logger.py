@@ -193,13 +193,13 @@ class MetricCollectionLogger():
                     synth_scene_pred_scores.append(scene_video_pred_scores)
                     synth_scene_mos.append(scene_video_mos)
             
-            if len(real_scene_pred_scores) > 0:
+            if len(real_scene_pred_scores) > 1:
                 real_scene_pred_scores = np.concatenate(real_scene_pred_scores, axis=0)
                 real_scene_mos = np.concatenate(real_scene_mos, axis=0)
                 real_correlations = self.compute_correlations(real_scene_pred_scores, real_scene_mos)
                 logs.update({ f"{self.collection_name}/correlations/real/{metric}": value for metric, value in real_correlations.items() })
 
-            if len(synth_scene_pred_scores) > 0:
+            if len(synth_scene_pred_scores) > 1:
                 synth_scene_pred_scores = np.concatenate(synth_scene_pred_scores, axis=0)
                 synth_scene_mos = np.concatenate(synth_scene_mos, axis=0)
                 synth_correlations = self.compute_correlations(synth_scene_pred_scores, synth_scene_mos)
