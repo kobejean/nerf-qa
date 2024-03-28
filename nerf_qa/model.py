@@ -70,7 +70,7 @@ class NeRFQAModel(nn.Module):
         )
 
         # Collect the remaining parameters
-        remaining_params = [param for param in model.parameters() if param not in linear_layer_params]
+        remaining_params = [param for param in self.parameters() if param not in linear_layer_params]
 
         return  [
             {'params': linear_layer_params, 'lr': wandb.config.linear_layer_lr },  # Set the learning rate for the specific layer
