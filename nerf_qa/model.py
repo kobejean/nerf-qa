@@ -61,13 +61,13 @@ class NeRFQAModel(nn.Module):
         self.scene_type_bias_weight = nn.Parameter(torch.tensor([wandb.config.init_scene_type_bias_weight], dtype=torch.float32))
 
     def get_param_lr(self):
-        linear_layer_params = (
-            list(self.dists_scene_type_weight) +
-            list(self.dists_scene_type_bias) +
-            list(self.dists_weight) +
-            list(self.dists_bias) +
-            list(self.scene_type_bias_weight)
-        )
+        linear_layer_params = [
+            self.dists_scene_type_weight,
+            self.dists_scene_type_bias,
+            self.dists_weight,
+            self.dists_bias,
+            self.scene_type_bias_weight
+        ]
 
         # Collect the remaining parameters
         # remaining_params = [param for param in self.parameters() if param not in linear_layer_params]
