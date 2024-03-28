@@ -157,7 +157,7 @@ val_dataloader = create_large_qa_dataloader(val_df, dir=VAL_DATA_DIR, resize=Tru
 train_size = len(train_dataloader)
 val_size = len(val_dataloader)
 
-epochs = 20
+epochs = 40
 config = {
     "epochs": epochs,
     "lr": 5e-5,
