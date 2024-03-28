@@ -233,7 +233,7 @@ for epoch in range(wandb.config.epochs):
 
         # Log accumulated train metrics
         train_logger.log_summary(step)
-        wandb.log({ "Model/scene_bias_weight": model.dists_scene_type_weight.detach().cpu() }, step=step)
+        wandb.log({ "Model/scene_bias_weight": model.scene_type_bias_weight.detach().cpu() }, step=step)
         
         # Update parameters every batches_per_step steps or on the last iteration
         optimizer.step()
