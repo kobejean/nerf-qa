@@ -89,17 +89,19 @@ class NeRFQAModel(nn.Module):
 
     def forward(self, dist, ref, scene_type = None):
         dists_scores = self.dists_model(ref, dist, require_grad=True, batch_average=False)  # Returns a tensor of scores
-        scores = dists_scores * self.dists_weight + self.dists_bias # linear function
+        
         
         if scene_type is not None:
             scene_type_idx = torch.tensor([self.scene_type_to_idx.get(st, -1) for st in scene_type], dtype=torch.long)
-            # valid_mask = scene_type_idx >= 0
-            scene_scores = torch.zeros_like(scores)
-            # scene_scores[valid_mask] = dists_scores[valid_mask] * self.dists_scene_type_weight[scene_type_idx[valid_mask]] + self.dists_scene_type_bias[scene_type_idx[valid_mask]]
-            scene_scores = dists_scores * self.dists_scene_type_weight[scene_type_idx] + self.dists_scene_type_bias[scene_type_idx]
-            return (1 - self.scene_type_bias_weight) * scores + self.scene_type_bias_weight * scene_scores
 
-        return scores
+            alpha = self.scene_type_bias_weight
+            slope = (1 - alpha) * self.dists_weight + alpha * self.dists_scene_type_weight[scene_type_idx]
+            intercept = (1 - alpha) * self.dists_bias + alpha * self.dists_scene_type_bias[scene_type_idx]
+            scores = dists_scores * slope + intercept
+            return scores
+        else:
+            scores = dists_scores * self.dists_weight + self.dists_bias # linear function
+            return scores
 
 
 
