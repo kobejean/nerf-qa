@@ -283,7 +283,7 @@ for epoch in range(wandb.config.epochs):
             val_logger.log_summary(step)
             wandb.log({ 
                 "Model/dists_weight/alpha": wandb.Histogram(model.dists_model.alpha.detach().cpu()),
-                "Model/dists_weight/alpha": wandb.Histogram(model.dists_model.beta.detach().cpu()),
+                "Model/dists_weight/beta": wandb.Histogram(model.dists_model.beta.detach().cpu()),
             }, step=step)
         
     if (epoch+1) % 20 == 0:
