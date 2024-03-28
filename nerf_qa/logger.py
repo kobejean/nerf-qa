@@ -209,12 +209,13 @@ class MetricCollectionLogger():
             for scene_id, corr_values in scene_correlations.items():
                 logs.update({f"{self.collection_name}/correlations/scene/{scene_id}/{metric}": value for metric, value in corr_values.items()})
 
-            # Log correlations over all scenes
-            video_pred_scores = np.array([video_pred_scores[vid] for vid in unique_videos])
-            video_mos = np.array([video_mos[vid] for vid in unique_videos])
-            correlations = self.compute_correlations(video_pred_scores, video_mos)
-            
-            logs.update({ f"{self.collection_name}/correlations/{metric}": value for metric, value in correlations.items() })
+            if len(unique_videos) > 1:
+                # Log correlations over all scenes
+                video_pred_scores = np.array([video_pred_scores[vid] for vid in unique_videos])
+                video_mos = np.array([video_mos[vid] for vid in unique_videos])
+                correlations = self.compute_correlations(video_pred_scores, video_mos)
+                
+                logs.update({ f"{self.collection_name}/correlations/{metric}": value for metric, value in correlations.items() })
 
 
         self.log_fn(logs, step=step)
