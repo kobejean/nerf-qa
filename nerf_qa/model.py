@@ -38,8 +38,8 @@ class NeRFQAModel(nn.Module):
             group_y = group_df['MOS']
             params, _ = curve_fit(linear_func, group_x, group_y)
             idx = self.scene_type_to_idx[group]
-            self.dists_scene_type_weight[idx] = params[0]
-            self.dists_scene_type_bias[idx] = params[1]
+            dists_scene_type_weight[idx] = params[0]
+            dists_scene_type_bias[idx] = params[1]
 
         self.dists_scene_type_weight = nn.Parameter(dists_scene_type_weight)
         self.dists_scene_type_bias = nn.Parameter(dists_scene_type_bias)
