@@ -202,17 +202,17 @@ for epoch in range(wandb.config.epochs):
         # Load scores
         predicted_score = model(dist.to(device),ref.to(device))
         target_score = score.to(device).float()
-        a = torch.tensor(train_df['DISTS_a'].iloc[i.numpy()].values).float().to(device).detach()
-        b = torch.tensor(train_df['DISTS_b'].iloc[i.numpy()].values).float().to(device).detach()
-        scene_a = torch.tensor(train_df['DISTS_scene_type_a'].iloc[i.numpy()].values).float().to(device).detach()
-        scene_b = torch.tensor(train_df['DISTS_scene_type_b'].iloc[i.numpy()].values).float().to(device).detach()
+        # a = torch.tensor(train_df['DISTS_a'].iloc[i.numpy()].values).float().to(device).detach()
+        # b = torch.tensor(train_df['DISTS_b'].iloc[i.numpy()].values).float().to(device).detach()
+        # scene_a = torch.tensor(train_df['DISTS_scene_type_a'].iloc[i.numpy()].values).float().to(device).detach()
+        # scene_b = torch.tensor(train_df['DISTS_scene_type_b'].iloc[i.numpy()].values).float().to(device).detach()
 
-        predicted_score_adjusted = (predicted_score - b) / a 
-        predicted_score_adjusted = predicted_score_adjusted * scene_a + scene_b
+        # predicted_score_adjusted = (predicted_score - b) / a 
+        # predicted_score_adjusted = predicted_score_adjusted * scene_a + scene_b
         
         # Compute loss
-        # loss = loss_fn(predicted_score, target_score)
-        loss = loss_fn(predicted_score_adjusted, target_score)
+        loss = loss_fn(predicted_score, target_score)
+        # loss = loss_fn(predicted_score_adjusted, target_score)
         step += score.shape[0]
 
         # Store metrics in logger
