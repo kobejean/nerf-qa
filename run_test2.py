@@ -71,6 +71,16 @@ def get_scene_type(scene):
 # Apply the function to create the 'scene_type' column
 scores_df['scene_type'] = scores_df['scene'].apply(get_scene_type)
 
+val_df = pd.read_csv(VAL_SCORE_FILE)
+# filter test
+val_scenes = ['ship', 'lego', 'drums', 'ficus', 'train', 'm60', 'playground', 'truck'] #+ ['room', 'hotdog', 'trex', 'chair']
+train_df = scores_df[~scores_df['scene'].isin(val_scenes)].reset_index() # + ['trex', 'horns']
+val_df = val_df[val_df['scene'].isin(val_scenes)].reset_index()
+
+test_df = pd.read_csv(TEST_SCORE_FILE)
+test_df['scene'] = test_df['reference_filename'].str.replace('_reference.mp4', '', regex=False)
+test_size = test_df.shape[0]
+
 def linear_func(x, a, b):
     return a * x + b
 
@@ -91,10 +101,10 @@ def adjust_dists(group):
     return group
 
 # Apply the adjustment for each group and get the adjusted DISTS values
-adjusted_df = scores_df.apply(adjust_dists).reset_index(drop=True)
-scores_df['DISTS_adjusted'] = adjusted_df['DISTS_adjusted']
-scores_df['DISTS_a'] = adjusted_df['DISTS_a']
-scores_df['DISTS_b'] = adjusted_df['DISTS_b']
+adjusted_df = train_df.groupby('distorted_folder').apply(adjust_dists).reset_index(drop=True)
+train_df['DISTS_adjusted'] = adjusted_df['DISTS_adjusted']
+train_df['DISTS_a'] = adjusted_df['DISTS_a']
+train_df['DISTS_b'] = adjusted_df['DISTS_b']
 
 def adjust_dists(group):
     group_x = group['DISTS']
@@ -113,10 +123,10 @@ def adjust_dists(group):
     return group
 
 # Apply the adjustment for each group and get the adjusted DISTS values
-adjusted_df = scores_df.groupby('scene').apply(adjust_dists).reset_index(drop=True)
-scores_df['DISTS_scene_adjusted'] = adjusted_df['DISTS_scene_adjusted']
-scores_df['DISTS_scene_a'] = adjusted_df['DISTS_scene_a']
-scores_df['DISTS_scene_b'] = adjusted_df['DISTS_scene_b']
+adjusted_df = train_df.groupby('scene').apply(adjust_dists).reset_index(drop=True)
+train_df['DISTS_scene_adjusted'] = adjusted_df['DISTS_scene_adjusted']
+train_df['DISTS_scene_a'] = adjusted_df['DISTS_scene_a']
+train_df['DISTS_scene_b'] = adjusted_df['DISTS_scene_b']
 
 def adjust_dists(group):
     group_x = group['DISTS']
@@ -135,20 +145,10 @@ def adjust_dists(group):
     return group
 
 # Apply the adjustment for each group and get the adjusted DISTS values
-adjusted_df = scores_df.groupby('scene_type').apply(adjust_dists).reset_index(drop=True)
-scores_df['DISTS_scene_type_adjusted'] = adjusted_df['DISTS_scene_type_adjusted']
-scores_df['DISTS_scene_type_a'] = adjusted_df['DISTS_scene_type_a']
-scores_df['DISTS_scene_type_b'] = adjusted_df['DISTS_scene_type_b']
-
-val_df = pd.read_csv(VAL_SCORE_FILE)
-# filter test
-val_scenes = ['ship', 'lego', 'drums', 'ficus', 'train', 'm60', 'playground', 'truck'] #+ ['room', 'hotdog', 'trex', 'chair']
-train_df = scores_df[~scores_df['scene'].isin(val_scenes)].reset_index() # + ['trex', 'horns']
-val_df = val_df[val_df['scene'].isin(val_scenes)].reset_index()
-
-test_df = pd.read_csv(TEST_SCORE_FILE)
-test_df['scene'] = test_df['reference_filename'].str.replace('_reference.mp4', '', regex=False)
-test_size = test_df.shape[0]
+adjusted_df = train_df.groupby('scene_type').apply(adjust_dists).reset_index(drop=True)
+train_df['DISTS_scene_type_adjusted'] = adjusted_df['DISTS_scene_type_adjusted']
+train_df['DISTS_scene_type_a'] = adjusted_df['DISTS_scene_type_a']
+train_df['DISTS_scene_type_b'] = adjusted_df['DISTS_scene_type_b']
 
 train_logger = MetricCollectionLogger('Train Metrics Dict')
 val_logger = MetricCollectionLogger('Val Metrics Dict')
