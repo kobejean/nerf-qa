@@ -59,7 +59,25 @@ class NeRFQAModel(nn.Module):
         self.dists_bias = nn.Parameter(torch.tensor([model.intercept_], dtype=torch.float32))
 
         self.scene_type_bias_weight = nn.Parameter(torch.tensor([0.5], dtype=torch.float32))
-    
+
+    def get_param_lr(self):
+        linear_layer_params = (
+            list(self.dists_scene_type_weight.parameters()) +
+            list(self.dists_scene_type_bias.parameters()) +
+            list(self.dists_weight.parameters()) +
+            list(self.dists_bias.parameters()) +
+            list(self.scene_type_bias_weight.parameters())
+        )
+
+        # Collect the remaining parameters
+        remaining_params = [param for param in model.parameters() if param not in linear_layer_params]
+
+        return  [
+            {'params': linear_layer_params, 'lr': 1e-3 },  # Set the learning rate for the specific layer
+            {'params': remaining_params }  # Set the learning rate for the remaining parameters
+        ]
+
+            
     
     def compute_dists_with_batches(self, dataloader):
         all_scores = []  # Collect scores from all batches as tensors
