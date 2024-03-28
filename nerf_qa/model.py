@@ -76,7 +76,7 @@ class NeRFQAModel(nn.Module):
         if scene_type is not None:
             scene_type_idx = torch.tensor([self.scene_type_to_idx.get(st, -1) for st in scene_type], dtype=torch.long)
             valid_mask = scene_type_idx >= 0
-            scene_scores = torch.zeros_like(scores)
+            scene_scores = scores
             scene_scores[valid_mask] = dists_scores[valid_mask] * self.dists_scene_type_weight[scene_type_idx[valid_mask]] + self.dists_scene_type_bias[scene_type_idx[valid_mask]]
             scores = (1 - self.scene_type_bias_weight) * scores + self.scene_type_bias_weight * scene_scores
 
