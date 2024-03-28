@@ -269,6 +269,6 @@ class NRModel(nn.Module):
     def forward(self, render):
         # Encode the render and predict scores from features
         encoder_feats = self.encoder(render)
-        scores, normalized = self.forward_from_feats(encoder_feats)
-        return scores, normalized
+        scores = self.forward_from_feats(encoder_feats)
+        return scores
 
