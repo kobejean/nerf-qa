@@ -101,7 +101,7 @@ def adjust_dists(group):
     return group
 
 # Apply the adjustment for each group and get the adjusted DISTS values
-adjusted_df = train_df.groupby('distorted_folder').apply(adjust_dists).reset_index(drop=True)
+adjusted_df = train_df.apply(adjust_dists)
 train_df['DISTS_adjusted'] = adjusted_df['DISTS_adjusted']
 train_df['DISTS_a'] = adjusted_df['DISTS_a']
 train_df['DISTS_b'] = adjusted_df['DISTS_b']
