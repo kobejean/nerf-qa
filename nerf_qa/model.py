@@ -58,7 +58,7 @@ class NeRFQAModel(nn.Module):
         self.dists_weight = nn.Parameter(torch.tensor([model.coef_[0]], dtype=torch.float32))
         self.dists_bias = nn.Parameter(torch.tensor([model.intercept_], dtype=torch.float32))
 
-        self.scene_type_bias_weight = nn.Parameter(torch.tensor([0.5], dtype=torch.float32))
+        self.scene_type_bias_weight = nn.Parameter(torch.tensor([wandb.config.init_scene_type_bias_weight], dtype=torch.float32))
 
     def get_param_lr(self):
         linear_layer_params = (
@@ -73,7 +73,7 @@ class NeRFQAModel(nn.Module):
         remaining_params = [param for param in model.parameters() if param not in linear_layer_params]
 
         return  [
-            {'params': linear_layer_params, 'lr': 1e-3 },  # Set the learning rate for the specific layer
+            {'params': linear_layer_params, 'lr': wandb.config.linear_layer_lr },  # Set the learning rate for the specific layer
             {'params': remaining_params }  # Set the learning rate for the remaining parameters
         ]
 

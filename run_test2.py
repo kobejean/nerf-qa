@@ -45,7 +45,10 @@ parser = argparse.ArgumentParser(description='Initialize a new run with wandb wi
 
 # Basic configurations
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
-parser.add_argument('--lr', type=float, default=1e-3, help='Random seed.')
+parser.add_argument('--lr', type=float, default=1e-6, help='Random seed.')
+parser.add_argument('--linear_layer_lr', type=float, default=1e-3, help='Random seed.')
+parser.add_argument('--init_scene_type_bias_weight', type=float, default=0.5, help='Random seed.')
+parser.add_argument('--scene_type_bias_weight_loss_coef', type=float, default=0.1, help='Random seed.')
 
 # Parse arguments
 args = parser.parse_args()
@@ -154,7 +157,7 @@ val_dataloader = create_large_qa_dataloader(val_df, dir=VAL_DATA_DIR, resize=Tru
 train_size = len(train_dataloader)
 val_size = len(val_dataloader)
 
-epochs = 100
+epochs = 50
 config = {
     "epochs": epochs,
     "lr": 5e-5,
@@ -228,7 +231,7 @@ for epoch in range(wandb.config.epochs):
         }, video_ids = video_ids, scene_ids = scene_ids)
 
         # Accumulate gradients
-        loss = loss.mean() + 0.1 * model.scene_type_bias_weight
+        loss = loss.mean() + wandb.congig.scene_type_bias_weight_loss_coef * model.scene_type_bias_weight
         model.scene_type_bias_weight.retain_grad()
         model.dists_bias.retain_grad()
         loss.backward()
