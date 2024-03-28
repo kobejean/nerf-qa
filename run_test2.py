@@ -84,6 +84,28 @@ def adjust_dists(group):
     # Extract the parameters
     a, b = params
     
+    group['DISTS_adjusted'] = (group_y - b) / a
+    group['DISTS_a'] = a
+    group['DISTS_b'] = b
+    
+    return group
+
+# Apply the adjustment for each group and get the adjusted DISTS values
+adjusted_df = scores_df.apply(adjust_dists).reset_index(drop=True)
+scores_df['DISTS_adjusted'] = adjusted_df['DISTS_adjusted']
+scores_df['DISTS_a'] = adjusted_df['DISTS_a']
+scores_df['DISTS_b'] = adjusted_df['DISTS_b']
+
+def adjust_dists(group):
+    group_x = group['DISTS']
+    group_y = group['MOS']
+    
+    # Perform linear regression
+    params, _ = curve_fit(linear_func, group_x, group_y)
+    
+    # Extract the parameters
+    a, b = params
+    
     group['DISTS_scene_adjusted'] = (group_y - b) / a
     group['DISTS_scene_a'] = a
     group['DISTS_scene_b'] = b
@@ -186,14 +208,17 @@ for epoch in range(wandb.config.epochs):
         # Load scores
         predicted_score = model(dist.to(device),ref.to(device))
         target_score = score.to(device).float()
-        target_score_adjusted = torch.tensor(train_df['DISTS_scene_type_adjusted'].iloc[i.numpy()].values).float().to(device).detach()
+        a = torch.tensor(train_df['DISTS_a'].iloc[i.numpy()].values).float().to(device).detach()
+        b = torch.tensor(train_df['DISTS_b'].iloc[i.numpy()].values).float().to(device).detach()
         scene_a = torch.tensor(train_df['DISTS_scene_type_a'].iloc[i.numpy()].values).float().to(device).detach()
         scene_b = torch.tensor(train_df['DISTS_scene_type_b'].iloc[i.numpy()].values).float().to(device).detach()
-        predicted_score_adjusted = (predicted_score - scene_b) / scene_a
+
+        predicted_score_adjusted = (predicted_score - b) / a 
+        predicted_score_adjusted = predicted_score_adjusted * scene_a + scene_b
         
         # Compute loss
         # loss = loss_fn(predicted_score, target_score)
-        loss = loss_fn(predicted_score_adjusted, target_score_adjusted)
+        loss = loss_fn(predicted_score_adjusted, target_score)
         step += score.shape[0]
 
         # Store metrics in logger
