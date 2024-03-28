@@ -84,27 +84,21 @@ test_size = test_df.shape[0]
 def linear_func(x, a, b):
     return a * x + b
 
-def adjust_dists(group):
-    group_x = group['DISTS']
-    group_y = group['MOS']
-    
-    # Perform linear regression
-    params, _ = curve_fit(linear_func, group_x, group_y)
-    
-    # Extract the parameters
-    a, b = params
-    
-    group['DISTS_adjusted'] = (group_y - b) / a
-    group['DISTS_a'] = a
-    group['DISTS_b'] = b
-    
-    return group
 
 # Apply the adjustment for each group and get the adjusted DISTS values
-adjusted_df = train_df.apply(adjust_dists)
-train_df['DISTS_adjusted'] = adjusted_df['DISTS_adjusted']
-train_df['DISTS_a'] = adjusted_df['DISTS_a']
-train_df['DISTS_b'] = adjusted_df['DISTS_b']
+
+group_x = train_df['DISTS']
+group_y = train_df['MOS']
+
+# Perform linear regression
+params, _ = curve_fit(linear_func, group_x, group_y)
+
+# Extract the parameters
+a, b = params
+
+train_df['DISTS_adjusted'] = (group_y - b) / a
+train_df['DISTS_a'] = a
+train_df['DISTS_b'] = b
 
 def adjust_dists(group):
     group_x = group['DISTS']
