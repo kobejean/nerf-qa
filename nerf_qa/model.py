@@ -61,6 +61,24 @@ class NeRFQAModel(nn.Module):
         self.scene_type_bias_weight = nn.Parameter(torch.tensor([0.5], dtype=torch.float32))
     
     
+    def compute_dists_with_batches(self, dataloader):
+        all_scores = []  # Collect scores from all batches as tensors
+
+        for dist_batch, ref_batch in dataloader:
+            ref_images = ref_batch.to(device)  # Assuming ref_batch[0] is the tensor of images
+            dist_images = dist_batch.to(device)  # Assuming dist_batch[0] is the tensor of images
+            scores = self.dists_model(ref_images, dist_images, require_grad=False, batch_average=False)  # Returns a tensor of scores
+            
+            # Collect scores tensors
+            all_scores.append(scores)
+
+        # Concatenate all score tensors into a single tensor
+        all_scores_tensor = torch.cat(all_scores, dim=0)
+
+        # Compute the average score across all batches
+        average_score = torch.mean(all_scores_tensor) if all_scores_tensor.numel() > 0 else torch.tensor(0.0).to(device)
+
+        return average_score
         
     def forward_dataloader(self, dataloader):
         raw_scores = self.compute_dists_with_batches(dataloader)
