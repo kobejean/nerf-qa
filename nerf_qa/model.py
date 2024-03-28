@@ -62,11 +62,11 @@ class NeRFQAModel(nn.Module):
 
     def get_param_lr(self):
         linear_layer_params = (
-            list(self.dists_scene_type_weight.parameters()) +
-            list(self.dists_scene_type_bias.parameters()) +
-            list(self.dists_weight.parameters()) +
-            list(self.dists_bias.parameters()) +
-            list(self.scene_type_bias_weight.parameters())
+            list(self.dists_scene_type_weight) +
+            list(self.dists_scene_type_bias) +
+            list(self.dists_weight) +
+            list(self.dists_bias) +
+            list(self.scene_type_bias_weight)
         )
 
         # Collect the remaining parameters
