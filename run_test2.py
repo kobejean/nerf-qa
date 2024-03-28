@@ -157,7 +157,7 @@ val_dataloader = create_large_qa_dataloader(val_df, dir=VAL_DATA_DIR, resize=Tru
 train_size = len(train_dataloader)
 val_size = len(val_dataloader)
 
-epochs = 40
+epochs = 20
 config = {
     "epochs": epochs,
     "lr": 5e-5,
@@ -256,7 +256,7 @@ for epoch in range(wandb.config.epochs):
         # Update parameters every batches_per_step steps or on the last iteration
         optimizer.step()
 
-    if (epoch+1) % 2 == 0:
+    if (epoch+1) % 5 == 0:
         # Validation step
         model.eval()  # Set model to evaluation mode
         with torch.no_grad():
