@@ -242,6 +242,15 @@ for epoch in range(wandb.config.epochs):
             "Model/dists_weight_1": model.dists_scene_type_weight[1].detach().cpu(),
             "Model/dists_bias_1": model.dists_scene_type_bias[1].detach().cpu(),
         }, step=step)
+        wandb.log({ 
+            "Model/grad/scene_bias_weight": model.scene_type_bias_weight.grad.cpu(),
+            "Model/grad/dists_weight": model.dists_weight.grad.cpu(),
+            "Model/grad/dists_bias": model.dists_bias.grad.cpu(),
+            "Model/grad/dists_weight_0": model.dists_scene_type_weight[0].grad.cpu(),
+            "Model/grad/dists_bias_0": model.dists_scene_type_bias[0].grad.cpu(),
+            "Model/grad/dists_weight_1": model.dists_scene_type_weight[1].grad.cpu(),
+            "Model/grad/dists_bias_1": model.dists_scene_type_bias[1].grad.cpu(),
+        }, step=step)
         
         # Update parameters every batches_per_step steps or on the last iteration
         optimizer.step()
