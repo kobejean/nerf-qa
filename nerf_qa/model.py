@@ -29,8 +29,8 @@ class NeRFQAModel(nn.Module):
         self.scene_type_to_idx = {group: i for i, group in enumerate(unique_groups)}
         self.num_scene_types = len(unique_groups)
 
-        self.dists_scene_type_weight = nn.Parameter(torch.zeros(self.num_scene_types))
-        self.dists_scene_type_bias = nn.Parameter(torch.zeros(self.num_scene_types))
+        dists_scene_type_weight = torch.zeros(self.num_scene_types)
+        dists_scene_type_bias = torch.zeros(self.num_scene_types)
 
         for group in unique_groups:
             group_df = train_df[train_df['scene_type'] == group]
@@ -40,7 +40,10 @@ class NeRFQAModel(nn.Module):
             idx = self.scene_type_to_idx[group]
             self.dists_scene_type_weight[idx] = params[0]
             self.dists_scene_type_bias[idx] = params[1]
-            
+
+        self.dists_scene_type_weight = nn.Parameter(dists_scene_type_weight)
+        self.dists_scene_type_bias = nn.Parameter(dists_scene_type_bias)
+
         X = train_df['DISTS'].values.reshape(-1, 1)  # Predictor
         y = train_df['MOS'].values  # Response
 
