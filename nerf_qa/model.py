@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import wandb
 from sklearn.linear_model import LinearRegression
+from scipy.optimize import curve_fit
 
 
 # local
@@ -15,12 +16,27 @@ from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
+def linear_func(x, a, b):
+    return a * x + b
+
 class NeRFQAModel(nn.Module):
-    def __init__(self, train_df, linearization_type = True):
+    def __init__(self, train_df):
         super(NeRFQAModel, self).__init__()
-        self.linearization_type = linearization_type
         # Reshape data (scikit-learn expects X to be a 2D array)
         # X = train_df['DISTS_no_resize'].values.reshape(-1, 1)  # Predictor
+
+        self.dists_scene_type_weight = {}
+        self.dists_scene_type_bias = {}
+        unique_groups = train_df['scene_type'].unique()
+        for i, group in enumerate(unique_groups):
+            group_df = train_df[train_df['scene_type'] == group]
+            group_x = group_df['DISTS']
+            group_y = group_df['MOS']
+            
+            params, params_covariance = curve_fit(linear_func, group_x, group_y)
+            self.dists_scene_type_weight[group] = nn.Parameter(torch.tensor([params[0]], dtype=torch.float32))
+            self.dists_scene_type_bias[group] = nn.Parameter(torch.tensor([params[1]], dtype=torch.float32))
+
         X = train_df['DISTS'].values.reshape(-1, 1)  # Predictor
         y = train_df['MOS'].values  # Response
 
@@ -34,6 +50,8 @@ class NeRFQAModel(nn.Module):
         self.dists_model = DISTS()
         self.dists_weight = nn.Parameter(torch.tensor([model.coef_[0]], dtype=torch.float32))
         self.dists_bias = nn.Parameter(torch.tensor([model.intercept_], dtype=torch.float32))
+
+        self.scene_type_bias_weight = nn.Parameter(torch.tensor([0.99], dtype=torch.float32))
     
 
     def compute_dists_with_batches(self, dataloader):
@@ -54,6 +72,7 @@ class NeRFQAModel(nn.Module):
         average_score = torch.mean(all_scores_tensor) if all_scores_tensor.numel() > 0 else torch.tensor(0.0).to(device)
 
         return average_score
+    
         
     def forward_dataloader(self, dataloader):
         raw_scores = self.compute_dists_with_batches(dataloader)
@@ -62,9 +81,21 @@ class NeRFQAModel(nn.Module):
         normalized_scores = raw_scores * self.dists_weight + self.dists_bias
         return normalized_scores
 
-    def forward(self, dist, ref):
-        scores = self.dists_model(ref, dist, require_grad=True, batch_average=False)  # Returns a tensor of scores
-        scores = scores * self.dists_weight + self.dists_bias # linear function
+    def forward(self, dist, ref, scene_type = None):
+        dists_scores = self.dists_model(ref, dist, require_grad=True, batch_average=False)  # Returns a tensor of scores
+        scores = dists_scores * self.dists_weight + self.dists_bias # linear function
+        
+        if scene_type is not None:
+            scene_scores = []
+            for i, st in enumerate(scene_type):
+                if st in self.dists_scene_type_weight:
+                    scene_score = dists_scores[i] * self.dists_scene_type_weight[st] + self.dists_scene_type_bias[st]
+                    scene_scores.append(scene_score)
+                else:
+                    scene_scores.append(scores[i])
+            scene_scores = torch.stack(scene_scores)
+            scores = (1 - self.scene_type_bias_weight) * scores + self.scene_type_bias_weight * scene_scores
+
         return scores
 
 

@@ -200,7 +200,8 @@ for epoch in range(wandb.config.epochs):
         optimizer.zero_grad()  # Zero the gradients after updating
 
         # Load scores
-        predicted_score = model(dist.to(device),ref.to(device))
+        scene_type = train_df['scene'].iloc[i.numpy()].values
+        predicted_score = model(dist.to(device),ref.to(device), scene_type)
         target_score = score.to(device).float()
         # a = torch.tensor(train_df['DISTS_a'].iloc[i.numpy()].values).float().to(device).detach()
         # b = torch.tensor(train_df['DISTS_b'].iloc[i.numpy()].values).float().to(device).detach()
@@ -232,6 +233,7 @@ for epoch in range(wandb.config.epochs):
 
         # Log accumulated train metrics
         train_logger.log_summary(step)
+        wandb.log({ "Model/scene_bias_weight": model.dists_scene_type_weight.detach().cpu() }, step=step)
         
         # Update parameters every batches_per_step steps or on the last iteration
         optimizer.step()
