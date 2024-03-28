@@ -58,7 +58,7 @@ class NeRFQAModel(nn.Module):
         self.dists_weight = nn.Parameter(torch.tensor([model.coef_[0]], dtype=torch.float32))
         self.dists_bias = nn.Parameter(torch.tensor([model.intercept_], dtype=torch.float32))
 
-        self.scene_type_bias_weight = nn.Parameter(torch.tensor([0.99], dtype=torch.float32))
+        self.scene_type_bias_weight = nn.Parameter(torch.tensor([0.5], dtype=torch.float32))
     
     
         

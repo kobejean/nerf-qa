@@ -200,7 +200,7 @@ for epoch in range(wandb.config.epochs):
         optimizer.zero_grad()  # Zero the gradients after updating
 
         # Load scores
-        scene_type = train_df['scene'].iloc[i.numpy()].values
+        scene_type = train_df['scene_type'].iloc[i.numpy()].values
         predicted_score = model(dist.to(device),ref.to(device), scene_type)
         target_score = score.to(device).float()
         # a = torch.tensor(train_df['DISTS_a'].iloc[i.numpy()].values).float().to(device).detach()
