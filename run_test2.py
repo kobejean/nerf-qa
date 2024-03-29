@@ -232,8 +232,6 @@ for epoch in range(wandb.config.epochs):
 
         # Accumulate gradients
         loss = loss.mean() + wandb.config.scene_type_bias_weight_loss_coef * (model.scene_type_bias_weight*model.scene_type_bias_weight)
-        model.scene_type_bias_weight.retain_grad()
-        model.dists_bias.retain_grad()
         loss.backward()
 
         # Log accumulated train metrics
