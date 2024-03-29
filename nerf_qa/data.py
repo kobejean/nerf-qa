@@ -139,7 +139,7 @@ class Test2Dataset(Dataset):
 
         if idx < len(self.cache):
             distorted_image, score, video_idx = self.cache[idx]
-            self.cache_referenced_images[referenced_foldername][frame_within_video]
+            referenced_image = self.cache_referenced_images[referenced_foldername][frame_within_video]
             # de-quantize
             distorted_image = distorted_image.to(torch.float32) / 255.0
             referenced_image = referenced_image.to(torch.float32) / 255.0
