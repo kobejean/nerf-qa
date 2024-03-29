@@ -84,7 +84,7 @@ class Test2DatasetVideo(Dataset):
 
 class Test2Dataset(Dataset):
 
-    def __init__(self, dir, scores_df):
+    def __init__(self, dir, scores_df, in_memory = False):
         self.ref_dir = ref_dir = path.join(dir, "Reference")
         self.dist_dir = dist_dir = path.join(dir, "Renders")
         self.scores_df = scores_df
@@ -98,10 +98,26 @@ class Test2Dataset(Dataset):
         self.scores_df['render_files'] = self.scores_df.apply(get_files, axis=1, args=(dist_dir, 'distorted_folder'))
         self.scores_df['gt_files'] = self.scores_df.apply(get_files, axis=1, args=(ref_dir, 'reference_folder'))
 
+        if in_memory:
+            self.cache = []
+            for i in range(len(self)):
+                distorted_image, referenced_image, score, video_idx = self[i]
+                # quantize
+                distorted_image = (distorted_image * 255).to(torch.uint8) 
+                referenced_image = (referenced_image * 255).to(torch.uint8) 
+                self.cache.append((distorted_image, referenced_image, score, video_idx))
+
+
     def __len__(self):
         return self.total_size
 
     def __getitem__(self, idx):
+        if self.cache:
+            distorted_image, referenced_image, score, video_idx = self.cache[idx]
+            # de-quantize
+            distorted_image = distorted_image.to(torch.float32) / 255
+            referenced_image = referenced_image.to(torch.float32) / 255
+            return distorted_image, referenced_image, score, video_idx
         # Determine which video the index falls into
         video_idx = (self.cumulative_frame_counts > idx).idxmax()
         if video_idx > 0:
@@ -140,9 +156,9 @@ class Test2Dataset(Dataset):
         return scene_indices
 
 # Batch creation function
-def create_test2_dataloader(scores_df, dir, batch_size = DEVICE_BATCH_SIZE):
+def create_test2_dataloader(scores_df, dir, batch_size = DEVICE_BATCH_SIZE, in_memory = False):
     # Create a dataset and dataloader for efficient batching
-    dataset = Test2Dataset(dir=dir, scores_df=scores_df)
+    dataset = Test2Dataset(dir=dir, scores_df=scores_df, in_memory = in_memory)
     sampler = SceneBalancedSampler(dataset)
     dataloader = DataLoader(dataset, sampler=sampler, batch_size = batch_size, num_workers=5, pin_memory=True, persistent_workers=True)
     return dataloader
