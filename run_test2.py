@@ -159,7 +159,7 @@ if __name__ == '__main__':
     val_logger = MetricCollectionLogger('Val Metrics Dict')
     test_logger = MetricCollectionLogger('Test Metrics Dict')
 
-    train_dataloader = create_test2_dataloader(train_df, dir=DATA_DIR, batch_size=DEVICE_BATCH_SIZE)
+    train_dataloader = create_test2_dataloader(train_df, dir=DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=True)
     # val_dataloader = create_test2_dataloader(val_df, dir=DATA_DIR)
     val_dataloader = create_large_qa_dataloader(val_df, dir=VAL_DATA_DIR, resize=True, batch_size=DEVICE_BATCH_SIZE)
     train_size = len(train_dataloader)
