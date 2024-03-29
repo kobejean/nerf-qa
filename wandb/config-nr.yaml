@@ -40,8 +40,8 @@ parameters:
   #   values: [2]
   # reg_activation:
   #   values: ['sigmoid']
-  # transformer_decoder_depth:
-  #   values: [2]
+  transformer_decoder_depth:
+    value: 2
 command:
 - ${env}
 - ${interpreter}

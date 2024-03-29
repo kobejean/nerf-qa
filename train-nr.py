@@ -186,7 +186,7 @@ if __name__ == '__main__':
     parser.add_argument('--mae_reg_enabled', type=str, default='False', help='Random seed.')        
     parser.add_argument('--refine_up_depth', type=int, default=2, help='Random seed.')   
     #parser.add_argument('--batch_size', type=int, default=32, help='Random seed.')
-    parser.add_argument('--transformer_decoder_depth', type=int, default=1, help='Random seed.')
+    parser.add_argument('--transformer_decoder_depth', type=int, default=2, help='Random seed.')
     parser.add_argument('--dropout_rate', type=float, default=0.2, help='Random seed.')
     parser.add_argument('--refine_scale1', type=float, default=0.01, help='Random seed.')
     parser.add_argument('--refine_scale2', type=float, default=0.01, help='Random seed.')
