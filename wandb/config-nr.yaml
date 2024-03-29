@@ -20,9 +20,10 @@ parameters:
   score_reg_enabled:
     value: 'False'
   dists_pref2ref_coeff:
-    distribution: uniform
-    min: 0.32
-    max: 0.38
+    value: 0.35
+    # distribution: uniform
+    # min: 0.32
+    # max: 0.38
   # l1_coeff:
   #   distribution: uniform
   #   min: 0.88

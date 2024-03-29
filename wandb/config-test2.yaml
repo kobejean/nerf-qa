@@ -20,9 +20,16 @@ parameters:
     min: 0.00
     max: 1.0
   init_scene_type_bias_weight:
+    value: 0.5
+    # distribution: uniform
+    # min: 0.00
+    # max: 0.5
+  vit_model:
+    values: ['dino16', 'clip', 'dinov2', 'vit']
+  dropout_rate:
     distribution: uniform
-    min: 0.00
-    max: 0.5
+    min: 0.2
+    max: 0.9
   # eps:
   #   distribution: q_log_uniform_values
   #   min: 1e-10

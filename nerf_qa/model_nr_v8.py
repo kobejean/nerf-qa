@@ -17,7 +17,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 class ConvLayer(nn.Module):
     def __init__(self, in_chns, out_chns, activation_enabled=True):
         super(ConvLayer, self).__init__()
-        self.dropout = nn.Dropout2d(p=0.2)
+        self.dropout = nn.Dropout2d(p=wandb.config.dropout_rate)
         self.conv = nn.Conv2d(in_chns, out_chns, kernel_size = 3, stride=1, padding='same', dilation=1, groups=1, bias=True)
         self.norm_layer = ChannelNorm(out_chns)
         self.activation_enabled = activation_enabled
@@ -35,7 +35,7 @@ class ConvLayer(nn.Module):
 class ConvTransposeLayer(nn.Module):
     def __init__(self, in_chns, out_chns, activation_enabled=True):
         super(ConvTransposeLayer, self).__init__()
-        self.dropout = nn.Dropout2d(p=0.2)
+        self.dropout = nn.Dropout2d(p=wandb.config.dropout_rate)
         self.conv = nn.ConvTranspose2d(in_chns, out_chns, kernel_size=3, stride=2, padding=1, output_padding=1)
         self.norm_layer = ChannelNorm(out_chns)
         self.activation_enabled = activation_enabled
@@ -153,7 +153,10 @@ class Encoder(nn.Module):
         Encodes render images to feature maps using DINO v2 and DISTS models.
         """
         render_256, render_224 = render["256x256"].to(self.device), render["224x224"].to(self.device)
-        sem_feats, sem_feats_upscaled = self.semantic_model(render_224)
+        if wandb.config.vit_model == 'dinov2':
+            sem_feats, sem_feats_upscaled = self.semantic_model(render_224)
+        else:
+            sem_feats, sem_feats_upscaled = self.semantic_model(render_256)
         dists_feats = self.dists.forward_once(render_256)
         # multi_scale_feats = list(zip(reversed(dists_feats), sem_feats_upscaled))
         return dists_feats, sem_feats, sem_feats_upscaled
