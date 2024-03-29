@@ -42,6 +42,12 @@ parameters:
   #   values: ['sigmoid']
   transformer_decoder_depth:
     value: 2
+  vit_model:
+    values: ['dino16', 'clip', 'dinov2', 'vit']
+  dropout_rate:
+    distribution: uniform
+    min: 0.2
+    max: 0.9
 command:
 - ${env}
 - ${interpreter}
