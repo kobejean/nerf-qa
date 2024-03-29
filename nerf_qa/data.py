@@ -100,7 +100,7 @@ class Test2Dataset(Dataset):
 
         self.cache = []
         if in_memory:
-            for i in range(len(self)):
+            for i in tqdm(range(len(self))):
                 distorted_image, referenced_image, score, video_idx = self[i]
                 # quantize
                 distorted_image = (distorted_image * 255).to(torch.uint8) 
