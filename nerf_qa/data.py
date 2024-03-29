@@ -144,7 +144,7 @@ def create_test2_dataloader(scores_df, dir, batch_size = DEVICE_BATCH_SIZE):
     # Create a dataset and dataloader for efficient batching
     dataset = Test2Dataset(dir=dir, scores_df=scores_df)
     sampler = SceneBalancedSampler(dataset)
-    dataloader = DataLoader(dataset, sampler=sampler, batch_size = batch_size, num_workers=4, pin_memory=True, persistent_workers=True)
+    dataloader = DataLoader(dataset, sampler=sampler, batch_size = batch_size, num_workers=5, pin_memory=True, persistent_workers=True)
     return dataloader
 
 class LargeQADataset(Dataset):
@@ -238,7 +238,7 @@ def create_large_qa_dataloader(scores_df, dir, resize=True, batch_size = DEVICE_
     # Create a dataset and dataloader for efficient batching
     dataset = LargeQADataset(dir=dir, scores_df=scores_df, resize=resize)
     sampler = SceneBalancedSampler(dataset)
-    dataloader = DataLoader(dataset, sampler=sampler, batch_size = batch_size, num_workers=4, pin_memory=True, persistent_workers=True)
+    dataloader = DataLoader(dataset, sampler=sampler, batch_size = batch_size, num_workers=5, pin_memory=True, persistent_workers=True)
     return dataloader
 
 
