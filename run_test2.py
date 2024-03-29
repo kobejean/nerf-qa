@@ -254,7 +254,7 @@ if __name__ == '__main__':
             # Update parameters every batches_per_step steps or on the last iteration
             optimizer.step()
 
-        if (epoch+1) % 5 == 0:
+        if (epoch+1) % 25 == 0:
             # Validation step
             model.eval()  # Set model to evaluation mode
             with torch.no_grad():
