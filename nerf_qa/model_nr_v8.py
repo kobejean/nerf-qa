@@ -73,8 +73,13 @@ class RefineUp(nn.Module):
         self.upsample = upsample
 
         # Initialize convolutional layers
-        convolutional_layers = [ConvLayer(input_chns, input_chns) for _ in range(depth - 1)]
-        convolutional_layers.append(ConvLayer(input_chns, input_chns, activation_enabled=False))
+        if depth >= 2:
+            mid_chns = min(input_chns, 128)
+            convolutional_layers = [ConvLayer(input_chns, mid_chns)] 
+            convolutional_layers += [ConvLayer(input_chns, mid_chns) for _ in range(depth - 2)]
+            convolutional_layers += [ConvLayer(mid_chns, input_chns, activation_enabled=False)]
+        else:
+            convolutional_layers = [ConvLayer(input_chns, input_chns, activation_enabled=False) for _ in range(depth)]
         self.block = nn.Sequential(*convolutional_layers)
 
         # Initialize upsampling layer if upsampling is enabled
@@ -89,10 +94,10 @@ class RefineUp(nn.Module):
         input_feats = input_feats * wandb.config.refine_scale1 + torch.concat([dists_feat, sem_feat], dim=1)
 
         # Apply convolutional blocks
-        feature_map = self.block(input_feats)
+        feature_map = wandb.config.refine_scale2 * self.block(input_feats) + input_feats
 
         # Update additional features with residual scaling
-        pred_feats = wandb.config.refine_scale2 * feature_map[:, :self.feature_chns, :, :] + dists_feat
+        pred_feats = feature_map[:, :self.feature_chns, :, :]
 
         # Upsample if enabled
         feature_map = self.upsample_layer(feature_map)
@@ -158,7 +163,6 @@ class Encoder(nn.Module):
         else:
             sem_feats, sem_feats_upscaled = self.semantic_model(render_256)
         dists_feats = self.dists.forward_once(render_256)
-        # multi_scale_feats = list(zip(reversed(dists_feats), sem_feats_upscaled))
         return dists_feats, sem_feats, sem_feats_upscaled
 
 class NRModel(nn.Module):
