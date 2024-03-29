@@ -284,7 +284,7 @@ if __name__ == '__main__':
                     "Model/dists_weight/beta": wandb.Histogram(model.dists_model.beta.detach().cpu()),
                 }, step=step)
             
-        if (epoch+1) % 25 == 0:
+        if (epoch+1) % 100 == 0:
             # Test step
             model.eval()  # Set model to evaluation mode
             with torch.no_grad():
