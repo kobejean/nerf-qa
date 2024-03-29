@@ -98,8 +98,8 @@ class Test2Dataset(Dataset):
         self.scores_df['render_files'] = self.scores_df.apply(get_files, axis=1, args=(dist_dir, 'distorted_folder'))
         self.scores_df['gt_files'] = self.scores_df.apply(get_files, axis=1, args=(ref_dir, 'reference_folder'))
 
+        self.cache = []
         if in_memory:
-            self.cache = []
             for i in range(len(self)):
                 distorted_image, referenced_image, score, video_idx = self[i]
                 # quantize
@@ -112,7 +112,7 @@ class Test2Dataset(Dataset):
         return self.total_size
 
     def __getitem__(self, idx):
-        if self.cache:
+        if idx < len(self.cache):
             distorted_image, referenced_image, score, video_idx = self.cache[idx]
             # de-quantize
             distorted_image = distorted_image.to(torch.float32) / 255.0
