@@ -115,8 +115,8 @@ class Test2Dataset(Dataset):
         if self.cache:
             distorted_image, referenced_image, score, video_idx = self.cache[idx]
             # de-quantize
-            distorted_image = distorted_image.to(torch.float32) / 255
-            referenced_image = referenced_image.to(torch.float32) / 255
+            distorted_image = distorted_image.to(torch.float32) / 255.0
+            referenced_image = referenced_image.to(torch.float32) / 255.0
             return distorted_image, referenced_image, score, video_idx
         # Determine which video the index falls into
         video_idx = (self.cumulative_frame_counts > idx).idxmax()
