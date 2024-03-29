@@ -154,9 +154,9 @@ train_logger = MetricCollectionLogger('Train Metrics Dict')
 val_logger = MetricCollectionLogger('Val Metrics Dict')
 test_logger = MetricCollectionLogger('Test Metrics Dict')
 
-train_dataloader = create_test2_dataloader(train_df, dir=DATA_DIR)
+train_dataloader = create_test2_dataloader(train_df, dir=DATA_DIR, batch_size=DEVICE_BATCH_SIZE)
 # val_dataloader = create_test2_dataloader(val_df, dir=DATA_DIR)
-val_dataloader = create_large_qa_dataloader(val_df, dir=VAL_DATA_DIR, resize=True)
+val_dataloader = create_large_qa_dataloader(val_df, dir=VAL_DATA_DIR, resize=True, batch_size=DEVICE_BATCH_SIZE)
 train_size = len(train_dataloader)
 val_size = len(val_dataloader)
 
@@ -285,7 +285,7 @@ for epoch in range(wandb.config.epochs):
         with torch.no_grad():
             for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Testing..."):
                 # Load frames
-                dataloader = create_test_video_dataloader(row, dir=TEST_DATA_DIR, resize=config.resize, keep_aspect_ratio=True)
+                dataloader = create_test_video_dataloader(row, dir=TEST_DATA_DIR, resize=config.resize, keep_aspect_ratio=True, batch_size=DEVICE_BATCH_SIZE)
                 
                 # Compute score
                 predicted_score = model.forward_dataloader(dataloader)
