@@ -99,25 +99,30 @@ class Test2Dataset(Dataset):
         self.scores_df['gt_files'] = self.scores_df.apply(get_files, axis=1, args=(ref_dir, 'reference_folder'))
 
         self.cache = []
+        self.cache_referenced_images = {}
         if in_memory:
-            for i in tqdm(range(len(self))):
-                distorted_image, referenced_image, score, video_idx = self[i]
+            for idx in tqdm(range(len(self))):
+                distorted_image, referenced_image, score, video_idx = self[idx]
+                if video_idx > 0:
+                    frame_within_video = idx - self.cumulative_frame_counts.iloc[video_idx - 1]
+                else:
+                    frame_within_video = idx
+                referenced_foldername = self.scores_df.iloc[video_idx]['reference_folder']
                 # quantize
                 distorted_image = (distorted_image * 255).to(torch.uint8) 
-                referenced_image = (referenced_image * 255).to(torch.uint8) 
-                self.cache.append((distorted_image, referenced_image, score, video_idx))
+                if not referenced_foldername in self.cache_referenced_images:
+                    self.cache_referenced_images[referenced_foldername] = []
+                if frame_within_video >= len(self.cache_referenced_images[referenced_foldername]):
+                    referenced_image = (referenced_image * 255).to(torch.uint8)
+                    self.cache_referenced_images[referenced_foldername].append(referenced_image)
+                    
+                self.cache.append((distorted_image, score, video_idx))
 
 
     def __len__(self):
         return self.total_size
 
     def __getitem__(self, idx):
-        if idx < len(self.cache):
-            distorted_image, referenced_image, score, video_idx = self.cache[idx]
-            # de-quantize
-            distorted_image = distorted_image.to(torch.float32) / 255.0
-            referenced_image = referenced_image.to(torch.float32) / 255.0
-            return distorted_image, referenced_image, score, video_idx
         # Determine which video the index falls into
         video_idx = (self.cumulative_frame_counts > idx).idxmax()
         if video_idx > 0:
@@ -125,12 +130,21 @@ class Test2Dataset(Dataset):
         else:
             frame_within_video = idx
 
+
         # Get the filenames for the distorted and referenced frames
         distorted_foldername = self.scores_df.iloc[video_idx]['distorted_folder']
         referenced_foldername = self.scores_df.iloc[video_idx]['reference_folder']
         distorted_filename = self.scores_df.iloc[video_idx]['render_files'][frame_within_video]
         referenced_filename = self.scores_df.iloc[video_idx]['gt_files'][frame_within_video]
 
+        if idx < len(self.cache):
+            distorted_image, score, video_idx = self.cache[idx]
+            self.cache_referenced_images[referenced_foldername][frame_within_video]
+            # de-quantize
+            distorted_image = distorted_image.to(torch.float32) / 255.0
+            referenced_image = referenced_image.to(torch.float32) / 255.0
+            return distorted_image, referenced_image, score, video_idx
+        
         # Construct the full paths
         distorted_path = os.path.join(self.dist_dir, distorted_foldername, distorted_filename)
         referenced_path = os.path.join(self.ref_dir, referenced_foldername, referenced_filename)
