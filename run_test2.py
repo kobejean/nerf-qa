@@ -46,6 +46,9 @@ parser = argparse.ArgumentParser(description='Initialize a new run with wandb wi
 # Basic configurations
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
 parser.add_argument('--lr', type=float, default=1e-6, help='Random seed.')
+parser.add_argument('--beta1', type=float, default=0.99, help='Random seed.')
+parser.add_argument('--beta2', type=float, default=0.9999, help='Random seed.')
+parser.add_argument('--eps', type=float, default=1e-7, help='Random seed.')
 parser.add_argument('--linear_layer_lr', type=float, default=1e-3, help='Random seed.')
 parser.add_argument('--init_scene_type_bias_weight', type=float, default=0.5, help='Random seed.')
 parser.add_argument('--scene_type_bias_weight_loss_coef', type=float, default=0.1, help='Random seed.')
@@ -160,10 +163,10 @@ val_size = len(val_dataloader)
 epochs = 300
 config = {
     "epochs": epochs,
-    "lr": 5e-5,
-    "beta1": 0.99,
-    "beta2": 0.9999,
-    "eps": 1e-7,
+    # "lr": 5e-5,
+    # "beta1": 0.99,
+    # "beta2": 0.9999,
+    # "eps": 1e-7,
     "batch_size": DEVICE_BATCH_SIZE,
     "resize": True
 }     

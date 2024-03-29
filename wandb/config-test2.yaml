@@ -24,19 +24,19 @@ parameters:
     # distribution: uniform
     # min: 0.00
     # max: 0.5
-  # eps:
-  #   distribution: q_log_uniform_values
-  #   min: 1e-10
-  #   max: 1e-6
-  #   q: 1e-10
-  # beta1:
-  #   distribution: uniform
-  #   min: 0.55
-  #   max: 0.90
-  # beta2:
-  #   distribution: uniform
-  #   min: 0.96
-  #   max: 0.999
+  eps:
+    distribution: q_log_uniform_values
+    min: 1e-10
+    max: 1e-6
+    q: 1e-10
+  beta1:
+    distribution: uniform
+    min: 0.9
+    max: 0.99
+  beta2:
+    distribution: uniform
+    min: 0.999
+    max: 0.9999
   # resize:
   #   values: [true, false]
 
