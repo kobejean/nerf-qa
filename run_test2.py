@@ -160,7 +160,7 @@ val_dataloader = create_large_qa_dataloader(val_df, dir=VAL_DATA_DIR, resize=Tru
 train_size = len(train_dataloader)
 val_size = len(val_dataloader)
 
-epochs = 300
+epochs = 500
 config = {
     "epochs": epochs,
     # "lr": 5e-5,
@@ -279,7 +279,7 @@ for epoch in range(wandb.config.epochs):
                 "Model/dists_weight/beta": wandb.Histogram(model.dists_model.beta.detach().cpu()),
             }, step=step)
         
-    if (epoch+1) % 20 == 0:
+    if (epoch+1) % 25 == 0:
         # Test step
         model.eval()  # Set model to evaluation mode
         with torch.no_grad():
