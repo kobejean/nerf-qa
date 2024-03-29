@@ -140,11 +140,11 @@ class Test2Dataset(Dataset):
         return scene_indices
 
 # Batch creation function
-def create_test2_dataloader(scores_df, dir):
+def create_test2_dataloader(scores_df, dir, batch_size = DEVICE_BATCH_SIZE):
     # Create a dataset and dataloader for efficient batching
     dataset = Test2Dataset(dir=dir, scores_df=scores_df)
     sampler = SceneBalancedSampler(dataset)
-    dataloader = DataLoader(dataset, sampler=sampler, batch_size = DEVICE_BATCH_SIZE)
+    dataloader = DataLoader(dataset, sampler=sampler, batch_size = batch_size)
     return dataloader
 
 class LargeQADataset(Dataset):
@@ -234,11 +234,11 @@ class ComputeBatchSampler(Sampler):
 
 
 # Batch creation function
-def create_large_qa_dataloader(scores_df, dir, resize=True):
+def create_large_qa_dataloader(scores_df, dir, resize=True, batch_size = DEVICE_BATCH_SIZE):
     # Create a dataset and dataloader for efficient batching
     dataset = LargeQADataset(dir=dir, scores_df=scores_df, resize=resize)
     sampler = SceneBalancedSampler(dataset)
-    dataloader = DataLoader(dataset, sampler=sampler, batch_size = DEVICE_BATCH_SIZE)
+    dataloader = DataLoader(dataset, sampler=sampler, batch_size = batch_size)
     return dataloader
 
 
@@ -260,7 +260,7 @@ def load_video_frames(video_path, resize=True, keep_aspect_ratio=False):
     return torch.stack(frames)
 
 # Batch creation function
-def create_test_video_dataloader(row, dir, resize=True, keep_aspect_ratio=False):
+def create_test_video_dataloader(row, dir, resize=True, keep_aspect_ratio=False, batch_size=DEVICE_BATCH_SIZE):
     ref_dir = path.join(dir, "Reference")
     syn_dir = path.join(dir, "NeRF-QA_videos")
     dist_video_path = path.join(syn_dir, row['distorted_filename'])
@@ -269,7 +269,7 @@ def create_test_video_dataloader(row, dir, resize=True, keep_aspect_ratio=False)
     dist = load_video_frames(dist_video_path, resize=resize)
     # Create a dataset and dataloader for efficient batching
     dataset = TensorDataset(dist, ref)
-    dataloader = DataLoader(dataset, batch_size=DEVICE_BATCH_SIZE, shuffle=False)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
     return dataloader
 
 class SceneBalancedSampler(Sampler):
