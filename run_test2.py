@@ -203,20 +203,12 @@ for epoch in range(wandb.config.epochs):
         optimizer.zero_grad()  # Zero the gradients after updating
 
         # Load scores
-        scene_type = train_df['scene_type'].iloc[i.numpy()].values
-        predicted_score = model(dist.to(device),ref.to(device), scene_type)
+        # scene_type = train_df['scene_type'].iloc[i.numpy()].values
+        predicted_score = model(dist.to(device),ref.to(device), scene_type=None)
         target_score = score.to(device).float()
-        # a = torch.tensor(train_df['DISTS_a'].iloc[i.numpy()].values).float().to(device).detach()
-        # b = torch.tensor(train_df['DISTS_b'].iloc[i.numpy()].values).float().to(device).detach()
-        # scene_a = torch.tensor(train_df['DISTS_scene_type_a'].iloc[i.numpy()].values).float().to(device).detach()
-        # scene_b = torch.tensor(train_df['DISTS_scene_type_b'].iloc[i.numpy()].values).float().to(device).detach()
-
-        # predicted_score_adjusted = (predicted_score - b) / a 
-        # predicted_score_adjusted = predicted_score_adjusted * scene_a + scene_b
         
         # Compute loss
         loss = loss_fn(predicted_score, target_score)
-        # loss = loss_fn(predicted_score_adjusted, target_score)
         step += score.shape[0]
 
         # Store metrics in logger
@@ -231,25 +223,25 @@ for epoch in range(wandb.config.epochs):
         }, video_ids = video_ids, scene_ids = scene_ids)
 
         # Accumulate gradients
-        loss = loss.mean() + wandb.config.scene_type_bias_weight_loss_coef * (model.scene_type_bias_weight*model.scene_type_bias_weight)
+        loss = loss.mean() #+ wandb.config.scene_type_bias_weight_loss_coef * (model.scene_type_bias_weight*model.scene_type_bias_weight)
         loss.backward()
 
         # Log accumulated train metrics
         train_logger.log_summary(step)
-        wandb.log({ 
-            "Model/scene_bias_weight": model.scene_type_bias_weight.detach().cpu(),
-            "Model/dists_weight": model.dists_weight.detach().cpu(),
-            "Model/dists_bias": model.dists_bias.detach().cpu(),
-            "Model/dists_weight_0": model.dists_scene_type_weight[0].detach().cpu(),
-            "Model/dists_bias_0": model.dists_scene_type_bias[0].detach().cpu(),
-            "Model/dists_weight_1": model.dists_scene_type_weight[1].detach().cpu(),
-            "Model/dists_bias_1": model.dists_scene_type_bias[1].detach().cpu(),
-        }, step=step)
-        wandb.log({ 
-            "Model/grad/scene_bias_weight": model.scene_type_bias_weight.grad,
-            "Model/grad/dists_weight": model.dists_weight.grad,
-            "Model/grad/dists_bias": model.dists_bias.grad,
-        }, step=step)
+        # wandb.log({ 
+        #     "Model/scene_bias_weight": model.scene_type_bias_weight.detach().cpu(),
+        #     "Model/dists_weight": model.dists_weight.detach().cpu(),
+        #     "Model/dists_bias": model.dists_bias.detach().cpu(),
+        #     "Model/dists_weight_0": model.dists_scene_type_weight[0].detach().cpu(),
+        #     "Model/dists_bias_0": model.dists_scene_type_bias[0].detach().cpu(),
+        #     "Model/dists_weight_1": model.dists_scene_type_weight[1].detach().cpu(),
+        #     "Model/dists_bias_1": model.dists_scene_type_bias[1].detach().cpu(),
+        # }, step=step)
+        # wandb.log({ 
+        #     "Model/grad/scene_bias_weight": model.scene_type_bias_weight.grad,
+        #     "Model/grad/dists_weight": model.dists_weight.grad,
+        #     "Model/grad/dists_bias": model.dists_bias.grad,
+        # }, step=step)
         
         # Update parameters every batches_per_step steps or on the last iteration
         optimizer.step()
