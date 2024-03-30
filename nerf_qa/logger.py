@@ -206,8 +206,16 @@ class MetricCollectionLogger():
                 logs.update({ f"{self.collection_name}/correlations/synthetic/{metric}": value for metric, value in synth_correlations.items() })
 
             # Log correlations for each scene
+            scene_min = {}
             for scene_id, corr_values in scene_correlations.items():
                 logs.update({f"{self.collection_name}/correlations/scene/{scene_id}/{metric}": value for metric, value in corr_values.items()})
+                for metric, value in corr_values.items():
+                    if metric in scene_min:
+                        scene_min[metric] = min(value, scene_min[metric])
+                    else:
+                        scene_min[metric] = value
+            
+            logs.update({f"{self.collection_name}/correlations/scene_min/{metric}": value for metric, value in scene_min.items()})
 
             if len(unique_videos) > 1:
                 # Log correlations over all scenes
