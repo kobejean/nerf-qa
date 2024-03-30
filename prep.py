@@ -77,7 +77,7 @@ def compute_correlations(pred_scores, mos):
         'ktcc': ktcc,
     }
 # Example function to load a video and process it frame by frame
-def load_video_frames(video_path, resize=True):
+def load_video_frames(video_path, resize=True, keep_aspect_ratio=False):
     cap = cv2.VideoCapture(video_path)
     frames = []
     while cap.isOpened():
@@ -89,7 +89,10 @@ def load_video_frames(video_path, resize=True):
         frame = torch.from_numpy(frame).permute(2, 0, 1).float() / 255.0
         frame = transforms.ToPILImage()(frame)
         frame = transforms.ToTensor()(frame)
-        render_256 = F.interpolate(frame.unsqueeze(0), size=(256, 256), mode='bilinear', align_corners=False).squeeze(0)
+        if keep_aspect_ratio:
+            render_256 = F.interpolate(frame.unsqueeze(0), size=(256), mode='bilinear', align_corners=False).squeeze(0)
+        else:
+            render_256 = F.interpolate(frame.unsqueeze(0), size=(256, 256), mode='bilinear', align_corners=False).squeeze(0)
         #render_224 = F.interpolate(frame.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
         #render = { "256x256": render_256, "224x224": render_224 }
         frames.append(render_256)
@@ -107,15 +110,54 @@ class CustomDataset(Dataset):
         # Retrieve the data row at the given index
         data_row = self.data[index]
         return data_row
+    
+from PIL import Image
+
+def load_image(path):
+    image = Image.open(path)
+
+    if image.mode == 'RGBA':
+        # If the image has an alpha channel, create a white background
+        background = Image.new('RGBA', image.size, (255, 255, 255))
+        
+        # Paste the image onto the white background using alpha compositing
+        background.paste(image, mask=image.split()[3])
+        
+        # Convert the image to RGB mode
+        image = background.convert('RGB')
+    else:
+        # If the image doesn't have an alpha channel, directly convert it to RGB
+        image = image.convert('RGB')
+
+    image = torch.from_numpy(np.array(image)).permute(2, 0, 1).float() / 255.0
+    image = F.interpolate(image.unsqueeze(0), size=(256), mode='bilinear', align_corners=False).squeeze(0)
+
+    return image
+
+test_video_dataloader_tr_map = {
+    'mic': '/home/ccl/Datasets/NeRF/blender_test/mic/test',
+    'hotdog': '/home/ccl/Datasets/NeRF/blender_test/hotdog/test',
+    'materials': '/home/ccl/Datasets/NeRF/blender_test/materials/test',
+    'drums': '/home/ccl/Datasets/NeRF/blender_test/drums/test',
+    'ship': '/home/ccl/Datasets/NeRF/blender_test/ship/test',
+    'lego': '/home/ccl/Datasets/NeRF/blender_test/lego/test',
+    'chair': '/home/ccl/Datasets/NeRF/blender_test/chair/test',
+}
 
 # Batch creation function
-def create_test_video_dataloader(row, dir, resize=True):
+def create_test_video_dataloader(row, dir, resize=True, keep_aspect_ratio=True):
     ref_dir = path.join(dir, "Reference")
     syn_dir = path.join(dir, "NeRF-QA_videos")
     dist_video_path = path.join(syn_dir, row['distorted_filename'])
-    ref_video_path = path.join(ref_dir, row['reference_filename'])
-    ref = load_video_frames(ref_video_path, resize=resize)
-    dist = load_video_frames(dist_video_path, resize=resize)
+    dist = load_video_frames(dist_video_path, resize=resize, keep_aspect_ratio=keep_aspect_ratio)
+    if row['scene'] in test_video_dataloader_tr_map:
+        gt_dir = test_video_dataloader_tr_map[row['scene']]
+        gt_files = [os.path.join(gt_dir, f) for f in os.listdir(gt_dir) if f.endswith((".jpg", ".png"))]
+        gt_files.sort()
+        ref = [load_image(gt_file) for gt_file in gt_files]
+    else:
+        ref_video_path = path.join(ref_dir, row['reference_filename'])
+        ref = load_video_frames(ref_video_path, resize=resize, keep_aspect_ratio=keep_aspect_ratio)
     # Create a dataset and dataloader for efficient batching
     dataset = CustomDataset(list(zip(ref, dist)))
     dataloader = DataLoader(dataset, batch_size=DEVICE_BATCH_SIZE, shuffle=False, collate_fn = recursive_collate)
@@ -124,6 +166,7 @@ def create_test_video_dataloader(row, dir, resize=True):
 TEST_DATA_DIR = "/home/ccl/Datasets/NeRF-QA"
 TEST_SCORE_FILE = path.join(TEST_DATA_DIR, "NeRF_VQA_MOS.csv")
 test_df = pd.read_csv(TEST_SCORE_FILE)
+test_df['scene'] = test_df['reference_filename'].str.replace('_reference.mp4', '', regex=False)
 test_size = test_df.shape[0]
 adists_model = ADISTS().to(device)
 dists_model = DISTS().to(device)
@@ -145,8 +188,8 @@ for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Processing..."
     print(video_dists_score, batch_dists_scores)
     video_adists_scores.append(video_adists_score)
     video_dists_scores.append(video_dists_score)
-test_df['A-DISTS'] = video_adists_scores
-test_df['DISTS'] = video_dists_scores
+test_df['A-DISTS_tr'] = video_adists_scores
+test_df['DISTS_tr'] = video_dists_scores
 
 #%%
 #%%
@@ -199,6 +242,20 @@ print("syn dists dmos", corr)
 corr = compute_correlations(np.sqrt(tnt_df['DISTS'].values), tnt_df['DMOS'])
 print("tnt dists dmos", corr)
 corr = compute_correlations(np.sqrt(test_df['DISTS'].values), test_df['DMOS'])
+print("all dists dmos", corr)
+#%%
+
+corr = compute_correlations(np.sqrt(syn_df['DISTS_tr'].values), syn_df['MOS'])
+print("syn dists_tr mos", corr)
+corr = compute_correlations(np.sqrt(tnt_df['DISTS_tr'].values), tnt_df['MOS'])
+print("tnt dists_tr mos", corr)
+corr = compute_correlations(np.sqrt(test_df['DISTS_tr'].values), test_df['MOS'])
+print("all dists_tr mos", corr)
+corr = compute_correlations(np.sqrt(syn_df['DISTS_tr'].values), syn_df['DMOS'])
+print("syn dists_tr dmos", corr)
+corr = compute_correlations(np.sqrt(tnt_df['DISTS_tr'].values), tnt_df['DMOS'])
+print("tnt dists_tr dmos", corr)
+corr = compute_correlations(np.sqrt(test_df['DISTS_tr'].values), test_df['DMOS'])
 print("all dists dmos", corr)
 #%%
 import plotly.express as px
