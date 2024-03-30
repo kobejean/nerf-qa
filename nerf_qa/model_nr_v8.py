@@ -74,9 +74,9 @@ class RefineUp(nn.Module):
 
         # Initialize convolutional layers
         if depth >= 2:
-            mid_chns = min(input_chns, 128)
+            mid_chns = input_chns #min(input_chns, 128)
             convolutional_layers = [ConvLayer(input_chns, mid_chns)] 
-            convolutional_layers += [ConvLayer(input_chns, mid_chns) for _ in range(depth - 2)]
+            convolutional_layers += [ConvLayer(mid_chns, mid_chns) for _ in range(depth - 2)]
             convolutional_layers += [ConvLayer(mid_chns, input_chns, activation_enabled=False)]
         else:
             convolutional_layers = [ConvLayer(input_chns, input_chns, activation_enabled=False) for _ in range(depth)]

@@ -46,8 +46,8 @@ parameters:
     values: ['dino16', 'clip', 'dinov2', 'vit']
   dropout_rate:
     distribution: uniform
-    min: 0.2
-    max: 0.9
+    min: 0.1
+    max: 0.3
 command:
 - ${env}
 - ${interpreter}
