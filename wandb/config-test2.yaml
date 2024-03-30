@@ -1,6 +1,6 @@
 program: run_test2.py
 metric:
-  name: Val Metrics Dict/correlations/plcc
+  name: Val Metrics Dict/correlations/scene_min/plcc
   goal: maximize
 
 method: random
@@ -8,17 +8,18 @@ parameters:
   lr:
     distribution: q_log_uniform_values
     min: 5e-7
-    max: 6e-6
+    max: 6e-5
     q: 1e-7
   linear_layer_lr:
-    distribution: q_log_uniform_values
-    min: 1e-4
-    max: 3e-3
-    q: 1e-7
-  scene_type_bias_weight_loss_coef:
-    distribution: uniform
-    min: 0.00
-    max: 1.0
+    value: 1e-4
+    # distribution: q_log_uniform_values
+    # min: 1e-4
+    # max: 1e-3
+    # q: 1e-7
+  # scene_type_bias_weight_loss_coef:
+  #   distribution: uniform
+  #   min: 0.00
+  #   max: 1.0
   init_scene_type_bias_weight:
     value: 0.5
     # distribution: uniform
@@ -32,7 +33,7 @@ parameters:
   beta1:
     distribution: uniform
     min: 0.9
-    max: 0.99
+    max: 0.95
   beta2:
     distribution: uniform
     min: 0.999

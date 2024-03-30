@@ -165,7 +165,7 @@ if __name__ == '__main__':
     train_size = len(train_dataloader)
     val_size = len(val_dataloader)
 
-    epochs = 500
+    epochs = 2000
     config = {
         "epochs": epochs,
         # "lr": 5e-5,
@@ -254,7 +254,7 @@ if __name__ == '__main__':
             # Update parameters every batches_per_step steps or on the last iteration
             optimizer.step()
 
-        if (epoch+1) % 25 == 0:
+        if (epoch+1) % 50 == 0:
             # Validation step
             model.eval()  # Set model to evaluation mode
             with torch.no_grad():
@@ -284,7 +284,7 @@ if __name__ == '__main__':
                     "Model/dists_weight/beta": wandb.Histogram(model.dists_model.beta.detach().cpu()),
                 }, step=step)
             
-        if (epoch+1) % 100 == 0:
+        if (epoch+1) % 200 == 0:
             # Test step
             model.eval()  # Set model to evaluation mode
             with torch.no_grad():
