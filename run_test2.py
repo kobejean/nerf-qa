@@ -254,7 +254,7 @@ if __name__ == '__main__':
             # Update parameters every batches_per_step steps or on the last iteration
             optimizer.step()
 
-        if (epoch+1) % 50 == 0 or (epoch < 50 and (epoch+1) % 5 == 0):
+        if (epoch+1) % 25 == 0 or (epoch < 50 and (epoch+1) % 5 == 0):
             # Validation step
             model.eval()  # Set model to evaluation mode
             with torch.no_grad():
@@ -284,7 +284,7 @@ if __name__ == '__main__':
                     "Model/dists_weight/beta": wandb.Histogram(model.dists_model.beta.detach().cpu()),
                 }, step=step)
             
-        if (epoch+1) % 50 == 0:
+        if (epoch+1) % 25 == 0:
             # Test step
             model.eval()  # Set model to evaluation mode
             with torch.no_grad():
