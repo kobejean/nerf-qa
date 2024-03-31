@@ -33,12 +33,10 @@ parameters:
     distribution: uniform
     min: 0.8
     max: 0.95
-    q: 1e-3
   momentum_decay:
     distribution: uniform
     min: 0.002
     max: 0.006
-    q: 1e-4
   beta1:
     distribution: uniform
     min: 0.9
