@@ -7,8 +7,8 @@ method: random
 parameters:
   lr:
     distribution: q_log_uniform_values
-    min: 1e-6
-    max: 1e-3
+    min: 5e-7
+    max: 1e-5
     q: 1e-7
   linear_layer_lr:
     distribution: q_log_uniform_values
