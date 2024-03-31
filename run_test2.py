@@ -50,13 +50,16 @@ if __name__ == '__main__':
 
     # Basic configurations
     parser.add_argument('--seed', type=int, default=42, help='Random seed.')
-    parser.add_argument('--lr', type=float, default=1e-6, help='Random seed.')
-    parser.add_argument('--beta1', type=float, default=0.99, help='Random seed.')
-    parser.add_argument('--beta2', type=float, default=0.9999, help='Random seed.')
+    parser.add_argument('--lr', type=float, default=1e-3, help='Random seed.')
+    parser.add_argument('--beta1', type=float, default=0.9, help='Random seed.')
+    parser.add_argument('--beta2', type=float, default=0.999, help='Random seed.')
+    parser.add_argument('--momentum', type=float, default=0.9, help='Random seed.')
+    parser.add_argument('--momentum_decay', type=float, default=0.004, help='Random seed.')
     parser.add_argument('--eps', type=float, default=1e-7, help='Random seed.')
     parser.add_argument('--linear_layer_lr', type=float, default=1e-3, help='Random seed.')
     parser.add_argument('--init_scene_type_bias_weight', type=float, default=0.5, help='Random seed.')
     parser.add_argument('--scene_type_bias_weight_loss_coef', type=float, default=0.1, help='Random seed.')
+    parser.add_argument('--optimizer', type=str, default='adam', help='Random seed.')
 
     # Parse arguments
     args = parser.parse_args()
@@ -165,7 +168,7 @@ if __name__ == '__main__':
     train_size = len(train_dataloader)
     val_size = len(val_dataloader)
 
-    epochs = 300
+    epochs = 50
     config = {
         "epochs": epochs,
         # "lr": 5e-5,
@@ -192,11 +195,25 @@ if __name__ == '__main__':
 
     # Reset model and optimizer for each fold (if you want to start fresh for each fold)
     model = NeRFQAModel(train_df=train_df).to(device)
-    optimizer = optim.Adam(model.get_param_lr(),
-        lr=config.lr,
-        betas=(config.beta1, config.beta2),
-        eps=config.eps
-    )
+    if config.optimizer == 'sgd':
+        optimizer = optim.SGD(model.get_param_lr(),
+            lr=config.lr, momentum=0.0)
+    elif config.optimizer == 'sgd_momentum':
+        optimizer = optim.SGD(model.get_param_lr(),
+            lr=config.lr, momentum=config.momentum)
+    elif config.optimizer == 'nadam':
+        optimizer = optim.NAdam(model.get_param_lr(),
+            lr=config.lr,
+            betas=(config.beta1, config.beta2),
+            eps=config.eps,
+            momentum_decay=config.momentum_decay
+        )
+    else:
+        optimizer = optim.Adam(model.get_param_lr(),
+            lr=config.lr,
+            betas=(config.beta1, config.beta2),
+            eps=config.eps
+        )
 
 
     # Training loop
@@ -254,7 +271,7 @@ if __name__ == '__main__':
             # Update parameters every batches_per_step steps or on the last iteration
             optimizer.step()
 
-        if (epoch+1) % 25 == 0 or (epoch < 50 and (epoch+1) % 5 == 0):
+        if (epoch+1) % 5 == 0:
             # Validation step
             model.eval()  # Set model to evaluation mode
             with torch.no_grad():
@@ -284,7 +301,7 @@ if __name__ == '__main__':
                     "Model/dists_weight/beta": wandb.Histogram(model.dists_model.beta.detach().cpu()),
                 }, step=step)
             
-        if (epoch+1) % 25 == 0:
+        if (epoch+1) in [50]:
             # Test step
             model.eval()  # Set model to evaluation mode
             with torch.no_grad():

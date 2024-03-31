@@ -8,7 +8,7 @@ parameters:
   lr:
     distribution: q_log_uniform_values
     min: 1e-6
-    max: 6e-5
+    max: 6e-4
     q: 1e-7
   linear_layer_lr:
     value: 1e-4
@@ -30,6 +30,16 @@ parameters:
     min: 1e-10
     max: 1e-6
     q: 1e-10
+  momentum:
+    distribution: uniform
+    min: 0.8
+    max: 0.95
+    q: 1e-3
+  momentum_decay:
+    distribution: uniform
+    min: 0.002
+    max: 0.006
+    q: 1e-4
   beta1:
     distribution: uniform
     min: 0.9
@@ -38,8 +48,8 @@ parameters:
     distribution: uniform
     min: 0.999
     max: 0.9999
-  # resize:
-  #   values: [true, false]
+  optimizer:
+    values: ['nadam', 'adam', 'sgd', 'sgd_momentum']
 
 command:
 - ${env}
