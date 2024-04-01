@@ -168,7 +168,7 @@ if __name__ == '__main__':
     train_size = len(train_dataloader)
     val_size = len(val_dataloader)
 
-    epochs = 200
+    epochs = 250
     config = {
         "epochs": epochs,
         # "lr": 5e-5,
