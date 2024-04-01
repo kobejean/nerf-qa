@@ -202,7 +202,7 @@ if __name__ == '__main__':
     # Parse arguments
     args = parser.parse_args()
 
-    epochs = 4
+    epochs = 10
     config = {
         "epochs": epochs,
         "loader_num_workers": 4,
@@ -296,7 +296,7 @@ if __name__ == '__main__':
             val_metrics.log_summary(step)
                      
 
-            if (epoch+1) % 4 == 0:
+            if (epoch+1) % 5 == 0:
 
                 # Test step
                 model.eval()  # Set model to evaluation mode
