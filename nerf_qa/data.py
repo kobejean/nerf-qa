@@ -170,14 +170,20 @@ class Test2Dataset(Dataset):
         return scene_indices
 
 # Batch creation function
-def create_test2_dataloader(scores_df, dir, batch_size = DEVICE_BATCH_SIZE, in_memory = False):
+def create_test2_dataloader(scores_df, dir, batch_size = DEVICE_BATCH_SIZE, in_memory = False, scene_balanced=True):
     # Create a dataset and dataloader for efficient batching
     dataset = Test2Dataset(dir=dir, scores_df=scores_df, in_memory = in_memory)
     sampler = SceneBalancedSampler(dataset)
-    if in_memory:
-        dataloader = DataLoader(dataset, sampler=sampler, batch_size = batch_size)
+    if scene_balanced:
+        if in_memory:
+            dataloader = DataLoader(dataset, sampler=sampler, batch_size = batch_size)
+        else:
+            dataloader = DataLoader(dataset, sampler=sampler, batch_size = batch_size, num_workers=4, pin_memory=True, persistent_workers=True)
     else:
-        dataloader = DataLoader(dataset, sampler=sampler, batch_size = batch_size, num_workers=5, pin_memory=True, persistent_workers=True)
+        if in_memory:
+            dataloader = DataLoader(dataset, batch_size = batch_size)
+        else:
+            dataloader = DataLoader(dataset, batch_size = batch_size, num_workers=4, pin_memory=True, persistent_workers=True)
     return dataloader
 
 class LargeQADataset(Dataset):
