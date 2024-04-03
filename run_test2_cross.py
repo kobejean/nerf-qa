@@ -122,6 +122,7 @@ if __name__ == '__main__':
     step = 0
 
     cv_correlations = []
+    cv_scene_mins = []
 
     # Create splits
     for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups)):
@@ -214,8 +215,10 @@ if __name__ == '__main__':
                     }, step=step)
         
         cv_correlations.append(val_logger.last_correlations)
+        cv_scene_mins.append(val_logger.last_scene_min)
 
     cv_correlations_concat = {}
+    cv_scene_mins_concat = {}
 
     # Loop through each dictionary in the list
     for scores in cv_correlations:
@@ -224,11 +227,26 @@ if __name__ == '__main__':
                 cv_correlations_concat[key].append(value)
             else:
                 cv_correlations_concat[key] = [value]
+    
+    # Loop through each dictionary in the list
+    for scores in cv_scene_mins:
+        for key, value in scores.items():
+            if key in cv_scene_mins_concat:
+                cv_scene_mins_concat[key].append(value)
+            else:
+                cv_scene_mins_concat[key] = [value]
+
 
     for key, value in cv_correlations_concat.items():
         wandb.log({ 
             f"Cross-Val Metrics Dict/correlations/mean_{key}": np.mean(value),
             f"Cross-Val Metrics Dict/correlations/std_{key}": np.std(value),
+        }, step=step)
+
+    for key, value in cv_scene_mins_concat.items():
+        wandb.log({ 
+            f"Cross-Val Metrics Dict/correlations/scene_min/mean_{key}": np.mean(value),
+            f"Cross-Val Metrics Dict/correlations/scene_min/std_{key}": np.std(value),
         }, step=step)
 
     del train_dataloader

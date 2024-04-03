@@ -74,6 +74,7 @@ class MetricCollectionLogger():
         self.video_ids = []
         self.scene_ids = []
         self.last_correlations = {}
+        self.last_scene_min = {}
 
     def add_entries(self, metrics, video_ids, scene_ids):
         video_ids = np.array(video_ids)
@@ -227,6 +228,7 @@ class MetricCollectionLogger():
 
                     if save_last:
                         self.last_correlations = correlations
+                        self.last_scene_min = scene_min
 
             # Prepare video_pred_scores for correlation calculation
             video_pred_scores = video_averages['pred_score']

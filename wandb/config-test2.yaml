@@ -1,22 +1,22 @@
-program: run_test2.py
+program: run_test2_cross.py
 metric:
-  name: Val Metrics Dict/correlations/scene_min/plcc
+  name: Cross-Val Metrics Dict/correlations/scene_min/mean_plcc
   goal: maximize
 
-method: random
+method: bayesian
 parameters:
   lr:
-    value: 1e-5
-    # distribution: q_log_uniform_values
-    # min: 5e-7
-    # max: 1e-5
-    # q: 1e-7
+    # value: 1e-5
+    distribution: q_log_uniform_values
+    min: 5e-4
+    max: 1e-1
+    q: 1e-7
   linear_layer_lr:
-    # distribution: q_log_uniform_values
-    # min: 1e-4
-    # max: 1e-3
-    # q: 1e-7
-    value: 5e-4
+    distribution: q_log_uniform_values
+    min: 1e-5
+    max: 1e-3
+    q: 1e-7
+    # value: 5e-4
   # scene_type_bias_weight_loss_coef:
   #   distribution: uniform
   #   min: 0.00
@@ -27,29 +27,29 @@ parameters:
     # min: 0.00
     # max: 0.5
   eps:
-    # distribution: q_log_uniform_values
-    # min: 1e-10
-    # max: 1e-6
-    # q: 1e-10
-    value: 1e-7
-  momentum:
-    distribution: uniform
-    min: 0.8
-    max: 0.95
+    distribution: q_log_uniform_values
+    min: 1e-10
+    max: 1e-6
+    q: 1e-10
+    # value: 1e-7
+  # momentum:
+  #   distribution: uniform
+  #   min: 0.8
+  #   max: 0.95
   # momentum_decay:
   #   distribution: uniform
   #   min: 0.002
   #   max: 0.006
   beta1:
-    value: 0.9
-    # distribution: uniform
-    # min: 0.9
-    # max: 0.95
+    # value: 0.9
+    distribution: uniform
+    min: 0.9
+    max: 0.95
   beta2:
-    value: 0.999
-    # distribution: uniform
-    # min: 0.999
-    # max: 0.9999
+    # value: 0.999
+    distribution: uniform
+    min: 0.999
+    max: 0.9995
   optimizer:
     value: 'adam' #: ['nadam', 'adam', 'sgd', 'sgd_momentum']
 
