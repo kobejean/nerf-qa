@@ -115,7 +115,7 @@ if __name__ == '__main__':
     loss_fn = nn.L1Loss(reduction='none')
 
     # Specify the number of splits
-    n_splits = 5
+    n_splits = 4
     gkf = GroupKFold(n_splits=n_splits)
     groups = scores_df['scene']
     step = 0
@@ -182,7 +182,7 @@ if __name__ == '__main__':
                 # Update parameters every batches_per_step steps or on the last iteration
                 optimizer.step()
 
-            if (epoch+1) % 5 == 0:
+            if (epoch+1) % 10 == 0:
                 # Validation step
                 model.eval()  # Set model to evaluation mode
                 with torch.no_grad():
