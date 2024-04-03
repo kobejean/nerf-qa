@@ -131,7 +131,7 @@ if __name__ == '__main__':
         val_logger = MetricCollectionLogger(f'Val Metrics Dict/fold_{fold}')
 
         train_dataloader = create_test2_dataloader(train_df, dir=DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=True)
-        val_dataloader = create_test2_dataloader(val_df, dir=DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=True)
+        val_dataloader = create_test2_dataloader(val_df, dir=DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=True, scene_balanced=False)
         train_size = len(train_dataloader)
         val_size = len(val_dataloader)
 
