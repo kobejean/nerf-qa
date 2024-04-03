@@ -123,7 +123,7 @@ if __name__ == '__main__':
     cv_correlations = []
 
     # Create splits
-    for fold, train_idx, val_idx in enumerate(gkf.split(scores_df, groups=groups)):
+    for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups)):
         train_df = scores_df.iloc[train_idx].reset_index(drop=True)
         val_df = scores_df.iloc[val_idx].reset_index(drop=True)
 
@@ -241,7 +241,7 @@ if __name__ == '__main__':
     test_size = test_df.shape[0]
 
     test_logger = MetricCollectionLogger('Test Metrics Dict')
-    
+
     model = NeRFQAModel(train_df=train_df).to(device)
     optimizer = optim.Adam(model.get_param_lr(),
         lr=config.lr,
