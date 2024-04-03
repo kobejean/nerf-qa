@@ -3,7 +3,7 @@ metric:
   name: Cross-Val Metrics Dict/correlations/scene_min/mean_plcc
   goal: maximize
 
-method: bayesian
+method: bayes
 parameters:
   lr:
     # value: 1e-5
