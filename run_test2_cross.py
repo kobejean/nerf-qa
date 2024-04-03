@@ -212,7 +212,7 @@ if __name__ == '__main__':
                         "Model/dists_weight/beta": wandb.Histogram(model.dists_model.beta.detach().cpu()),
                     }, step=step)
         
-        cv_correlations.append(val_dataloader.last_correlations)
+        cv_correlations.append(val_logger.last_correlations)
 
     cv_correlations_concat = {}
 
