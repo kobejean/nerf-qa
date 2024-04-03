@@ -192,6 +192,11 @@ test_df['A-DISTS_tr'] = video_adists_scores
 test_df['DISTS_tr'] = video_dists_scores
 
 #%%
+TEST_DATA_DIR = "/home/ccl/Datasets/NeRF-QA"
+TEST_SCORE_FILE = path.join(TEST_DATA_DIR, "NeRF_VQA_MOS.csv")
+test_df = pd.read_csv(TEST_SCORE_FILE)
+test_df['scene'] = test_df['reference_filename'].str.replace('_reference.mp4', '', regex=False)
+test_size = test_df.shape[0]
 #%%
 syn_files = ['ficus_reference.mp4', 'ship_reference.mp4',
  'drums_reference.mp4']
@@ -311,4 +316,57 @@ def plot_dists_mos_with_group_regression_b_ave(df, y_col='DISTS', x_col='MOS', g
     return fig
 display(plot_dists_mos_with_group_regression_b_ave(test_df, 'DISTS', 'MOS'))
 display(plot_dists_mos_with_group_regression_b_ave(test_df, 'DISTS', 'DMOS'))
+# %%
+def print_corr(col):
+    corr = compute_correlations(np.sqrt(syn_df[col].values), syn_df['MOS'])
+    print(f"syn {col} mos", corr)
+    corr = compute_correlations(np.sqrt(tnt_df[col].values), tnt_df['MOS'])
+    print(f"tnt {col} mos", corr)
+    corr = compute_correlations(np.sqrt(test_df[col].values), test_df['MOS'])
+    print(f"all {col} mos", corr)
+    corr = compute_correlations(np.sqrt(syn_df[col].values), syn_df['DMOS'])
+    print(f"syn {col} dmos", corr)
+    corr = compute_correlations(np.sqrt(tnt_df[col].values), tnt_df['DMOS'])
+    print(f"tnt {col} dmos", corr)
+    corr = compute_correlations(np.sqrt(test_df[col].values), test_df['DMOS'])
+    print(f"all {col} dmos", corr)
+
+# %%
+print_corr('SSIM')
+# %%
+print_corr('PSNR_Score')
+# %%
+print_corr('LPIPS_Score')
+# %%
+def get_correlations(col, syn_df, tnt_df, test_df):
+    correlations = {}
+    # For each condition, unpack the dictionary returned by compute_correlations into the final dictionary
+    for prefix, df in [('syn', syn_df), ('tnt', tnt_df), ('all', test_df)]:
+        corr_results = compute_correlations(df[col].values, df['MOS'])
+        for corr_type in ['plcc', 'srcc', 'ktcc']:
+            correlations[f'{prefix} mos {corr_type}'] = np.abs(corr_results[corr_type])
+    for prefix, df in [('syn', syn_df), ('tnt', tnt_df), ('all', test_df)]:    
+        corr_results = compute_correlations(df[col].values, df['DMOS'])
+        for corr_type in ['plcc', 'srcc', 'ktcc']:
+            correlations[f'{prefix} dmos {corr_type}'] = np.abs(corr_results[corr_type])
+    return correlations
+
+
+# List of metrics to compute correlations for
+metrics = ['FVVHD', 'Contrique_score', 'WaDiQaM_score', 'SSIM', 'GMSD', 'MS-SSIM_Score', 'PSNR_Score', 'LPIPS_Score', 'DISTS', 'LPIPS_Score_vgg', 'WaDiQa_score', 'CompressVQA']
+data = []
+
+# Assuming syn_df, tnt_df, and test_df are your DataFrames with the data
+for metric in metrics:
+    correlations = get_correlations(metric, syn_df, tnt_df, test_df)
+    correlations['Metric'] = metric
+    data.append(correlations)
+
+# Creating the DataFrame
+df_corr = pd.DataFrame(data)
+df_corr = df_corr.set_index('Metric')
+df_corr
+# %%
+df_corr.to_csv('correlations.csv')
+
 # %%
