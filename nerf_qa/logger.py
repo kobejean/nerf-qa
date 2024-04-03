@@ -104,6 +104,7 @@ class MetricCollectionLogger():
             'srcc': srcc,
             'ktcc': ktcc,
         }
+    
 
     def log_summary(self, step):
         logs = {}
@@ -166,66 +167,76 @@ class MetricCollectionLogger():
                 })
 
         if 'pred_score' in video_averages and 'mos' in video_averages:
+            def log_correlations(pred, gt, name='mos', save_last=True):
+
+                logs.update({ f"{self.collection_name}/plot/{name}/scene_regression": plot_with_group_regression(pred, gt, scene_video_ids) })
+
+                real_scene_ids = ['train', 'm60', 'playground', 'truck', 'fortress', 'horns', 'trex', 'room']
+                synth_scene_ids = ['ship', 'lego', 'drums', 'ficus', 'hotdog', 'materials', 'mic']
+
+                # Aggregate and compute correlations by scene_id
+                scene_correlations = {}
+                real_scene_pred = []
+                real_scene_mos = []
+                synth_scene_pred = []
+                synth_scene_mos = []
+                for scene_id in unique_scenes:
+                    scene_pred = np.array([pred[vid] for vid in scene_video_ids[scene_id]])
+                    scene_gt = np.array([gt[vid] for vid in scene_video_ids[scene_id]])
+
+                    if len(scene_pred) > 1:  # Ensure there are at least two videos to compute correlations
+                        scene_correlations[scene_id] = self.compute_correlations(scene_pred, scene_gt)
+                    if scene_id in real_scene_ids:
+                        real_scene_pred.append(scene_pred)
+                        real_scene_mos.append(scene_gt)
+                    elif scene_id in synth_scene_ids:
+                        synth_scene_pred.append(scene_pred)
+                        synth_scene_mos.append(scene_gt)
+                
+                if len(real_scene_pred) > 1:
+                    real_scene_pred = np.concatenate(real_scene_pred, axis=0)
+                    real_scene_mos = np.concatenate(real_scene_mos, axis=0)
+                    real_correlations = self.compute_correlations(real_scene_pred, real_scene_mos)
+                    logs.update({ f"{self.collection_name}/correlations/real/{name}/{metric}": value for metric, value in real_correlations.items() })
+
+                if len(synth_scene_pred) > 1:
+                    synth_scene_pred = np.concatenate(synth_scene_pred, axis=0)
+                    synth_scene_mos = np.concatenate(synth_scene_mos, axis=0)
+                    synth_correlations = self.compute_correlations(synth_scene_pred, synth_scene_mos)
+                    logs.update({ f"{self.collection_name}/correlations/synthetic/{name}/{metric}": value for metric, value in synth_correlations.items() })
+
+                # Log correlations for each scene
+                scene_min = {}
+                for scene_id, corr_values in scene_correlations.items():
+                    logs.update({f"{self.collection_name}/correlations/scene/{scene_id}/{name}/{metric}": value for metric, value in corr_values.items()})
+                    for metric, value in corr_values.items():
+                        if metric in scene_min:
+                            scene_min[metric] = min(value, scene_min[metric])
+                        else:
+                            scene_min[metric] = value
+                
+                logs.update({f"{self.collection_name}/correlations/scene_min/{name}/{metric}": value for metric, value in scene_min.items()})
+
+                if len(unique_videos) > 1:
+                    # Log correlations over all scenes
+                    combined_pred = np.array([pred[vid] for vid in unique_videos])
+                    combined_gt = np.array([gt[vid] for vid in unique_videos])
+                    correlations = self.compute_correlations(combined_pred, combined_gt)
+                    
+                    logs.update({ f"{self.collection_name}/correlations/{name}/{metric}": value for metric, value in correlations.items() })
+
+                    if save_last:
+                        self.last_correlations = correlations
+
             # Prepare video_pred_scores for correlation calculation
             video_pred_scores = video_averages['pred_score']
             video_mos = video_averages['mos']
+            log_correlations(video_pred_scores, video_mos, 'mos', True)
 
-            logs.update({ f"{self.collection_name}/plot/scene_regression": plot_with_group_regression(video_pred_scores, video_mos, scene_video_ids) })
+            if 'dmos' in video_averages:
+                video_dmos = video_averages['dmos']
+                log_correlations(video_pred_scores, video_dmos, 'dmos', False)
 
-            real_scene_ids = ['train', 'm60', 'playground', 'truck', 'fortress', 'horns', 'trex', 'room']
-            synth_scene_ids = ['ship', 'lego', 'drums', 'ficus', 'hotdog', 'materials', 'mic']
-
-            # Aggregate and compute correlations by scene_id
-            scene_correlations = {}
-            real_scene_pred_scores = []
-            real_scene_mos = []
-            synth_scene_pred_scores = []
-            synth_scene_mos = []
-            for scene_id in unique_scenes:
-                scene_video_pred_scores = np.array([video_pred_scores[vid] for vid in scene_video_ids[scene_id]])
-                scene_video_mos = np.array([video_mos[vid] for vid in scene_video_ids[scene_id]])
-
-                if len(scene_video_pred_scores) > 1:  # Ensure there are at least two videos to compute correlations
-                    scene_correlations[scene_id] = self.compute_correlations(scene_video_pred_scores, scene_video_mos)
-                if scene_id in real_scene_ids:
-                    real_scene_pred_scores.append(scene_video_pred_scores)
-                    real_scene_mos.append(scene_video_mos)
-                elif scene_id in synth_scene_ids:
-                    synth_scene_pred_scores.append(scene_video_pred_scores)
-                    synth_scene_mos.append(scene_video_mos)
-            
-            if len(real_scene_pred_scores) > 1:
-                real_scene_pred_scores = np.concatenate(real_scene_pred_scores, axis=0)
-                real_scene_mos = np.concatenate(real_scene_mos, axis=0)
-                real_correlations = self.compute_correlations(real_scene_pred_scores, real_scene_mos)
-                logs.update({ f"{self.collection_name}/correlations/real/{metric}": value for metric, value in real_correlations.items() })
-
-            if len(synth_scene_pred_scores) > 1:
-                synth_scene_pred_scores = np.concatenate(synth_scene_pred_scores, axis=0)
-                synth_scene_mos = np.concatenate(synth_scene_mos, axis=0)
-                synth_correlations = self.compute_correlations(synth_scene_pred_scores, synth_scene_mos)
-                logs.update({ f"{self.collection_name}/correlations/synthetic/{metric}": value for metric, value in synth_correlations.items() })
-
-            # Log correlations for each scene
-            scene_min = {}
-            for scene_id, corr_values in scene_correlations.items():
-                logs.update({f"{self.collection_name}/correlations/scene/{scene_id}/{metric}": value for metric, value in corr_values.items()})
-                for metric, value in corr_values.items():
-                    if metric in scene_min:
-                        scene_min[metric] = min(value, scene_min[metric])
-                    else:
-                        scene_min[metric] = value
-            
-            logs.update({f"{self.collection_name}/correlations/scene_min/{metric}": value for metric, value in scene_min.items()})
-
-            if len(unique_videos) > 1:
-                # Log correlations over all scenes
-                video_pred_scores = np.array([video_pred_scores[vid] for vid in unique_videos])
-                video_mos = np.array([video_mos[vid] for vid in unique_videos])
-                correlations = self.compute_correlations(video_pred_scores, video_mos)
-                
-                logs.update({ f"{self.collection_name}/correlations/{metric}": value for metric, value in correlations.items() })
-                self.last_correlations = correlations
 
 
         self.log_fn(logs, step=step)

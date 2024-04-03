@@ -305,6 +305,7 @@ if __name__ == '__main__':
             test_logger.add_entries({
                 'mse': mse_fn(predicted_score, target_score).detach().cpu(),
                 'mos': row['MOS'],
+                'dmos': row['DMOS'],
                 'pred_score': predicted_score.detach().cpu(),
             }, video_ids=video_ids, scene_ids=scene_ids)
 
