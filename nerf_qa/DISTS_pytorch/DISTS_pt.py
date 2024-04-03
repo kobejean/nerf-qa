@@ -61,8 +61,18 @@ class DISTS(torch.nn.Module):
         self.beta.data.normal_(0.1,0.01)
         if load_weights:
             weights = torch.load(os.path.join(sys.prefix,'weights.pt'))
-            self.alpha.data = weights['alpha']
-            self.beta.data = weights['beta']
+
+            alpha = weights['alpha']
+            beta = weights['beta']
+            # Ensure alpha and beta are flattened and concatenated to form a single weight vector
+            weights_concat = torch.cat([alpha.flatten(), beta.flatten()], dim=0)
+            weights_concat = weights_concat + torch.relu(torch.min(weights_concat))
+            logits_approx = torch.log(torch.clamp(weights_concat, min=0.0) + 1e-10)
+            alpha_logits, beta_logits = torch.split(logits_approx, [alpha.numel(), beta.numel()])
+
+            self.alpha.data = alpha_logits
+            self.beta.data = beta_logits
+
         
     def forward_once(self, x):
         h = (x-self.mean)/self.std
@@ -103,9 +113,12 @@ class DISTS(torch.nn.Module):
         dist2 = 0 
         c1 = 1e-6
         c2 = 1e-6
-        w_sum = self.alpha.sum() + self.beta.sum()
-        alpha = torch.split(self.alpha/w_sum, self.chns, dim=1)
-        beta = torch.split(self.beta/w_sum, self.chns, dim=1)
+        
+        w_concat = torch.cat([self.alpha, self.beta], dim=0)
+        w_softmax = torch.softmax(w_concat, dim=0)
+        alpha, beta = torch.split(w_softmax, self.alpha.shape[0])
+        alpha = torch.split(alpha, self.chns, dim=1)
+        beta = torch.split(beta, self.chns, dim=1)
         for k in range(len(self.chns)):
             if warp is None or certainty is None:
                 x_mean = feats0[k].mean([2,3], keepdim=True)
