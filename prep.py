@@ -351,8 +351,9 @@ def get_correlations(col, syn_df, tnt_df, test_df):
             correlations[f'{prefix} dmos {corr_type}'] = np.abs(corr_results[corr_type])
     return correlations
 
+
 # List of metrics to compute correlations for
-metrics = ['SSIM', 'MS-SSIM_Score', 'PSNR_Score', 'LPIPS_Score', 'DISTS', 'LPIPS_Score_vgg', 'WaDiQa_score', 'CompressVQA']
+metrics = ['FVVHD', 'Contrique_score', 'WaDiQaM_score', 'SSIM', 'GMSD', 'MS-SSIM_Score', 'PSNR_Score', 'LPIPS_Score', 'DISTS', 'LPIPS_Score_vgg', 'WaDiQa_score', 'CompressVQA']
 data = []
 
 # Assuming syn_df, tnt_df, and test_df are your DataFrames with the data
@@ -365,4 +366,7 @@ for metric in metrics:
 df_corr = pd.DataFrame(data)
 df_corr = df_corr.set_index('Metric')
 df_corr
+# %%
+df_corr.to_csv('correlations.csv')
+
 # %%
