@@ -176,12 +176,12 @@ def create_test2_dataloader(scores_df, dir, batch_size = DEVICE_BATCH_SIZE, in_m
     sampler = SceneBalancedSampler(dataset)
     if scene_balanced:
         if in_memory:
-            dataloader = DataLoader(dataset, sampler=sampler, batch_size = batch_size)
+            dataloader = DataLoader(dataset, sampler=sampler, batch_size = batch_size, pin_memory=True)
         else:
             dataloader = DataLoader(dataset, sampler=sampler, batch_size = batch_size, num_workers=4, pin_memory=True, persistent_workers=True)
     else:
         if in_memory:
-            dataloader = DataLoader(dataset, batch_size = batch_size)
+            dataloader = DataLoader(dataset, batch_size = batch_size, pin_memory=True)
         else:
             dataloader = DataLoader(dataset, batch_size = batch_size, num_workers=4, pin_memory=True, persistent_workers=True)
     return dataloader
