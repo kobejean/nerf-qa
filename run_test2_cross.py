@@ -29,6 +29,7 @@ from nerf_qa.model import NeRFQAModel
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+DEBUG = True
 
 #%%
 DATA_DIR = "/home/ccl/Datasets/Test_2-datasets"
@@ -130,8 +131,8 @@ if __name__ == '__main__':
         train_logger = MetricCollectionLogger(f'Train Metrics Dict/fold_{fold}')
         val_logger = MetricCollectionLogger(f'Val Metrics Dict/fold_{fold}')
 
-        train_dataloader = create_test2_dataloader(train_df, dir=DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=True)
-        val_dataloader = create_test2_dataloader(val_df, dir=DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=True, scene_balanced=False)
+        train_dataloader = create_test2_dataloader(train_df, dir=DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=~DEBUG)
+        val_dataloader = create_test2_dataloader(val_df, dir=DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=~DEBUG, scene_balanced=False)
         train_size = len(train_dataloader)
         val_size = len(val_dataloader)
 

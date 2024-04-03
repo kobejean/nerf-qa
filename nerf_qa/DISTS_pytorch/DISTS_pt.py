@@ -65,10 +65,10 @@ class DISTS(torch.nn.Module):
             alpha = weights['alpha']
             beta = weights['beta']
             # Ensure alpha and beta are flattened and concatenated to form a single weight vector
-            weights_concat = torch.cat([alpha.flatten(), beta.flatten()], dim=0)
+            weights_concat = torch.cat([alpha.flatten(), beta.flatten()], dim=1)
             weights_concat = weights_concat + torch.relu(torch.min(weights_concat))
             logits_approx = torch.log(torch.clamp(weights_concat, min=0.0) + 1e-10)
-            alpha_logits, beta_logits = torch.split(logits_approx, [alpha.numel(), beta.numel()])
+            alpha_logits, beta_logits = torch.split(logits_approx, [alpha.numel(), beta.numel()], dim=1)
 
             self.alpha.data = alpha_logits
             self.beta.data = beta_logits
