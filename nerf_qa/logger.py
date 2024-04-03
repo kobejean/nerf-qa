@@ -73,6 +73,7 @@ class MetricCollectionLogger():
         self.metrics = {}
         self.video_ids = []
         self.scene_ids = []
+        self.last_correlations = {}
 
     def add_entries(self, metrics, video_ids, scene_ids):
         video_ids = np.array(video_ids)
@@ -224,6 +225,7 @@ class MetricCollectionLogger():
                 correlations = self.compute_correlations(video_pred_scores, video_mos)
                 
                 logs.update({ f"{self.collection_name}/correlations/{metric}": value for metric, value in correlations.items() })
+                self.last_correlations = correlations
 
 
         self.log_fn(logs, step=step)
