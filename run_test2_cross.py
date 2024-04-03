@@ -220,9 +220,9 @@ if __name__ == '__main__':
     for scores in cv_correlations:
         for key, value in scores.items():
             if key in cv_correlations_concat:
-                cv_correlations_concat[key] = np.concatenate([cv_correlations_concat[key], value])
+                cv_correlations_concat[key].append(value)
             else:
-                cv_correlations_concat[key] = value
+                cv_correlations_concat[key] = [value]
 
     for key, value in cv_correlations_concat.items():
         wandb.log({ 
