@@ -212,9 +212,9 @@ class MetricCollectionLogger():
                     logs.update({f"{self.collection_name}/correlations/scene/{scene_id}/{name}/{metric}": value for metric, value in corr_values.items()})
                     for metric, value in corr_values.items():
                         if metric in scene_min:
-                            scene_min[metric] = min(value, scene_min[metric])
+                            scene_min[metric] = min(np.abs(value), scene_min[metric])
                         else:
-                            scene_min[metric] = value
+                            scene_min[metric] = np.abs(value)
                 
                 logs.update({f"{self.collection_name}/correlations/scene_min/{name}/{metric}": value for metric, value in scene_min.items()})
 
