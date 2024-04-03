@@ -69,7 +69,7 @@ class DISTS(torch.nn.Module):
             print("torch.min(weights_concat)", torch.min(weights_concat), torch.relu(torch.min(weights_concat)))
             #weights_concat = weights_concat + torch.relu(torch.min(weights_concat))
             logits_approx = torch.log(torch.clamp(weights_concat, min=0.0) + 1e-10)
-            print(torch.max(torch.abs(torch.softmax(logits_approx) - weights_concat)))
+            print(torch.max(torch.abs(torch.softmax(logits_approx, dim=1) - weights_concat)))
             alpha_logits, beta_logits = torch.split(logits_approx, [alpha.numel(), beta.numel()], dim=1)
 
             self.alpha.data = alpha_logits
