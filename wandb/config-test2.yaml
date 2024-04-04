@@ -16,6 +16,11 @@ parameters:
     min: 2e-4
     max: 1e-3
     q: 1e-7
+  cnn_layer_lr:
+    distribution: q_log_uniform_values
+    min: 2e-4
+    max: 1e-2
+    q: 1e-7
     # value: 5e-4
   # scene_type_bias_weight_loss_coef:
   #   distribution: uniform

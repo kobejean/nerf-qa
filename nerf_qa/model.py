@@ -19,6 +19,22 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def linear_func(x, a, b):
     return a * x + b
 
+class ConvLayer(nn.Module):
+    def __init__(self, in_chns, out_chns, activation_enabled=True):
+        super(ConvLayer, self).__init__()
+        self.dropout = nn.Dropout2d(p=0.2)
+        self.conv = nn.Conv2d(in_chns, out_chns, kernel_size = 1, stride=1, padding='same', dilation=1, groups=1, bias=True)
+        self.activation_enabled = activation_enabled
+        if self.activation_enabled:
+            self.act_layer = nn.GELU()
+
+    def forward(self, x):
+        x = self.dropout(x)
+        x = self.conv(x)
+        if self.activation_enabled:
+            x = self.act_layer(x)
+        return x
+
 class NeRFQAModel(nn.Module):
     def __init__(self, train_df):
         super(NeRFQAModel, self).__init__()
@@ -41,6 +57,10 @@ class NeRFQAModel(nn.Module):
             dists_scene_type_weight[idx] = params[0]
             dists_scene_type_bias[idx] = params[1]
 
+        dists_scene_type_weight_mean = dists_scene_type_weight.mean()
+        dists_scene_type_weight_std = dists_scene_type_weight.std()
+        dists_scene_type_bias_mean = dists_scene_type_bias.mean()
+        dists_scene_type_bias_std = dists_scene_type_bias.std()
         self.dists_scene_type_weight = nn.Parameter(dists_scene_type_weight)
         self.dists_scene_type_bias = nn.Parameter(dists_scene_type_bias)
 
@@ -59,6 +79,11 @@ class NeRFQAModel(nn.Module):
         self.dists_bias = nn.Parameter(torch.tensor([model.intercept_], dtype=torch.float32))
 
         self.scene_type_bias_weight = nn.Parameter(torch.tensor([wandb.config.init_scene_type_bias_weight], dtype=torch.float32))
+        self.conv = ConvLayer(64, 2, activation_enabled=False)
+        self.conv.conv.weight.data[0].normal_(0, torch.sqrt(2. / 64.) * dists_scene_type_weight_std)
+        self.conv.conv.weight.data[1].normal_(0, torch.sqrt(2. / 64.) * dists_scene_type_bias_std)
+        self.conv.conv.bias.data[0] = dists_scene_type_weight_mean
+        self.conv.conv.bias.data[1] = dists_scene_type_bias_mean
 
     def get_param_lr(self):
         linear_layer_params = [
@@ -68,12 +93,17 @@ class NeRFQAModel(nn.Module):
             self.dists_bias,
             self.scene_type_bias_weight
         ]
+        cnn_layer_params = [
+            self.conv.conv.weight,
+            self.conv.conv.bias,
+        ]
 
         # Collect the remaining parameters
         # remaining_params = [param for param in self.parameters() if param not in linear_layer_params]
-        remaining_params = [param for param in self.parameters() if all(param is not p for p in linear_layer_params)]
+        remaining_params = [param for param in self.parameters() if all(param is not p for p in (linear_layer_params + cnn_layer_params))]
         return  [
-            {'params': linear_layer_params, 'lr': wandb.config.linear_layer_lr },  # Set the learning rate for the specific layer
+            {'params': linear_layer_params, 'lr': wandb.config.linear_layer_lr },  # Set the learning rate for the 
+            {'params': cnn_layer_params, 'lr': wandb.config.cnn_layer_lr },  # Set the learning rate for the specific layer
             {'params': remaining_params }  # Set the learning rate for the remaining parameters
         ]
 
@@ -106,20 +136,18 @@ class NeRFQAModel(nn.Module):
         return normalized_scores
 
     def forward(self, dist, ref, scene_type = None):
-        dists_scores = self.dists_model(ref, dist, require_grad=True, batch_average=False)  # Returns a tensor of scores
+        with torch.no_grad():
+            feats0 = self.forward_once(dist)
+            feats1 = self.forward_once(ref) 
+        # dists_scores = self.dists_model(ref, dist, require_grad=False, batch_average=False)  # Returns a tensor of scores
+        complexity = self.conv(feats1[1]).mean([2,3])
+        complexity_weight = complexity[:,0]
+        complexity_bias = complexity[:,1]
+        dists_scores = self.dists_model.forward_from_feats(feats0, feats1)
         
-        
-        if scene_type is not None:
-            scene_type_idx = torch.tensor([self.scene_type_to_idx.get(st, -1) for st in scene_type], dtype=torch.long)
-
-            alpha = self.scene_type_bias_weight
-            slope = (1 - alpha) * self.dists_weight + alpha * self.dists_scene_type_weight[scene_type_idx]
-            intercept = (1 - alpha) * self.dists_bias + alpha * self.dists_scene_type_bias[scene_type_idx]
-            scores = dists_scores * slope + intercept
-            return scores
-        else:
-            scores = dists_scores * self.dists_weight + self.dists_bias # linear function
-            return scores
+        scores = dists_scores * complexity_weight + complexity_bias # linear function
+        # scores = dists_scores * self.dists_weight + self.dists_bias # linear function
+        return scores
 
 
 
