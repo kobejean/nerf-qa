@@ -15,6 +15,7 @@ import wandb
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import GroupKFold
 from scipy.optimize import curve_fit
+import math
 
 # data 
 import pandas as pd

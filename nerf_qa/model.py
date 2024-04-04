@@ -9,6 +9,7 @@ import wandb
 from sklearn.linear_model import LinearRegression
 from scipy.optimize import curve_fit
 
+import math
 
 # local
 from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS
@@ -80,8 +81,8 @@ class NeRFQAModel(nn.Module):
 
         self.scene_type_bias_weight = nn.Parameter(torch.tensor([wandb.config.init_scene_type_bias_weight], dtype=torch.float32))
         self.conv = ConvLayer(64, 2, activation_enabled=False)
-        self.conv.conv.weight.data[0].normal_(0, torch.sqrt(2. / 64.) * dists_scene_type_weight_std)
-        self.conv.conv.weight.data[1].normal_(0, torch.sqrt(2. / 64.) * dists_scene_type_bias_std)
+        self.conv.conv.weight.data[0].normal_(0, math.sqrt(2. / 64.) * dists_scene_type_weight_std)
+        self.conv.conv.weight.data[1].normal_(0, math.sqrt(2. / 64.) * dists_scene_type_bias_std)
         self.conv.conv.bias.data[0] = dists_scene_type_weight_mean
         self.conv.conv.bias.data[1] = dists_scene_type_bias_mean
 
