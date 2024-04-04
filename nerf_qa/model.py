@@ -83,8 +83,8 @@ class NeRFQAModel(nn.Module):
         N = 64
         self.conv1 = ConvLayer(N, N, activation_enabled=True)
         self.conv = ConvLayer(N, 2, activation_enabled=False)
-        self.conv.conv.weight.data[0].normal_(0, math.sqrt(2. / N) * dists_scene_type_weight_std / 4.0)
-        self.conv.conv.weight.data[1].normal_(0, math.sqrt(2. / N) * dists_scene_type_bias_std / 4.0)
+        self.conv.conv.weight.data[0].normal_(0, math.sqrt(2. / N) * dists_scene_type_weight_std * 0.1)
+        self.conv.conv.weight.data[1].normal_(0, math.sqrt(2. / N) * dists_scene_type_bias_std * 0.1)
         self.conv.conv.bias.data[0] = dists_scene_type_weight_mean
         self.conv.conv.bias.data[1] = dists_scene_type_bias_mean
 
