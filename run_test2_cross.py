@@ -59,7 +59,7 @@ if __name__ == '__main__':
     parser.add_argument('--momentum', type=float, default=0.9, help='Random seed.')
     parser.add_argument('--momentum_decay', type=float, default=0.004, help='Random seed.')
     parser.add_argument('--eps', type=float, default=1e-7, help='Random seed.')
-    parser.add_argument('--linear_layer_lr', type=float, default=5e-4, help='Random seed.')
+    parser.add_argument('--linear_layer_lr', type=float, default=1e-5, help='Random seed.')
     parser.add_argument('--cnn_layer_lr', type=float, default=1e-3, help='Random seed.')
     parser.add_argument('--init_scene_type_bias_weight', type=float, default=0.5, help='Random seed.')
     parser.add_argument('--scene_type_bias_weight_loss_coef', type=float, default=0.1, help='Random seed.')
