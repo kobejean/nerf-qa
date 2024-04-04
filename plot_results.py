@@ -3,68 +3,15 @@
 import os
 from os import path
 import sys
-import argparse
 
 
 # deep learning
 import numpy as np
-import torch
-from torch import nn
-import torch.optim as optim
-import wandb
-from sklearn.linear_model import LinearRegression
 
 # data 
 import pandas as pd
-from tqdm import tqdm
-from torch.utils.data import Dataset, DataLoader, Sampler
-
-import argparse
-import wandb
-from torch.profiler import profile, record_function, ProfilerActivity
-
-# local
-from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS
-from nerf_qa.ADISTS import ADISTS
-from nerf_qa.data import NerfNRQADataset, SceneBalancedSampler
-from nerf_qa.logger import MetricCollectionLogger
-from nerf_qa.settings import DEVICE_BATCH_SIZE
-from nerf_qa.model_nr_v6 import NRModel
-import multiprocessing as mp
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-def recursive_collate(batch):
-    if isinstance(batch[0], torch.Tensor):
-        return (torch.stack(batch) if batch[0].dim() == 0 or batch[0].shape[0] > 1 else torch.concat(batch, dim=0)).detach()
-    elif isinstance(batch[0], tuple):
-        return tuple(recursive_collate(samples) for samples in zip(*batch))
-    elif isinstance(batch[0], list):
-        return [recursive_collate(samples) for samples in zip(*batch)]
-    elif isinstance(batch[0], dict):
-        return {key: recursive_collate([sample[key] for sample in batch]) for key in batch[0]}
-    else:
-        return batch
-    
-def batch_to_device(batch, device):
-    if isinstance(batch, torch.Tensor):
-        return batch.to(device)
-    elif isinstance(batch, (tuple, list)):
-        # Handle tuples and lists by recursively calling batch_to_device on each element
-        # Only recurse if the elements are not tensors
-        processed = [batch_to_device(item, device) if not isinstance(item, torch.Tensor) else item.to(device) for item in batch]
-        return type(batch)(processed)
-    elif isinstance(batch, dict):
-        # Handle dictionaries by recursively calling batch_to_device on each value
-        return {key: batch_to_device(value, device) for key, value in batch.items()}
-    else:
-        # Return the item unchanged if it's not a tensor, list, tuple, or dict
-        return batch
-    
-from torch.utils.data import Dataset, TensorDataset, DataLoader, Sampler
-import cv2
-from torchvision import models,transforms
-import torch.nn.functional as F
 from scipy.stats import pearsonr, spearmanr, kendalltau
+from PIL import Image
 
 def compute_correlations(pred_scores, mos):
     plcc = pearsonr(pred_scores, mos)[0]
@@ -76,93 +23,7 @@ def compute_correlations(pred_scores, mos):
         'srcc': srcc,
         'ktcc': ktcc,
     }
-# Example function to load a video and process it frame by frame
-def load_video_frames(video_path, resize=True, keep_aspect_ratio=False):
-    cap = cv2.VideoCapture(video_path)
-    frames = []
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-        # Convert frame to RGB (from BGR) and then to tensor
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame = torch.from_numpy(frame).permute(2, 0, 1).float() / 255.0
-        frame = transforms.ToPILImage()(frame)
-        frame = transforms.ToTensor()(frame)
-        if keep_aspect_ratio:
-            render_256 = F.interpolate(frame.unsqueeze(0), size=(256), mode='bilinear', align_corners=False).squeeze(0)
-        else:
-            render_256 = F.interpolate(frame.unsqueeze(0), size=(256, 256), mode='bilinear', align_corners=False).squeeze(0)
-        #render_224 = F.interpolate(frame.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
-        #render = { "256x256": render_256, "224x224": render_224 }
-        frames.append(render_256)
-    cap.release()
-    return frames
-
-class CustomDataset(Dataset):
-    def __init__(self, data_list):
-        self.data = data_list
-        
-    def __len__(self):
-        return len(self.data)
-    
-    def __getitem__(self, index):
-        # Retrieve the data row at the given index
-        data_row = self.data[index]
-        return data_row
-    
-from PIL import Image
-
-def load_image(path):
-    image = Image.open(path)
-
-    if image.mode == 'RGBA':
-        # If the image has an alpha channel, create a white background
-        background = Image.new('RGBA', image.size, (255, 255, 255))
-        
-        # Paste the image onto the white background using alpha compositing
-        background.paste(image, mask=image.split()[3])
-        
-        # Convert the image to RGB mode
-        image = background.convert('RGB')
-    else:
-        # If the image doesn't have an alpha channel, directly convert it to RGB
-        image = image.convert('RGB')
-
-    image = torch.from_numpy(np.array(image)).permute(2, 0, 1).float() / 255.0
-    image = F.interpolate(image.unsqueeze(0), size=(256), mode='bilinear', align_corners=False).squeeze(0)
-
-    return image
-
-test_video_dataloader_tr_map = {
-    'mic': '/home/ccl/Datasets/NeRF/blender_test/mic/test',
-    'hotdog': '/home/ccl/Datasets/NeRF/blender_test/hotdog/test',
-    'materials': '/home/ccl/Datasets/NeRF/blender_test/materials/test',
-    'drums': '/home/ccl/Datasets/NeRF/blender_test/drums/test',
-    'ship': '/home/ccl/Datasets/NeRF/blender_test/ship/test',
-    'lego': '/home/ccl/Datasets/NeRF/blender_test/lego/test',
-    'chair': '/home/ccl/Datasets/NeRF/blender_test/chair/test',
-}
-
-# Batch creation function
-def create_test_video_dataloader(row, dir, resize=True, keep_aspect_ratio=True):
-    ref_dir = path.join(dir, "Reference")
-    syn_dir = path.join(dir, "NeRF-QA_videos")
-    dist_video_path = path.join(syn_dir, row['distorted_filename'])
-    dist = load_video_frames(dist_video_path, resize=resize, keep_aspect_ratio=keep_aspect_ratio)
-    if row['scene'] in test_video_dataloader_tr_map:
-        gt_dir = test_video_dataloader_tr_map[row['scene']]
-        gt_files = [os.path.join(gt_dir, f) for f in os.listdir(gt_dir) if f.endswith((".jpg", ".png"))]
-        gt_files.sort()
-        ref = [load_image(gt_file) for gt_file in gt_files]
-    else:
-        ref_video_path = path.join(ref_dir, row['reference_filename'])
-        ref = load_video_frames(ref_video_path, resize=resize, keep_aspect_ratio=keep_aspect_ratio)
-    # Create a dataset and dataloader for efficient batching
-    dataset = CustomDataset(list(zip(ref, dist)))
-    dataloader = DataLoader(dataset, batch_size=DEVICE_BATCH_SIZE, shuffle=False, collate_fn = recursive_collate)
-    return dataloader  
-
+#%%
 TEST_DATA_DIR = "/home/ccl/Datasets/NeRF-QA"
 TEST_SCORE_FILE = path.join(TEST_DATA_DIR, "NeRF_VQA_MOS.csv")
 test_df = pd.read_csv(TEST_SCORE_FILE)
@@ -178,6 +39,15 @@ test_df = pd.merge(test_df, results_df, on='distorted_filename')
 test_df.head(3)
 test_df.to_csv('results_combined.csv')
 #%%
+test_df = pd.read_csv('results_combined.csv')
+test_df = test_df.rename(columns={
+    'PSNR_Score': 'PSNR',
+    'MS-SSIM_Score': 'MS-SSIM',
+    'LPIPS_Score': 'LPIPS (AlexNet)',
+    'LPIPS_Score_vgg': 'LPIPS (VGG)',
+})
+test_df['Ours'] = test_df['NeRF-DISTS'] 
+
 syn_files = ['ficus_reference.mp4', 'ship_reference.mp4',
  'drums_reference.mp4']
 tnt_files = ['truck_reference.mp4', 'playground_reference.mp4',
@@ -187,7 +57,104 @@ print(test_df['reference_filename'].unique())
 syn_df = test_df[test_df['reference_filename'].isin(syn_files)].reset_index()
 tnt_df = test_df[test_df['reference_filename'].isin(tnt_files)].reset_index()
 #%%
-display(test_df['reference_filename'].isin(syn_files))
+test_df.head(2)
+#%%
+import pandas as pd
+import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
+from scipy import stats
+# plt.style.use('seaborn-v0_8-darkgrid')
+# plt.style.use('default')
+width = 469.0
+
+def set_size(width, fraction=1, subplots=(1, 1)):
+    if width == 'thesis':
+        width_pt = 426.79135
+    elif width == 'beamer':
+        width_pt = 307.28987
+    else:
+        width_pt = width
+
+    # Width of figure (in pts)
+    fig_width_pt = width_pt * fraction
+    # Convert from pt to inches
+    inches_per_pt = 1 / 72.27
+
+    # Golden ratio to set aesthetic figure height
+    # https://disq.us/p/2940ij3
+    golden_ratio = (5**.5 - 1) / 2
+
+    # Figure width in inches
+    fig_width_in = fig_width_pt * inches_per_pt
+    # Figure height in inches
+    fig_height_in = fig_width_in * golden_ratio * (subplots[0] / subplots[1])
+
+    return (fig_width_in, fig_height_in)
+
+tex_fonts = {
+    # Use LaTeX to write all text
+    "text.usetex": True,
+    "font.family": "serif",
+    # Use 10pt font in plots, to match 10pt font in document
+    "axes.labelsize": 8,
+    "font.size": 8,
+    # Make the legend/label fonts a little smaller
+    "legend.fontsize": 8,
+    "xtick.labelsize": 6,
+    "ytick.labelsize": 6
+}
+
+plt.rcParams.update(tex_fonts)
+
+from matplotlib.lines import Line2D
+legend_elements = [
+    Line2D([0], [0], marker='x', color='w', label='Synthetic Scemes', markersize=7, markeredgecolor='#0080bd', markeredgewidth=2),
+    Line2D([0], [0], marker='o', color='w', label='Real Scemes', markersize=9, markerfacecolor='#ff7500'), # 00b238
+]
+# Update scatter_plot function to accept an ax parameter
+def scatter_plot(ax, metric, marker_size=20):
+    # Scatter plot for synthetic data
+    ax.scatter(syn_df[metric], syn_df['MOS'], c='#0080bd', marker='x', s=marker_size, label='Synthetic Scemes')
+
+    # Scatter plot for real data
+    ax.scatter(tnt_df[metric], tnt_df['MOS'], c='#ff7500', marker='o', s=marker_size, label='Real Scemes')
+
+    # # Regression line for synthetic data (uncomment if needed)
+    # slope, intercept, r_value, p_value, std_err = stats.linregress(syn_df[metric], syn_df['MOS'])
+    # ax.plot(syn_df['MOS'], intercept + slope*syn_df['MOS'], 'r--', color='#0080bd')
+
+    # # Regression line for real data (uncomment if needed)
+    # slope, intercept, r_value, p_value, std_err = stats.linregress(tnt_df[metric], tnt_df['MOS'])
+    # ax.plot(tnt_df['MOS'], intercept + slope*tnt_df['MOS'], 'r--', color='#ff7500')
+
+    # Labeling the plot
+    ax.set_xlabel(metric)
+    ax.set_ylabel('MOS')
+    # ax.legend()
+
+# Create a 2x3 grid of subplots
+fig, axs = plt.subplots(2, 3, figsize=set_size(width, subplots=(2, 3)))
+
+# Flatten the array of axes to easily iterate over it
+axs = axs.flatten()
+
+# List of metrics to plot
+metrics = ['Ours', 'DISTS', 'PSNR', 'MS-SSIM', 'LPIPS (AlexNet)', 'LPIPS (VGG)']
+
+# Plot each metric on a separate subplot
+for ax, metric in zip(axs, metrics):
+    scatter_plot(ax, metric)
+
+# Adjust the layout to prevent overlapping
+plt.tight_layout()
+# Add the custom legend to the figure
+fig.legend(handles=legend_elements, loc='upper center', ncol=len(legend_elements), bbox_to_anchor=(0.5, 1.1))
+
+fig.savefig('scatter_mos.pdf', format='pdf', bbox_inches='tight')
+# Display the figure
+plt.show()
+#%%
 #%%
 corr = compute_correlations(syn_df['NeRF-DISTS'], syn_df['MOS'])
 print("syn NeRF-DISTS mos", corr)

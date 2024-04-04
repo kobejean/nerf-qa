@@ -55,7 +55,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=42, help='Random seed.')
     parser.add_argument('--lr', type=float, default=1e-5, help='Random seed.')
     parser.add_argument('--beta1', type=float, default=0.9, help='Random seed.')
-    parser.add_argument('--beta2', type=float, default=0.999, help='Random seed.')
+    parser.add_argument('--beta2', type=float, default=0.9995, help='Random seed.')
     parser.add_argument('--momentum', type=float, default=0.9, help='Random seed.')
     parser.add_argument('--momentum_decay', type=float, default=0.004, help='Random seed.')
     parser.add_argument('--eps', type=float, default=1e-7, help='Random seed.')
@@ -108,7 +108,7 @@ if __name__ == '__main__':
 
 
     #%%
-    exp_name=f"l1-bs:{config['batch_size']}-lr:{config['lr']:.0e}-b1:{config['beta1']:.2f}-b2:{config['beta2']:.3f}"
+    exp_name=f"l1-bs:{config['batch_size']}-lr:{config['lr']:.0e}-b1:{config['beta1']:.3f}-b2:{config['beta2']:.4f}"
 
     # Initialize wandb with the parsed arguments, further simplifying parameter names
     wandb.init(project='nerf-qa', name=exp_name, config=config)
