@@ -23,7 +23,7 @@ def linear_func(x, a, b):
 class ConvLayer(nn.Module):
     def __init__(self, in_chns, out_chns, activation_enabled=True):
         super(ConvLayer, self).__init__()
-        self.dropout = nn.Dropout2d(p=0.2)
+        self.dropout = nn.Dropout2d(p=0.5)
         self.conv = nn.Conv2d(in_chns, out_chns, kernel_size = 1, stride=1, padding='same', dilation=1, groups=1, bias=True)
         self.activation_enabled = activation_enabled
         if self.activation_enabled:
