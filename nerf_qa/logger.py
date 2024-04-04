@@ -106,6 +106,45 @@ class MetricCollectionLogger():
             'ktcc': ktcc,
         }
     
+    def video_metrics_df(self):
+        # Concatenate all collected metrics, video_ids, and scene_ids
+        metrics = {key: np.concatenate(self.metrics[key]) for key in self.metrics}
+        video_ids = np.concatenate(self.video_ids)
+        unique_videos = np.unique(video_ids)
+        keys = list(metrics.keys())
+
+        # Aggregate metrics by video_id
+        video_averages = {key: {} for key in keys}
+        for video_id in unique_videos:
+            mask = video_ids == video_id
+            for key in keys:
+                video_averages[key][video_id] = np.mean(metrics[key][mask])
+
+        if 'mse' in video_averages:
+            video_averages['rmse'] = {}
+            keys.append('rmse')
+            for video_id in unique_videos:
+                video_averages['rmse'][video_id] = np.sqrt(video_averages['mse'][video_id])
+
+        data = []
+        for key in video_averages.keys():
+            for video_id, avg in video_averages[key].items():
+                # Find if we already have this video_id in our list
+                video_entry = next((item for item in data if item['video_id'] == video_id), None)
+                if video_entry is None:
+                    # If not, create a new dictionary for this video_id
+                    video_entry = {'video_id': video_id}
+                    data.append(video_entry)
+                # Update this dictionary with the new metric
+                video_entry[key] = avg
+
+        # Convert the list of dictionaries to a DataFrame
+        df = pd.DataFrame(data)
+
+        # If you want 'video_id' to be the index
+        df.set_index('video_id', inplace=True)
+        return df
+          
 
     def log_summary(self, step):
         logs = {}

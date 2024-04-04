@@ -58,10 +58,10 @@ class NeRFQAModel(nn.Module):
             dists_scene_type_weight[idx] = params[0]
             dists_scene_type_bias[idx] = params[1]
 
-        dists_scene_type_weight_mean = dists_scene_type_weight.mean()
-        dists_scene_type_weight_std = dists_scene_type_weight.std()
-        dists_scene_type_bias_mean = dists_scene_type_bias.mean()
-        dists_scene_type_bias_std = dists_scene_type_bias.std()
+        # dists_scene_type_weight_mean = dists_scene_type_weight.mean()
+        # dists_scene_type_weight_std = dists_scene_type_weight.std()
+        # dists_scene_type_bias_mean = dists_scene_type_bias.mean()
+        # dists_scene_type_bias_std = dists_scene_type_bias.std()
         self.dists_scene_type_weight = nn.Parameter(dists_scene_type_weight)
         self.dists_scene_type_bias = nn.Parameter(dists_scene_type_bias)
 
@@ -80,13 +80,13 @@ class NeRFQAModel(nn.Module):
         self.dists_bias = nn.Parameter(torch.tensor([model.intercept_], dtype=torch.float32))
 
         self.scene_type_bias_weight = nn.Parameter(torch.tensor([wandb.config.init_scene_type_bias_weight], dtype=torch.float32))
-        N = 64
-        self.conv1 = ConvLayer(N, N, activation_enabled=True)
-        self.conv = ConvLayer(N, 2, activation_enabled=False)
-        self.conv.conv.weight.data[0].normal_(0, math.sqrt(2. / N) * dists_scene_type_weight_std * 0.1)
-        self.conv.conv.weight.data[1].normal_(0, math.sqrt(2. / N) * dists_scene_type_bias_std * 0.1)
-        self.conv.conv.bias.data[0] = dists_scene_type_weight_mean
-        self.conv.conv.bias.data[1] = dists_scene_type_bias_mean
+        # N = 64
+        # self.conv1 = ConvLayer(N, N, activation_enabled=True)
+        # self.conv = ConvLayer(N, 2, activation_enabled=False)
+        # self.conv.conv.weight.data[0].normal_(0, math.sqrt(2. / N) * dists_scene_type_weight_std * 0.1)
+        # self.conv.conv.weight.data[1].normal_(0, math.sqrt(2. / N) * dists_scene_type_bias_std * 0.1)
+        # self.conv.conv.bias.data[0] = dists_scene_type_weight_mean
+        # self.conv.conv.bias.data[1] = dists_scene_type_bias_mean
 
     def get_param_lr(self):
         linear_layer_params = [
@@ -96,17 +96,17 @@ class NeRFQAModel(nn.Module):
             self.dists_bias,
             self.scene_type_bias_weight
         ]
-        cnn_layer_params = [
-            self.conv.conv.weight,
-            self.conv.conv.bias,
-        ]
+        # cnn_layer_params = [
+        #     self.conv.conv.weight,
+        #     self.conv.conv.bias,
+        # ]
 
         # Collect the remaining parameters
-        # remaining_params = [param for param in self.parameters() if param not in linear_layer_params]
-        remaining_params = [param for param in self.parameters() if all(param is not p for p in (linear_layer_params + cnn_layer_params))]
+        remaining_params = [param for param in self.parameters() if all(param is not p for p in linear_layer_params)]
+        # remaining_params = [param for param in self.parameters() if all(param is not p for p in (linear_layer_params + cnn_layer_params))]
         return  [
             {'params': linear_layer_params, 'lr': wandb.config.linear_layer_lr },  # Set the learning rate for the 
-            {'params': cnn_layer_params, 'lr': wandb.config.cnn_layer_lr },  # Set the learning rate for the specific layer
+            # {'params': cnn_layer_params, 'lr': wandb.config.cnn_layer_lr },  # Set the learning rate for the specific layer
             {'params': remaining_params }  # Set the learning rate for the remaining parameters
         ]
 
@@ -142,14 +142,14 @@ class NeRFQAModel(nn.Module):
             feats0 = self.dists_model.forward_once(dist)
             feats1 = self.dists_model.forward_once(ref) 
         # dists_scores = self.dists_model(ref, dist, require_grad=False, batch_average=False)  # Returns a tensor of scores
-        complexity = self.conv1(feats1[1])
-        complexity = self.conv(complexity).mean([2,3])
-        complexity_weight = complexity[:,0]
-        complexity_bias = complexity[:,1]
+        # complexity = self.conv1(feats1[1])
+        # complexity = self.conv(complexity).mean([2,3])
+        # complexity_weight = complexity[:,0]
+        # complexity_bias = complexity[:,1]
         dists_scores = self.dists_model.forward_from_feats(feats0, feats1)
         
-        scores = dists_scores * complexity_weight + complexity_bias # linear function
-        # scores = dists_scores * self.dists_weight + self.dists_bias # linear function
+        # scores = dists_scores * complexity_weight + complexity_bias # linear function
+        scores = dists_scores * self.dists_weight + self.dists_bias # linear function
         return scores
 
 

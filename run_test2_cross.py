@@ -53,7 +53,7 @@ if __name__ == '__main__':
 
     # Basic configurations
     parser.add_argument('--seed', type=int, default=42, help='Random seed.')
-    parser.add_argument('--lr', type=float, default=1e-1, help='Random seed.')
+    parser.add_argument('--lr', type=float, default=1e-5, help='Random seed.')
     parser.add_argument('--beta1', type=float, default=0.9, help='Random seed.')
     parser.add_argument('--beta2', type=float, default=0.999, help='Random seed.')
     parser.add_argument('--momentum', type=float, default=0.9, help='Random seed.')
@@ -333,6 +333,10 @@ if __name__ == '__main__':
             }, video_ids=video_ids, scene_ids=scene_ids)
 
         # Log results
+        results_df = test_logger.video_metrics_df()
+        results_df.to_csv('results.csv')
         test_logger.log_summary(step)
+
+    torch.save(model, f'{exp_name}.pth')
 
     wandb.finish()
