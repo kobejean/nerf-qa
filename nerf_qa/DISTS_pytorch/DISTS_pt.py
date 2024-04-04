@@ -74,8 +74,8 @@ class DISTS(torch.nn.Module):
 
             # self.alpha.data = alpha_logits
             # self.beta.data = beta_logits
-            self.alpha.data = torch.clamp(alpha, min=1e-8)
-            self.beta.data = torch.clamp(beta, min=1e-8)
+            self.alpha.data = torch.clamp(alpha, min=1e-10)
+            self.beta.data = torch.clamp(beta, min=1e-10)
 
         
     def forward_once(self, x):
