@@ -116,7 +116,8 @@ class NeRFQAModel(nn.Module):
         for dist_batch, ref_batch in dataloader:
             ref_images = ref_batch.to(device)  # Assuming ref_batch[0] is the tensor of images
             dist_images = dist_batch.to(device)  # Assuming dist_batch[0] is the tensor of images
-            scores = self.dists_model(ref_images, dist_images, require_grad=False, batch_average=False)  # Returns a tensor of scores
+            with torch.no_grad():
+                scores = self.forward(ref_images, dist_images)  # Returns a tensor of scores
             
             # Collect scores tensors
             all_scores.append(scores)
@@ -132,14 +133,12 @@ class NeRFQAModel(nn.Module):
     def forward_dataloader(self, dataloader):
         raw_scores = self.compute_dists_with_batches(dataloader)
         
-        # Normalize raw scores using the trainable mean and std
-        normalized_scores = raw_scores * self.dists_weight + self.dists_bias
-        return normalized_scores
+        return raw_scores
 
     def forward(self, dist, ref, scene_type = None):
         with torch.no_grad():
-            feats0 = self.forward_once(dist)
-            feats1 = self.forward_once(ref) 
+            feats0 = self.dists_model.forward_once(dist)
+            feats1 = self.dists_model.forward_once(ref) 
         # dists_scores = self.dists_model(ref, dist, require_grad=False, batch_average=False)  # Returns a tensor of scores
         complexity = self.conv(feats1[1]).mean([2,3])
         complexity_weight = complexity[:,0]
