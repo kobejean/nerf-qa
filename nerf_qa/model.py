@@ -142,8 +142,8 @@ class NeRFQAModel(nn.Module):
             feats0 = self.dists_model.forward_once(dist)
             feats1 = self.dists_model.forward_once(ref) 
         # dists_scores = self.dists_model(ref, dist, require_grad=False, batch_average=False)  # Returns a tensor of scores
-        complexity = self.conv1(feats1[1]).mean([2,3])
-        complexity = self.conv(complexity)
+        complexity = self.conv1(feats1[1])
+        complexity = self.conv(complexity).mean([2,3])
         complexity_weight = complexity[:,0]
         complexity_bias = complexity[:,1]
         dists_scores = self.dists_model.forward_from_feats(feats0, feats1)
