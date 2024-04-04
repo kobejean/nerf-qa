@@ -123,8 +123,8 @@ class DISTS(torch.nn.Module):
         # alpha, beta = torch.split(w_softmax, self.alpha.shape[1], dim=1)
         # alpha = torch.split(alpha, self.chns, dim=1)
         # beta = torch.split(beta, self.chns, dim=1)
-        alpha = torch.abs(self.alpha)
-        beta = torch.abs(self.beta)
+        alpha = self.alpha
+        beta = self.beta
         w_sum = alpha.sum() + beta.sum()
         alpha = torch.split(alpha/w_sum, self.chns, dim=1)
         beta = torch.split(beta/w_sum, self.chns, dim=1)
