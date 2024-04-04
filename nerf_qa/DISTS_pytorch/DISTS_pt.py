@@ -64,18 +64,18 @@ class DISTS(torch.nn.Module):
 
             alpha = weights['alpha']
             beta = weights['beta']
-            # # Ensure alpha and beta are flattened and concatenated to form a single weight vector
-            # weights_concat = torch.cat([alpha, beta], dim=1)
-            # print("torch.min(weights_concat)", torch.min(weights_concat), torch.relu(torch.min(weights_concat)))
-            # #weights_concat = weights_concat + torch.relu(torch.min(weights_concat))
-            # logits_approx = torch.log(torch.clamp(weights_concat, min=0.0) + 1e-10)
-            # print(torch.max(torch.abs(torch.softmax(logits_approx, dim=1) - weights_concat)))
-            # alpha_logits, beta_logits = torch.split(logits_approx, [alpha.numel(), beta.numel()], dim=1)
+            # Ensure alpha and beta are flattened and concatenated to form a single weight vector
+            weights_concat = torch.cat([alpha, beta], dim=1)
+            print("torch.min(weights_concat)", torch.min(weights_concat), torch.relu(torch.min(weights_concat)))
+            #weights_concat = weights_concat + torch.relu(torch.min(weights_concat))
+            logits_approx = torch.log(torch.clamp(weights_concat, min=0.0) + 1e-10)
+            print(torch.max(torch.abs(torch.softmax(logits_approx, dim=1) - weights_concat)))
+            alpha_logits, beta_logits = torch.split(logits_approx, [alpha.numel(), beta.numel()], dim=1)
 
-            # self.alpha.data = alpha_logits
-            # self.beta.data = beta_logits
-            self.alpha.data = torch.clamp(alpha, min=1e-10)
-            self.beta.data = torch.clamp(beta, min=1e-10)
+            self.alpha.data = alpha_logits
+            self.beta.data = beta_logits
+            # self.alpha.data = torch.clamp(alpha, min=1e-10)
+            # self.beta.data = torch.clamp(beta, min=1e-10)
 
         
     def forward_once(self, x):
