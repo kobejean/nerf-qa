@@ -80,9 +80,11 @@ class NeRFQAModel(nn.Module):
         self.dists_bias = nn.Parameter(torch.tensor([model.intercept_], dtype=torch.float32))
 
         self.scene_type_bias_weight = nn.Parameter(torch.tensor([wandb.config.init_scene_type_bias_weight], dtype=torch.float32))
-        self.conv = ConvLayer(64, 2, activation_enabled=False)
-        self.conv.conv.weight.data[0].normal_(0, math.sqrt(2. / 64.) * dists_scene_type_weight_std)
-        self.conv.conv.weight.data[1].normal_(0, math.sqrt(2. / 64.) * dists_scene_type_bias_std)
+        N = 64
+        self.conv1 = ConvLayer(N, N, activation_enabled=True)
+        self.conv = ConvLayer(N, 2, activation_enabled=False)
+        self.conv.conv.weight.data[0].normal_(0, math.sqrt(2. / N) * dists_scene_type_weight_std / 4.0)
+        self.conv.conv.weight.data[1].normal_(0, math.sqrt(2. / N) * dists_scene_type_bias_std / 4.0)
         self.conv.conv.bias.data[0] = dists_scene_type_weight_mean
         self.conv.conv.bias.data[1] = dists_scene_type_bias_mean
 
@@ -140,7 +142,8 @@ class NeRFQAModel(nn.Module):
             feats0 = self.dists_model.forward_once(dist)
             feats1 = self.dists_model.forward_once(ref) 
         # dists_scores = self.dists_model(ref, dist, require_grad=False, batch_average=False)  # Returns a tensor of scores
-        complexity = self.conv(feats1[1]).mean([2,3])
+        complexity = self.conv1(feats1[1]).mean([2,3])
+        complexity = self.conv(complexity)
         complexity_weight = complexity[:,0]
         complexity_bias = complexity[:,1]
         dists_scores = self.dists_model.forward_from_feats(feats0, feats1)
