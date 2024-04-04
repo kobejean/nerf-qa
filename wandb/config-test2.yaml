@@ -13,8 +13,8 @@ parameters:
     q: 1e-7
   linear_layer_lr:
     distribution: q_log_uniform_values
-    min: 1e-6
-    max: 1e-4
+    min: 1e-10
+    max: 1e-6
     q: 1e-7
     # value: 5e-4
   # scene_type_bias_weight_loss_coef:

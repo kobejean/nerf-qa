@@ -116,11 +116,16 @@ class DISTS(torch.nn.Module):
         c1 = 1e-6
         c2 = 1e-6
         
-        w_concat = torch.cat([self.alpha, self.beta], dim=1)
-        w_softmax = torch.softmax(w_concat, dim=1)
-        alpha, beta = torch.split(w_softmax, self.alpha.shape[1], dim=1)
-        alpha = torch.split(alpha, self.chns, dim=1)
-        beta = torch.split(beta, self.chns, dim=1)
+        # w_concat = torch.cat([self.alpha, self.beta], dim=1)
+        # w_softmax = torch.softmax(w_concat, dim=1)
+        # alpha, beta = torch.split(w_softmax, self.alpha.shape[1], dim=1)
+        # alpha = torch.split(alpha, self.chns, dim=1)
+        # beta = torch.split(beta, self.chns, dim=1)
+        alpha = torch.abs(self.alpha)
+        beta = torch.abs(self.beta)
+        w_sum = alpha.sum() + beta.sum()
+        alpha = torch.split(alpha/w_sum, self.chns, dim=1)
+        beta = torch.split(beta/w_sum, self.chns, dim=1)
         for k in range(len(self.chns)):
             if warp is None or certainty is None:
                 x_mean = feats0[k].mean([2,3], keepdim=True)
