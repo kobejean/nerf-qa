@@ -291,7 +291,7 @@ if __name__ == '__main__':
 
             # Load scores
             # scene_type = train_df['scene_type'].iloc[i.numpy()].values
-            predicted_score = model(dist.to(device),ref.to(device), scene_type=None)
+            predicted_score = model(dist.to(device),ref.to(device))
             target_score = score.to(device).float()
             
             # Compute loss
