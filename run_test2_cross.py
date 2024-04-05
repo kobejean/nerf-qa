@@ -64,6 +64,7 @@ if __name__ == '__main__':
     parser.add_argument('--init_scene_type_bias_weight', type=float, default=0.5, help='Random seed.')
     parser.add_argument('--scene_type_bias_weight_loss_coef', type=float, default=0.1, help='Random seed.')
     parser.add_argument('--optimizer', type=str, default='adam', help='Random seed.')
+    parser.add_argument('--gamma', type=float, default=0.95, help='Random seed.')
 
     # Parse arguments
     args = parser.parse_args()
@@ -148,6 +149,8 @@ if __name__ == '__main__':
             betas=(config.beta1, config.beta2),
             eps=config.eps
         )
+        scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
+    
 
 
         # Training loop
@@ -186,7 +189,7 @@ if __name__ == '__main__':
                 
                 # Update parameters every batches_per_step steps or on the last iteration
                 optimizer.step()
-
+            scheduler.step()
             if (epoch+1) % 10 == 0:
                 # Validation step
                 model.eval()  # Set model to evaluation mode
@@ -279,6 +282,7 @@ if __name__ == '__main__':
         betas=(config.beta1, config.beta2),
         eps=config.eps
     )
+    scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
     
     for epoch in range(wandb.config.epochs):
         print(f"Epoch {epoch+1}/{wandb.config.epochs}")
@@ -318,6 +322,7 @@ if __name__ == '__main__':
             
             # Update parameters every batches_per_step steps or on the last iteration
             optimizer.step()
+        scheduler.step()
 
     # Test step
     model.eval()  # Set model to evaluation mode
