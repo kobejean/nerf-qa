@@ -64,6 +64,7 @@ if __name__ == '__main__':
     parser.add_argument('--init_scene_type_bias_weight', type=float, default=0.5, help='Random seed.')
     parser.add_argument('--scene_type_bias_weight_loss_coef', type=float, default=0.1, help='Random seed.')
     parser.add_argument('--optimizer', type=str, default='adam', help='Random seed.')
+    parser.add_argument('--project_weights', type=str, default='True', help='Random seed.')
     parser.add_argument('--gamma', type=float, default=0.95, help='Random seed.')
 
     # Parse arguments
@@ -189,6 +190,8 @@ if __name__ == '__main__':
                 
                 # Update parameters every batches_per_step steps or on the last iteration
                 optimizer.step()
+                if config.project_weights == 'True':
+                    model.dists_model.project_weights()
             scheduler.step()
             if (epoch+1) % 10 == 0:
                 # Validation step
@@ -322,6 +325,8 @@ if __name__ == '__main__':
             
             # Update parameters every batches_per_step steps or on the last iteration
             optimizer.step()
+            if config.project_weights == 'True':
+                model.dists_model.project_weights()
         scheduler.step()
 
     # Test step

@@ -11,26 +11,6 @@ parameters:
     min: 5e-6
     max: 1e-3
     q: 1e-7
-  # linear_layer_lr:
-  #   distribution: q_log_uniform_values
-  #   min: 2e-4
-  #   max: 1e-3
-  #   q: 1e-7
-  # cnn_layer_lr:
-  #   distribution: q_log_uniform_values
-  #   min: 2e-4
-  #   max: 1e-2
-  #   q: 1e-7
-    # value: 5e-4
-  # scene_type_bias_weight_loss_coef:
-  #   distribution: uniform
-  #   min: 0.00
-  #   max: 1.0
-  init_scene_type_bias_weight:
-    value: 0.5
-    # distribution: uniform
-    # min: 0.00
-    # max: 0.5
   eps:
     distribution: q_log_uniform_values
     min: 1e-10
@@ -51,6 +31,8 @@ parameters:
     distribution: uniform
     min: 0.80
     max: 1.0
+  project_weights:
+    values: ['True', 'False']
   optimizer:
     value: 'adam' #: ['nadam', 'adam', 'sgd', 'sgd_momentum']
 

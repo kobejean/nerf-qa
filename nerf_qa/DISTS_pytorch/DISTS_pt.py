@@ -79,6 +79,14 @@ class DISTS(torch.nn.Module):
             self.alpha.data = weights['alpha']
             self.beta.data = weights['beta']
 
+    def project_weights(self):
+        lower_bound = torch.zeros_like(self.alpha.data)
+        lower_bound[:,:3,:,:] = 0.02
+        alpha = torch.max(self.alpha.data, lower_bound)
+        beta = torch.max(self.beta.data, lower_bound)
+        weight_sum = torch.cat([alpha, beta], dim=1).sum()
+        self.alpha.data = alpha / weight_sum
+        self.beta.data = beta / weight_sum
         
     def forward_once(self, x):
         h = (x-self.mean)/self.std
