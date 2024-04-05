@@ -40,13 +40,13 @@ parameters:
   beta1:
     # value: 0.9
     distribution: uniform
-    min: 0.9
+    min: 0.85
     max: 0.95
   beta2:
     # value: 0.999
     distribution: uniform
-    min: 0.999
-    max: 0.9995
+    min: 0.9985
+    max: 0.9999
   optimizer:
     value: 'adam' #: ['nadam', 'adam', 'sgd', 'sgd_momentum']
 

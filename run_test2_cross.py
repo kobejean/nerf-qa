@@ -263,7 +263,7 @@ if __name__ == '__main__':
     del train_dataloader
     del val_dataloader
     train_df = scores_df
-    train_dataloader = create_test2_dataloader(train_df, dir=DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=True)
+    train_dataloader = create_test2_dataloader(train_df, dir=DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=False)
     train_size = len(train_dataloader)
 
     test_df = pd.read_csv(TEST_SCORE_FILE)

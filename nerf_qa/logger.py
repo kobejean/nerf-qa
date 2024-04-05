@@ -269,7 +269,8 @@ class MetricCollectionLogger():
                     if save_last:
                         self.last_correlations = correlations
                         self.last_scene_min = scene_min
-                        self.last_mse = np.mean(video_averages['mse'])
+                        video_mse = [video_averages['mse'][vid] for vid in unique_videos]
+                        self.last_mse = np.mean(video_mse)
 
             # Prepare video_pred_scores for correlation calculation
             video_pred_scores = video_averages['pred_score']
