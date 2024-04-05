@@ -69,10 +69,10 @@ from scipy import stats
 width = 469.0
 
 def set_size(width, fraction=1, subplots=(1, 1)):
-    if width == 'thesis':
-        width_pt = 426.79135
-    elif width == 'beamer':
-        width_pt = 307.28987
+    if width == 'width':
+        width_pt = 469.75502
+    elif width == 'column':
+        width_pt = 229.8775
     else:
         width_pt = width
 
@@ -155,6 +155,66 @@ fig.savefig('scatter_mos.pdf', format='pdf', bbox_inches='tight')
 # Display the figure
 plt.show()
 #%%
+tex_fonts = {
+    # Use LaTeX to write all text
+    "text.usetex": True,
+    "font.family": "serif",
+    # Use 10pt font in plots, to match 10pt font in document
+    "axes.labelsize": 8,
+    "font.size": 8,
+    # Make the legend/label fonts a little smaller
+    "legend.fontsize": 8,
+    "xtick.labelsize": 6,
+    "ytick.labelsize": 6
+}
+
+plt.rcParams.update(tex_fonts)
+
+X = test_df['DISTS'].values.reshape(-1, 1)
+Y = test_df['MOS'].values
+A = np.vstack([X.T, np.ones(len(X))]).T
+m, c = np.linalg.lstsq(A, Y, rcond=None)[0]
+
+plt.figure(figsize=set_size(90))
+
+# Plotting scatter points
+plt.scatter(test_df['DISTS'], test_df['MOS'], marker='o', s=5, color='#0080bd')
+
+# Plotting regression line
+x_vals = np.array(plt.xlim())
+y_vals = m * x_vals + c
+plt.plot(x_vals, y_vals, color='#E54B4B')
+
+# Customizing the plot
+plt.gca().spines['top'].set_visible(False)
+plt.gca().spines['right'].set_visible(False)
+plt.gca().spines['bottom'].set_visible(True)
+plt.gca().spines['left'].set_visible(True)
+
+plt.tick_params(
+    axis='both',          # changes apply to the both axes
+    which='both',      # both major and minor ticks are affected
+    # bottom=False,      # ticks along the bottom edge are off
+    # top=False,         # ticks along the top edge are off
+    # labelbottom=True, # labels along the bottom edge are off
+    # left=False,        # ticks along the left edge are off
+    # right=False,       # ticks along the right edge are off
+    # labelleft=True    # labels along the left edge are off
+    bottom=False,      # ticks along the bottom edge are off
+    top=False,         # ticks along the top edge are off
+    labelbottom=False, # no labels along the bottom edge
+    left=False,        # ticks along the left edge are off
+    right=False,       # ticks along the right edge are off
+    labelleft=False    # no labels along the left edge
+)
+
+
+plt.xlabel('DISTS')
+plt.ylabel('MOS')
+
+plt.savefig('linear_regression.pdf', format='pdf', bbox_inches='tight')
+
+plt.show()
 #%%
 corr = compute_correlations(syn_df['NeRF-DISTS'], syn_df['MOS'])
 print("syn NeRF-DISTS mos", corr)
@@ -316,4 +376,6 @@ df_corr
 # %%
 df_corr.to_csv('correlations.csv')
 
+# %%
+set_size(90)
 # %%

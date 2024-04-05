@@ -42,28 +42,28 @@ class NeRFQAModel(nn.Module):
         # Reshape data (scikit-learn expects X to be a 2D array)
         # X = train_df['DISTS_no_resize'].values.reshape(-1, 1)  # Predictor
 
-        unique_groups = train_df['scene_type'].unique()
-        self.scene_type_to_idx = {group: i for i, group in enumerate(unique_groups)}
-        self.num_scene_types = len(unique_groups)
+        # unique_groups = train_df['scene_type'].unique()
+        # self.scene_type_to_idx = {group: i for i, group in enumerate(unique_groups)}
+        # self.num_scene_types = len(unique_groups)
 
-        dists_scene_type_weight = torch.zeros(self.num_scene_types)
-        dists_scene_type_bias = torch.zeros(self.num_scene_types)
+        # dists_scene_type_weight = torch.zeros(self.num_scene_types)
+        # dists_scene_type_bias = torch.zeros(self.num_scene_types)
 
-        for group in unique_groups:
-            group_df = train_df[train_df['scene_type'] == group]
-            group_x = group_df['DISTS']
-            group_y = group_df['MOS']
-            params, _ = curve_fit(linear_func, group_x, group_y)
-            idx = self.scene_type_to_idx[group]
-            dists_scene_type_weight[idx] = params[0]
-            dists_scene_type_bias[idx] = params[1]
+        # for group in unique_groups:
+        #     group_df = train_df[train_df['scene_type'] == group]
+        #     group_x = group_df['DISTS']
+        #     group_y = group_df['MOS']
+        #     params, _ = curve_fit(linear_func, group_x, group_y)
+        #     idx = self.scene_type_to_idx[group]
+        #     dists_scene_type_weight[idx] = params[0]
+        #     dists_scene_type_bias[idx] = params[1]
 
         # dists_scene_type_weight_mean = dists_scene_type_weight.mean()
         # dists_scene_type_weight_std = dists_scene_type_weight.std()
         # dists_scene_type_bias_mean = dists_scene_type_bias.mean()
         # dists_scene_type_bias_std = dists_scene_type_bias.std()
-        self.dists_scene_type_weight = nn.Parameter(dists_scene_type_weight)
-        self.dists_scene_type_bias = nn.Parameter(dists_scene_type_bias)
+        # self.dists_scene_type_weight = nn.Parameter(dists_scene_type_weight)
+        # self.dists_scene_type_bias = nn.Parameter(dists_scene_type_bias)
 
         X = train_df['DISTS'].values.reshape(-1, 1)  # Predictor
         y = train_df['MOS'].values  # Response
@@ -79,7 +79,7 @@ class NeRFQAModel(nn.Module):
         self.dists_weight = nn.Parameter(torch.tensor([model.coef_[0]], dtype=torch.float32))
         self.dists_bias = nn.Parameter(torch.tensor([model.intercept_], dtype=torch.float32))
 
-        self.scene_type_bias_weight = nn.Parameter(torch.tensor([wandb.config.init_scene_type_bias_weight], dtype=torch.float32))
+        # self.scene_type_bias_weight = nn.Parameter(torch.tensor([wandb.config.init_scene_type_bias_weight], dtype=torch.float32))
         # N = 64
         # self.conv1 = ConvLayer(N, N, activation_enabled=True)
         # self.conv = ConvLayer(N, 2, activation_enabled=False)
@@ -90,11 +90,11 @@ class NeRFQAModel(nn.Module):
 
     def get_param_lr(self):
         linear_layer_params = [
-            self.dists_scene_type_weight,
-            self.dists_scene_type_bias,
+            # self.dists_scene_type_weight,
+            # self.dists_scene_type_bias,
             self.dists_weight,
             self.dists_bias,
-            self.scene_type_bias_weight
+            # self.scene_type_bias_weight
         ]
         # cnn_layer_params = [
         #     self.conv.conv.weight,
@@ -105,7 +105,7 @@ class NeRFQAModel(nn.Module):
         remaining_params = [param for param in self.parameters() if all(param is not p for p in linear_layer_params)]
         # remaining_params = [param for param in self.parameters() if all(param is not p for p in (linear_layer_params + cnn_layer_params))]
         return  [
-            {'params': linear_layer_params, 'lr': wandb.config.linear_layer_lr },  # Set the learning rate for the 
+            {'params': linear_layer_params, 'lr': wandb.config.lr },  # Set the learning rate for the 
             # {'params': cnn_layer_params, 'lr': wandb.config.cnn_layer_lr },  # Set the learning rate for the specific layer
             {'params': remaining_params }  # Set the learning rate for the remaining parameters
         ]
@@ -137,18 +137,11 @@ class NeRFQAModel(nn.Module):
         
         return raw_scores
 
-    def forward(self, dist, ref, scene_type = None):
+    def forward(self, dist, ref):
         with torch.no_grad():
             feats0 = self.dists_model.forward_once(dist)
             feats1 = self.dists_model.forward_once(ref) 
-        # dists_scores = self.dists_model(ref, dist, require_grad=False, batch_average=False)  # Returns a tensor of scores
-        # complexity = self.conv1(feats1[1])
-        # complexity = self.conv(complexity).mean([2,3])
-        # complexity_weight = complexity[:,0]
-        # complexity_bias = complexity[:,1]
         dists_scores = self.dists_model.forward_from_feats(feats0, feats1)
-        
-        # scores = dists_scores * complexity_weight + complexity_bias # linear function
         scores = dists_scores * self.dists_weight + self.dists_bias # linear function
         return scores
 
