@@ -220,7 +220,7 @@ if __name__ == '__main__':
                     }, step=step)
         
         cv_correlations.append(val_logger.last_correlations)
-        cv_scene_mins.append(val_logger.last_scene_mse)
+        cv_scene_mins.append(val_logger.last_scene_min)
         cv_last_mses.append(val_logger.last_mse)
 
     cv_correlations_concat = {}
