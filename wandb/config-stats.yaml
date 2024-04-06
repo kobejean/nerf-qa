@@ -1,0 +1,45 @@
+program: run_test2_sf.py
+metric:
+  name: Cross-Val Metrics Dict/mean_mse
+  goal: minimize
+
+method: bayes
+parameters:
+  lr:
+    # value: 1e-5
+    distribution: q_log_uniform_values
+    min: 1e-6
+    max: 5e-5
+    q: 1e-7
+  eps:
+    distribution: q_log_uniform_values
+    min: 1e-10
+    max: 1e-5
+    q: 1e-10
+    # value: 1e-7
+  beta1:
+    # value: 0.9
+    distribution: uniform
+    min: 0.8
+    max: 0.95
+  beta2:
+    # value: 0.999
+    distribution: uniform
+    min: 0.9985
+    max: 0.99999
+  warmup_steps:
+    values: [32, 128, 192, 256]
+  # gamma:
+  #   distribution: uniform
+  #   min: 0.80
+  #   max: 1.0
+  project_weights:
+    value: 'False'
+  optimizer:
+    value: 'sf_adamw' #: ['nadam', 'adam', 'sgd', 'sgd_momentum']
+
+command:
+- ${env}
+- ${interpreter}
+- ${program}
+- ${args}
