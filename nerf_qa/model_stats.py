@@ -25,12 +25,13 @@ class NeRFQAModel(nn.Module):
     def __init__(self, train_df):
         super(NeRFQAModel, self).__init__()
 
-        X = np.transpose(np.concatenate([
+        X = np.transpose(np.stack([
             train_df['DISTS'].values,
             train_df['DISTS_std'].values,
             train_df['DISTS_min'].values,
             train_df['DISTS_max'].values,
         ]))
+        print("X.shape", X.shape)
         y = train_df['MOS'].values  # Response
 
         # Create a linear regression model to initialize linear layer
