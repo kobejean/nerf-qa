@@ -366,7 +366,7 @@ def get_correlations(col, syn_df, tnt_df, test_df):
 
 
 # List of metrics to compute correlations for
-metrics = ['Ours', 'DISTS', 'Contrique', 'GMSD', 'MS-SSIM', 'PSNR', 'LPIPS (AlexNet)', 'LPIPS (VGG)', 'WaDiQa', 'SSIM', 'CompressVQA', 'FVVHD']
+metrics = ['Ours', 'DISTS', 'Contrique', 'GMSD', 'MS-SSIM', 'PSNR', 'LPIPS (AlexNet)', 'LPIPS (VGG)', 'WaDiQaM', 'SSIM', 'CompressVQA', 'FVVHD']
 data = []
 
 # Assuming syn_df, tnt_df, and test_df are your DataFrames with the data

@@ -27,6 +27,8 @@ parameters:
     distribution: uniform
     min: 0.9985
     max: 0.99999
+  warmup_steps:
+    values: [0, 8, 32, 128]
   # gamma:
   #   distribution: uniform
   #   min: 0.80
