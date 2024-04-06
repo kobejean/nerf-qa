@@ -155,7 +155,8 @@ if __name__ == '__main__':
         optimizer = schedulefree.AdamWScheduleFree(model.parameters(),                
             lr=config.lr,
             betas=(config.beta1, config.beta2),
-            eps=config.eps
+            eps=config.eps,
+            warmup_steps=config.warmup_steps,
         )
         # scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
     

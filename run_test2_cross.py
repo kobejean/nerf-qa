@@ -66,6 +66,7 @@ if __name__ == '__main__':
     parser.add_argument('--optimizer', type=str, default='adam', help='Random seed.')
     parser.add_argument('--project_weights', type=str, default='True', help='Random seed.')
     parser.add_argument('--gamma', type=float, default=0.95, help='Random seed.')
+    parser.add_argument('--warmup_steps', type=int, default=0, help='Random seed.')
 
     # Parse arguments
     args = parser.parse_args()
@@ -142,16 +143,18 @@ if __name__ == '__main__':
         train_size = len(train_dataloader)
         val_size = len(val_dataloader)
 
+        batch_step = 0
 
         # Reset model and optimizer for each fold (if you want to start fresh for each fold)
         model = NeRFQAModel(train_df=train_df).to(device)
         optimizer = optim.Adam(model.get_param_lr(),
             lr=config.lr,
             betas=(config.beta1, config.beta2),
-            eps=config.eps
+            eps=config.eps,
+            warmup_steps=config.warmup_steps,
         )
-        scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
-    
+        # scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.epochs - config.warmup_steps/train_size, eta_min=0, last_epoch=-1)
 
 
         # Training loop
@@ -161,7 +164,13 @@ if __name__ == '__main__':
             # Train step
             model.train()  # Set model to training mode
 
-            for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."):  # Start index from 1 for easier modulus operation            
+            for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."):  # Start index from 1 for easier modulus operation 
+                if batch_step < config.warmup_steps:
+                    warmup_lr = config.lr + batch_step * (config.lr - config.lr * 1e-4) / config.warmup_steps
+                    for param_group in optimizer.param_groups:
+                        param_group['lr'] = warmup_lr  
+                elif batch_step == config.warmup_steps:
+                    scheduler.last_epoch = epoch - 1          
                 optimizer.zero_grad()  # Zero the gradients after updating
 
                 # Load scores
@@ -171,6 +180,7 @@ if __name__ == '__main__':
                 # Compute loss
                 loss = loss_fn(predicted_score, target_score)
                 step += score.shape[0]
+                batch_step += 1
 
                 # Store metrics in logger
                 scene_ids =  train_df['scene'].iloc[i.numpy()].values
@@ -285,15 +295,24 @@ if __name__ == '__main__':
         betas=(config.beta1, config.beta2),
         eps=config.eps
     )
-    scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
-    
+    # scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.epochs - config.warmup_steps/train_size, eta_min=0, last_epoch=-1)
+
+    batch_step = 0
+
     for epoch in range(wandb.config.epochs):
         print(f"Epoch {epoch+1}/{wandb.config.epochs}")
 
         # Train step
         model.train()  # Set model to training mode
 
-        for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."):  # Start index from 1 for easier modulus operation            
+        for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."):  # Start index from 1 for easier modulus operation   
+            if batch_step < config.warmup_steps:
+                warmup_lr = config.lr + batch_step * (config.lr - config.lr * 1e-4) / config.warmup_steps
+                for param_group in optimizer.param_groups:
+                    param_group['lr'] = warmup_lr  
+            elif batch_step == config.warmup_steps:
+                scheduler.last_epoch = epoch - 1          
             optimizer.zero_grad()  # Zero the gradients after updating
 
             # Load scores
@@ -304,6 +323,7 @@ if __name__ == '__main__':
             # Compute loss
             loss = loss_fn(predicted_score, target_score)
             step += score.shape[0]
+            batch_step += 1
 
             # Store metrics in logger
             scene_ids =  train_df['scene'].iloc[i.numpy()].values
