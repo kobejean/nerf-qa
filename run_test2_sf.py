@@ -151,7 +151,11 @@ if __name__ == '__main__':
         #     betas=(config.beta1, config.beta2),
         #     eps=config.eps
         # )
-        optimizer = schedulefree.AdamWScheduleFree(model.parameters(), lr=config.lr)
+        optimizer = schedulefree.AdamWScheduleFree(model.parameters(),                
+            lr=config.lr,
+            betas=(config.beta1, config.beta2),
+            eps=config.eps
+        )
         # scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
     
 
@@ -289,7 +293,11 @@ if __name__ == '__main__':
     #     betas=(config.beta1, config.beta2),
     #     eps=config.eps
     # )
-    optimizer = schedulefree.AdamWScheduleFree(model.parameters(), lr=config.lr)
+    optimizer = schedulefree.AdamWScheduleFree(model.parameters(),                
+        lr=config.lr,
+        betas=(config.beta1, config.beta2),
+        eps=config.eps
+    )
     # scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
     
     for epoch in range(wandb.config.epochs):
