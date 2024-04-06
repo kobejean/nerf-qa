@@ -67,8 +67,8 @@ class NeRFQAModel(nn.Module):
         if all_scores_tensor.numel() > 0:
             score_mean = torch.mean(all_scores_tensor, dim=0, keepdim=True)
             score_std = torch.mean(all_scores_tensor, dim=0, keepdim=True)
-            score_min = torch.min(all_scores_tensor, dim=0, keepdim=True)
-            score_max = torch.max(all_scores_tensor, dim=0, keepdim=True)
+            score_min, _ = torch.min(all_scores_tensor, dim=0, keepdim=True)
+            score_max, _ = torch.max(all_scores_tensor, dim=0, keepdim=True)
         else:
             score_mean = all_scores_tensor
             score_std = torch.zeros_like(score_mean)
