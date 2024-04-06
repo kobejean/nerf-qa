@@ -1,0 +1,25 @@
+\begin{table*}[ht]
+\centering
+\begin{tabularx}{\textwidth}{l|X@{}X@{}X|X@{}X@{}X|X@{}X@{}X}
+\hline \hline
+& \multicolumn{3}{c|}{Synthetic} & \multicolumn{3}{c|}{Real} & \multicolumn{3}{c}{Combined} \\
+\hline
+\textbf{METRICS} & PLCC & SRCC & KTCC & PLCC & SRCC & KTCC & PLCC & SRCC & KTCC \\
+\hline
+Ours&0.8772 \goldmedal&0.8296 \silvermedal&0.6594 \silvermedal&0.9035 \silvermedal&0.9029 \silvermedal&0.7500 \silvermedal&0.8806 \goldmedal&0.8296 \silvermedal&0.6594 \silvermedal \\
+DISTS&0.8521 \silvermedal&0.7670&0.5870&0.8424 \bronzemedal&0.8706 \bronzemedal&0.7000 \bronzemedal&0.7897 \silvermedal&0.7670&0.5870 \\
+Contrique&0.6375&0.3904&0.2899&0.9157 \goldmedal&0.9088 \goldmedal&0.7667 \goldmedal&0.6951 \bronzemedal&0.3904&0.2899 \\
+GMSD&0.7605&0.7843&0.6014&0.2934&0.4147&0.3000&0.5537&0.7843&0.6014 \\
+MS-SSIM&0.6139&0.5722&0.4203&0.1325&0.2529&0.1500&0.3522&0.5722&0.4203 \\
+PSNR&0.5524&0.4913&0.3551&0.0694&0.1765&0.1000&0.3859&0.4913&0.3551 \\
+LPIPS (AlexNet)&0.6237&0.6052&0.4420&0.7002&0.7088&0.5167&0.4699&0.6052&0.4420 \\
+LPIPS (VGG)&0.3953&0.3226&0.2174&0.5999&0.6324&0.4333&0.3952&0.3226&0.2174 \\
+WaDiQa&0.8482 \bronzemedal&0.9017 \goldmedal&0.7536 \goldmedal&0.8328&0.8559&0.6667&0.5439&0.9017 \goldmedal&0.7536 \goldmedal \\
+SSIM&0.6356&0.6409&0.4710&0.1554&0.2235&0.1500&0.3476&0.6409&0.4710 \\
+CompressVQA&0.8280&0.8017 \bronzemedal&0.6304 \bronzemedal&0.5756&0.6382&0.4667&0.6882&0.8017 \bronzemedal&0.6304 \bronzemedal \\
+FVVHD&0.6683&0.6409&0.4928&0.1942&0.2575&0.1925&0.4638&0.6409&0.4928 \\
+\hline \hline
+\end{tabularx}
+\caption{Correlation results between quality assessment metrics and MOS.}
+\label{table:combined_mos_correlations}
+\end{table*}

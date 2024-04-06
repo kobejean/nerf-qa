@@ -45,6 +45,9 @@ test_df = test_df.rename(columns={
     'MS-SSIM_Score': 'MS-SSIM',
     'LPIPS_Score': 'LPIPS (AlexNet)',
     'LPIPS_Score_vgg': 'LPIPS (VGG)',
+    'WaDiQa_score': 'WaDiQa',
+    'WaDiQaM_score': 'WaDiQaM',
+    'Contrique_score': 'Contrique'
 })
 test_df['Ours'] = test_df['NeRF-DISTS'] 
 
@@ -134,13 +137,13 @@ def scatter_plot(ax, metric, marker_size=20):
     # ax.legend()
 
 # Create a 2x3 grid of subplots
-fig, axs = plt.subplots(2, 3, figsize=set_size(width, subplots=(2, 3)))
+fig, axs = plt.subplots(4, 3, figsize=set_size(width, subplots=(4, 3)))
 
 # Flatten the array of axes to easily iterate over it
 axs = axs.flatten()
 
 # List of metrics to plot
-metrics = ['Ours', 'DISTS', 'PSNR', 'MS-SSIM', 'LPIPS (AlexNet)', 'LPIPS (VGG)']
+metrics = ['Ours', 'DISTS', 'Contrique', 'FVVHD', 'GMSD', 'MS-SSIM', 'PSNR', 'LPIPS (AlexNet)', 'LPIPS (VGG)', 'WaDiQa', 'CompressVQA', 'SSIM']
 
 # Plot each metric on a separate subplot
 for ax, metric in zip(axs, metrics):
@@ -149,11 +152,14 @@ for ax, metric in zip(axs, metrics):
 # Adjust the layout to prevent overlapping
 plt.tight_layout()
 # Add the custom legend to the figure
-fig.legend(handles=legend_elements, loc='upper center', ncol=len(legend_elements), bbox_to_anchor=(0.5, 1.1))
+fig.legend(handles=legend_elements, loc='upper center', ncol=len(legend_elements), bbox_to_anchor=(0.5, 1.05))
 
 fig.savefig('scatter_mos.pdf', format='pdf', bbox_inches='tight')
 # Display the figure
 plt.show()
+
+#%%
+
 #%%
 tex_fonts = {
     # Use LaTeX to write all text
@@ -360,7 +366,7 @@ def get_correlations(col, syn_df, tnt_df, test_df):
 
 
 # List of metrics to compute correlations for
-metrics = ['FVVHD', 'Contrique_score', 'WaDiQaM_score', 'SSIM', 'GMSD', 'MS-SSIM_Score', 'PSNR_Score', 'LPIPS_Score', 'DISTS', 'LPIPS_Score_vgg', 'WaDiQa_score', 'CompressVQA']
+metrics = ['Ours', 'DISTS', 'Contrique', 'GMSD', 'MS-SSIM', 'PSNR', 'LPIPS (AlexNet)', 'LPIPS (VGG)', 'WaDiQa', 'SSIM', 'CompressVQA', 'FVVHD']
 data = []
 
 # Assuming syn_df, tnt_df, and test_df are your DataFrames with the data
@@ -371,10 +377,69 @@ for metric in metrics:
 
 # Creating the DataFrame
 df_corr = pd.DataFrame(data)
-df_corr = df_corr.set_index('Metric')
+# df_corr = df_corr.set_index('Metric')
+# df_corr
+#%%
 df_corr
 # %%
-df_corr.to_csv('correlations.csv')
+columns_of_interest = ['Metric', 'syn mos plcc', 'syn mos srcc', 'syn mos ktcc', 'tnt mos plcc', 'tnt mos srcc', 'tnt mos ktcc', 'all mos plcc', 'all mos srcc', 'all mos ktcc']
+data_subset = df_corr[columns_of_interest]
+# Rename the columns to fit LaTeX table format
+# data_subset.columns = ['Metric', 'PLCC', 'SRCC', 'KRCC']
+
+# Format the values to four decimal places
+# data_subset = data_subset.round(3)
+
+medals = ['\\goldmedal', '\\silvermedal', '\\bronzemedal']
+for col in ['syn mos plcc', 'syn mos srcc', 'syn mos ktcc', 'tnt mos plcc', 'tnt mos srcc', 'tnt mos ktcc', 'all mos plcc', 'all mos srcc', 'all mos ktcc']:
+    sorted_idx = data_subset[col].sort_values(ascending=False).index
+    for i, medal in enumerate(medals, start=0):
+        data_subset.loc[sorted_idx[i], col] = f"{float(data_subset.loc[sorted_idx[i], col]):.04f} {medal}"
+
+    for i in range(3,len(data_subset)):
+        data_subset.loc[sorted_idx[i], col] = f"{float(data_subset.loc[sorted_idx[i], col]):.04f}"
+
+data_subset
+
+def convert_to_latex_grouped(data_subset):
+    # Starting the LaTeX table and caption
+    latex_table = "\\begin{table*}[ht]\n"
+    latex_table += "\\centering\n"
+    latex_table += "\\begin{tabularx}{\\textwidth}{l|X@{}X@{}X|X@{}X@{}X|X@{}X@{}X}\n"
+    # latex_table += "\\begin{tabular}{l|ccc|ccc|ccc}\n"  # Adjust the number of columns based on your data
+    latex_table += "\\hline \\hline\n"
+    # Group headers
+    latex_table += "& \\multicolumn{3}{c|}{Synthetic} & \\multicolumn{3}{c|}{Real} & \\multicolumn{3}{c}{Combined} \\\\\n"
+    latex_table += "\\hline\n"
+    # Sub headers
+    latex_table += "\\textbf{METRICS} & PLCC & SRCC & KTCC & PLCC & SRCC & KTCC & PLCC & SRCC & KTCC \\\\\n"
+    latex_table += "\\hline\n"
+    
+    # Adding the data rows
+    for index, row in data_subset.iterrows():
+        # Assuming the row contains the values in the exact order needed for the table
+        # You might need to adjust how you access the row values based on the actual DataFrame structure
+        latex_table += f"{row['Metric']}&{row['syn mos plcc']}&{row['syn mos srcc']}&{row['syn mos ktcc']}&{row['tnt mos plcc']}&{row['tnt mos srcc']}&{row['tnt mos ktcc']}&{row['all mos plcc']}&{row['syn mos srcc']}&{row['syn mos ktcc']} \\\\\n"
+    
+    # Ending the table
+    latex_table += "\\hline \\hline\n"
+    latex_table += "\\end{tabularx}\n"
+    latex_table += "\\caption{Correlation results between quality assessment metrics and MOS.}\n"
+    latex_table += "\\label{table:combined_mos_correlations}\n"
+    latex_table += "\\end{table*}\n"
+    
+    return latex_table
+
+latex_code = convert_to_latex_grouped(data_subset)
+
+# Save the LaTeX code to a file
+with open('results_table.tex', 'w') as file:
+    file.write(latex_code)
+
+
+
+# %%
+# df_corr.to_csv('correlations.csv')
 
 # %%
 set_size(90)
