@@ -75,7 +75,7 @@ class NeRFQAModel(nn.Module):
             score_min = score_mean
             score_max = score_mean
         agg_score = torch.stack([score_mean, score_std, score_min, score_max], dim=1)
-        final_score = agg_score @ self.dists_weight + self.dists_bias
+        final_score = (agg_score @ self.dists_weight).squeeze(1) + self.dists_bias
         return final_score
         
     def forward_dataloader(self, dataloader):
@@ -92,7 +92,7 @@ class NeRFQAModel(nn.Module):
             dists_scores.unsqueeze(1),
             stats
         ], dim=1)
-        scores = dists_scores @ self.dists_weight + self.dists_bias # linear function
+        scores = (dists_scores @ self.dists_weight).squeeze(1) + self.dists_bias # linear function
         return scores
 
 
