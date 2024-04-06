@@ -26,7 +26,7 @@ from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS
 from nerf_qa.data import create_test2_dataloader, create_test_video_dataloader, create_large_qa_dataloader
 from nerf_qa.logger import MetricCollectionLogger
 from nerf_qa.settings_fr import DEVICE_BATCH_SIZE
-from nerf_qa.model import NeRFQAModel
+from nerf_qa.model_stats import NeRFQAModel
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
