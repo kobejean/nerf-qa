@@ -82,7 +82,7 @@ class NeRFQAModel(nn.Module):
         else:
             agg_score = score_mean.unsqueeze(1)
         final_score = (agg_score @ self.dists_weight).squeeze(1) + self.dists_bias
-        return final_score
+        return final_score.squeeze()
         
     def forward_dataloader(self, dataloader):
         raw_scores = self.compute_dists_with_batches(dataloader)
