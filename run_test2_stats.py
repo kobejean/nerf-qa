@@ -117,6 +117,22 @@ if __name__ == '__main__':
     wandb.init(project='nerf-qa-stats', name=exp_name, config=config)
     config = wandb.config
 
+
+    def gather_stats(stats_df):
+        if config.mode == 'mean,std,min,max':
+            stats = torch.tensor([
+                stats_df['DISTS_std'].iloc[i.numpy()].values,
+                stats_df['DISTS_min'].iloc[i.numpy()].values,
+                stats_df['DISTS_max'].iloc[i.numpy()].values,
+            ], dtype=torch.float32).T.to(device)
+        elif config.mode == 'mean,std':
+            stats = torch.tensor([
+                stats_df['DISTS_std'].iloc[i.numpy()].values,
+            ], dtype=torch.float32).T.to(device)
+        else:
+            stats = None
+        return stats
+
     mse_fn = nn.MSELoss(reduction='none')
     loss_fn = nn.L1Loss(reduction='none')
 
@@ -147,7 +163,7 @@ if __name__ == '__main__':
         batch_step = 0
 
         # Reset model and optimizer for each fold (if you want to start fresh for each fold)
-        model = NeRFQAModel(train_df=train_df).to(device)
+        model = NeRFQAModel(train_df=train_df, mode=config.mode).to(device)
         optimizer = optim.Adam(model.parameters(),
             lr=config.lr,
             betas=(config.beta1, config.beta2),
@@ -172,11 +188,7 @@ if __name__ == '__main__':
                 elif batch_step == config.warmup_steps:
                     scheduler.last_epoch = epoch - 1          
                 optimizer.zero_grad()  # Zero the gradients after updating
-                stats = torch.tensor([
-                    train_df['DISTS_std'].iloc[i.numpy()].values,
-                    train_df['DISTS_min'].iloc[i.numpy()].values,
-                    train_df['DISTS_max'].iloc[i.numpy()].values,
-                ], dtype=torch.float32).T.to(device)
+                stats = gather_stats(train_df)
 
                 # Load scores
                 predicted_score = model(dist.to(device),ref.to(device), stats)
@@ -214,11 +226,7 @@ if __name__ == '__main__':
                 with torch.no_grad():
                     for dist, ref, score, i in tqdm(val_dataloader, total=val_size, desc="Validating..."):
                         # Compute score
-                        stats = torch.tensor([
-                            val_df['DISTS_std'].iloc[i.numpy()].values,
-                            val_df['DISTS_min'].iloc[i.numpy()].values,
-                            val_df['DISTS_max'].iloc[i.numpy()].values,
-                        ], dtype=torch.float32).T.to(device)
+                        stats = gather_stats(val_df)
                         predicted_score = model(dist.to(device), ref.to(device), stats)
                         target_score = score.to(device).float()
 
@@ -302,7 +310,7 @@ if __name__ == '__main__':
     test_logger = MetricCollectionLogger('Test Metrics Dict')
     train_logger = MetricCollectionLogger(f'Train Metrics Dict')
 
-    model = NeRFQAModel(train_df=train_df).to(device)
+    model = NeRFQAModel(train_df=train_df, mode=config.mode).to(device)
     optimizer = optim.Adam(model.parameters(),
         lr=config.lr,
         betas=(config.beta1, config.beta2),
@@ -330,12 +338,8 @@ if __name__ == '__main__':
 
             # Load scores
             # scene_type = train_df['scene_type'].iloc[i.numpy()].values
-
-            stats = torch.tensor([
-                train_df['DISTS_std'].iloc[i.numpy()].values,
-                train_df['DISTS_min'].iloc[i.numpy()].values,
-                train_df['DISTS_max'].iloc[i.numpy()].values,
-            ], dtype=torch.float32).T.to(device)
+            
+            stats = gather_stats(train_df)
             predicted_score = model(dist.to(device),ref.to(device), stats)
             target_score = score.to(device).float()
             

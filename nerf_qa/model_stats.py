@@ -22,7 +22,7 @@ def linear_func(x, a, b):
 
 
 class NeRFQAModel(nn.Module):
-    def __init__(self, train_df):
+    def __init__(self, train_df, mode = 'mean'):
         super(NeRFQAModel, self).__init__()
 
         X = np.transpose(np.stack([
@@ -44,7 +44,7 @@ class NeRFQAModel(nn.Module):
         self.dists_model = DISTS()
         self.dists_weight = nn.Parameter(torch.tensor([model.coef_], dtype=torch.float32).T)
         self.dists_bias = nn.Parameter(torch.tensor([model.intercept_], dtype=torch.float32))
-
+        self.mode = mode
             
     
     def compute_dists_with_batches(self, dataloader):
@@ -74,7 +74,13 @@ class NeRFQAModel(nn.Module):
             score_std = torch.zeros_like(score_mean)
             score_min = score_mean
             score_max = score_mean
-        agg_score = torch.stack([score_mean, score_std, score_min, score_max], dim=1)
+        
+        if self.mode == 'mean,std,min,max':
+            agg_score = torch.stack([score_mean, score_std, score_min, score_max], dim=1)
+        elif self.mode == 'mean,std':
+            agg_score = torch.stack([score_mean, score_std], dim=1)
+        else:
+            agg_score = score_mean.unsqueeze(1)
         final_score = (agg_score @ self.dists_weight).squeeze(1) + self.dists_bias
         return final_score
         
@@ -88,10 +94,15 @@ class NeRFQAModel(nn.Module):
             feats0 = self.dists_model.forward_once(dist)
             feats1 = self.dists_model.forward_once(ref) 
         dists_scores = self.dists_model.forward_from_feats(feats0, feats1)
-        dists_scores = torch.concat([
-            dists_scores.unsqueeze(1),
-            stats
-        ], dim=1)
+        
+
+        if self.mode == 'mean,std,min,max' or self.mode == 'mean,std':
+            dists_scores = torch.concat([
+                dists_scores.unsqueeze(1),
+                stats
+            ], dim=1)
+        else:
+            dists_scores = dists_scores.unsqueeze(1)
         scores = (dists_scores @ self.dists_weight).squeeze(1) + self.dists_bias # linear function
         return scores
 
