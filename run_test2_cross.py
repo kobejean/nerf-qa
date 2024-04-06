@@ -151,7 +151,6 @@ if __name__ == '__main__':
             lr=config.lr,
             betas=(config.beta1, config.beta2),
             eps=config.eps,
-            warmup_steps=config.warmup_steps,
         )
         # scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
         scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.epochs - config.warmup_steps/train_size, eta_min=0, last_epoch=-1)
