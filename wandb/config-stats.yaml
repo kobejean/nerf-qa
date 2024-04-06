@@ -25,7 +25,7 @@ parameters:
   beta2:
     # value: 0.999
     distribution: uniform
-    min: 0.9985
+    min: 0.999
     max: 0.99999
   warmup_steps:
     values: [0, 8, 32, 128, 192, 256]
