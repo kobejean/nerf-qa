@@ -151,6 +151,12 @@ adists_model = ADISTS().to(device)
 dists_model = DISTS().to(device)
 video_adists_scores = []
 video_dists_scores = []
+video_adists_scores_std = []
+video_dists_scores_std = []
+video_adists_scores_max = []
+video_dists_scores_max = []
+video_adists_scores_min = []
+video_dists_scores_min = []
 frame_bias_adistss = []
 frame_bias_distss = []
 video_frames = []
@@ -169,18 +175,37 @@ for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Processing..."
     frame_dists_scores = np.concatenate(frame_dists_scores)
     video_adists_score = np.mean(frame_adists_scores)
     video_dists_score = np.mean(frame_dists_scores)
+    video_adists_score_std = np.std(frame_adists_scores)
+    video_dists_score_std = np.std(frame_dists_scores)
+    video_adists_score_min = np.min(frame_adists_scores)
+    video_dists_score_min = np.min(frame_dists_scores)
+    video_adists_score_max = np.max(frame_adists_scores)
+    video_dists_score_max = np.max(frame_dists_scores)
+    
     frame_bias_adists = video_adists_score - frame_adists_scores
     frame_bias_dists = video_dists_score - frame_dists_scores
     print(video_adists_score, batch_adists_scores)
     print(video_dists_score, batch_dists_scores)
     video_adists_scores.append(video_adists_score)
     video_dists_scores.append(video_dists_score)
+    video_adists_scores_std.append(video_adists_score_std)
+    video_dists_scores_std.append(video_dists_score_std)
+    video_adists_scores_min.append(video_adists_score_min)
+    video_dists_scores_min.append(video_dists_score_min)
+    video_adists_scores_max.append(video_adists_score_max)
+    video_dists_scores_max.append(video_dists_score_max)
     frame_bias_adistss.append(to_str(frame_bias_adists))
     frame_bias_distss.append(to_str(frame_bias_dists))
     video_frames.append(len(frames_data))
 
 test_df['A-DISTS'] = video_adists_scores
 test_df['DISTS'] = video_dists_scores
+test_df['A-DISTS_std'] = video_adists_scores_std
+test_df['DISTS_std'] = video_dists_scores_std
+test_df['A-DISTS_min'] = video_adists_scores_min
+test_df['DISTS_min'] = video_dists_scores_min
+test_df['A-DISTS_max'] = video_adists_scores_max
+test_df['DISTS_max'] = video_dists_scores_max
 test_df['frame_count'] = video_frames
 test_df['frame_bias_adists'] = frame_bias_adistss
 test_df['frame_bias_dists'] = frame_bias_distss

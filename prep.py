@@ -172,6 +172,12 @@ adists_model = ADISTS().to(device)
 dists_model = DISTS().to(device)
 video_adists_scores = []
 video_dists_scores = []
+video_adists_scores_std = []
+video_dists_scores_std = []
+video_adists_scores_max = []
+video_dists_scores_max = []
+video_adists_scores_min = []
+video_dists_scores_min = []
 for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Processing..."):
     frames_data = create_test_video_dataloader(row, TEST_DATA_DIR)
     frame_adists_scores = []
@@ -194,8 +200,20 @@ for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Processing..."
     print(video_dists_score, batch_dists_scores)
     video_adists_scores.append(video_adists_score)
     video_dists_scores.append(video_dists_score)
+    video_adists_scores_std.append(video_adists_score_std)
+    video_dists_scores_std.append(video_dists_score_std)
+    video_adists_scores_min.append(video_adists_score_min)
+    video_dists_scores_min.append(video_dists_score_min)
+    video_adists_scores_max.append(video_adists_score_max)
+    video_dists_scores_max.append(video_dists_score_max)
 test_df['A-DISTS'] = video_adists_scores
 test_df['DISTS'] = video_dists_scores
+test_df['A-DISTS_std'] = video_adists_scores_std
+test_df['DISTS_std'] = video_dists_scores_std
+test_df['A-DISTS_min'] = video_adists_scores_min
+test_df['DISTS_min'] = video_dists_scores_min
+test_df['A-DISTS_max'] = video_adists_scores_max
+test_df['DISTS_max'] = video_dists_scores_max
 
 #%%
 TEST_DATA_DIR = "/home/ccl/Datasets/NeRF-QA"
