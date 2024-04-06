@@ -176,7 +176,7 @@ if __name__ == '__main__':
                     train_df['DISTS_std'].iloc[i.numpy()].values,
                     train_df['DISTS_min'].iloc[i.numpy()].values,
                     train_df['DISTS_max'].iloc[i.numpy()].values,
-                ]).T.to(device)
+                ], type=torch.float32).T.to(device)
 
                 # Load scores
                 predicted_score = model(dist.to(device),ref.to(device), stats)
@@ -214,7 +214,12 @@ if __name__ == '__main__':
                 with torch.no_grad():
                     for dist, ref, score, i in tqdm(val_dataloader, total=val_size, desc="Validating..."):
                         # Compute score
-                        predicted_score = model(dist.to(device), ref.to(device))
+                        stats = torch.tensor([
+                            val_df['DISTS_std'].iloc[i.numpy()].values,
+                            val_df['DISTS_min'].iloc[i.numpy()].values,
+                            val_df['DISTS_max'].iloc[i.numpy()].values,
+                        ], type=torch.float32).T.to(device)
+                        predicted_score = model(dist.to(device), ref.to(device), stats)
                         target_score = score.to(device).float()
 
                         # Compute loss
@@ -325,7 +330,13 @@ if __name__ == '__main__':
 
             # Load scores
             # scene_type = train_df['scene_type'].iloc[i.numpy()].values
-            predicted_score = model(dist.to(device),ref.to(device))
+
+            stats = torch.tensor([
+                train_df['DISTS_std'].iloc[i.numpy()].values,
+                train_df['DISTS_min'].iloc[i.numpy()].values,
+                train_df['DISTS_max'].iloc[i.numpy()].values,
+            ], type=torch.float32).T.to(device)
+            predicted_score = model(dist.to(device),ref.to(device), stats)
             target_score = score.to(device).float()
             
             # Compute loss
