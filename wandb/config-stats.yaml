@@ -33,6 +33,8 @@ parameters:
   #   distribution: uniform
   #   min: 0.80
   #   max: 1.0
+  mode:
+    values: ['mean,std,min,max', 'mean,std', 'mean']
   project_weights:
     values: ['True', 'False']
   optimizer:
