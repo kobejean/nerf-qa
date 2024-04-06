@@ -8,8 +8,8 @@ parameters:
   lr:
     # value: 1e-5
     distribution: q_log_uniform_values
-    min: 1e-6
-    max: 5e-5
+    min: 5e-7
+    max: 5e-4
     q: 1e-7
   eps:
     distribution: q_log_uniform_values
@@ -28,15 +28,15 @@ parameters:
     min: 0.9985
     max: 0.99999
   warmup_steps:
-    values: [32, 128, 192, 256]
+    values: [0, 8, 32, 128, 192, 256]
   # gamma:
   #   distribution: uniform
   #   min: 0.80
   #   max: 1.0
   project_weights:
-    value: 'False'
+    values: ['True', 'False']
   optimizer:
-    value: 'sf_adamw' #: ['nadam', 'adam', 'sgd', 'sgd_momentum']
+    value: 'adam' #: ['nadam', 'adam', 'sgd', 'sgd_momentum']
 
 command:
 - ${env}
