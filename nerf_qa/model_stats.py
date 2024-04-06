@@ -70,7 +70,7 @@ class NeRFQAModel(nn.Module):
             score_min = torch.min(all_scores_tensor)
             score_max = torch.max(all_scores_tensor)
         else:
-            score_mean = torch.mean(all_scores_tensor)
+            score_mean = all_scores_tensor
             score_std = torch.zeros_like(score_mean)
             score_min = score_mean
             score_max = score_mean
