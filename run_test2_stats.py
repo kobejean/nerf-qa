@@ -148,158 +148,158 @@ if __name__ == '__main__':
     cv_last_mses = []
     cv_last_losses = []
 
-    # # Create splits
-    # for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups)):
-    #     train_df = scores_df.iloc[train_idx].reset_index(drop=True)
-    #     val_df = scores_df.iloc[val_idx].reset_index(drop=True)
+    # Create splits
+    for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups)):
+        train_df = scores_df.iloc[train_idx].reset_index(drop=True)
+        val_df = scores_df.iloc[val_idx].reset_index(drop=True)
 
-    #     train_logger = MetricCollectionLogger(f'Train Metrics Dict/fold_{fold}')
-    #     val_logger = MetricCollectionLogger(f'Val Metrics Dict/fold_{fold}')
+        train_logger = MetricCollectionLogger(f'Train Metrics Dict/fold_{fold}')
+        val_logger = MetricCollectionLogger(f'Val Metrics Dict/fold_{fold}')
 
-    #     train_dataloader = create_test2_dataloader(train_df, dir=DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=False)
-    #     val_dataloader = create_test2_dataloader(val_df, dir=DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=False, scene_balanced=False)
-    #     train_size = len(train_dataloader)
-    #     val_size = len(val_dataloader)
+        train_dataloader = create_test2_dataloader(train_df, dir=DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=False)
+        val_dataloader = create_test2_dataloader(val_df, dir=DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=False, scene_balanced=False)
+        train_size = len(train_dataloader)
+        val_size = len(val_dataloader)
 
-    #     batch_step = 0
+        batch_step = 0
 
-    #     # Reset model and optimizer for each fold (if you want to start fresh for each fold)
-    #     model = NeRFQAModel(train_df=train_df, mode=config.mode).to(device)
-    #     optimizer = optim.Adam(model.parameters(),
-    #         lr=config.lr,
-    #         betas=(config.beta1, config.beta2),
-    #         eps=config.eps,
-    #     )
-    #     # scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
-    #     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.epochs - config.warmup_steps/train_size, eta_min=0, last_epoch=-1)
+        # Reset model and optimizer for each fold (if you want to start fresh for each fold)
+        model = NeRFQAModel(train_df=train_df, mode=config.mode).to(device)
+        optimizer = optim.Adam(model.parameters(),
+            lr=config.lr,
+            betas=(config.beta1, config.beta2),
+            eps=config.eps,
+        )
+        # scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.epochs - config.warmup_steps/train_size, eta_min=0, last_epoch=-1)
 
 
-    #     # Training loop
-    #     for epoch in range(wandb.config.epochs):
-    #         print(f"Epoch {epoch+1}/{wandb.config.epochs}")
+        # Training loop
+        for epoch in range(wandb.config.epochs):
+            print(f"Epoch {epoch+1}/{wandb.config.epochs}")
 
-    #         # Train step
-    #         model.train()  # Set model to training mode
+            # Train step
+            model.train()  # Set model to training mode
 
-    #         for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."):  # Start index from 1 for easier modulus operation 
-    #             if batch_step < config.warmup_steps:
-    #                 warmup_lr = config.lr + batch_step * (config.lr - config.lr * 1e-4) / config.warmup_steps
-    #                 for param_group in optimizer.param_groups:
-    #                     param_group['lr'] = warmup_lr  
-    #             elif batch_step == config.warmup_steps:
-    #                 scheduler.last_epoch = epoch - 1          
-    #             optimizer.zero_grad()  # Zero the gradients after updating
-    #             stats = gather_stats(train_df)
+            for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."):  # Start index from 1 for easier modulus operation 
+                if batch_step < config.warmup_steps:
+                    warmup_lr = config.lr + batch_step * (config.lr - config.lr * 1e-4) / config.warmup_steps
+                    for param_group in optimizer.param_groups:
+                        param_group['lr'] = warmup_lr  
+                elif batch_step == config.warmup_steps:
+                    scheduler.last_epoch = epoch - 1          
+                optimizer.zero_grad()  # Zero the gradients after updating
+                stats = gather_stats(train_df)
 
-    #             # Load scores
-    #             predicted_score = model(dist.to(device),ref.to(device), stats)
-    #             target_score = score.to(device).float()
+                # Load scores
+                predicted_score = model(dist.to(device),ref.to(device), stats)
+                target_score = score.to(device).float()
                 
-    #             # Compute loss
-    #             loss = loss_fn(predicted_score, target_score)
-    #             step += score.shape[0]
-    #             batch_step += 1
+                # Compute loss
+                loss = loss_fn(predicted_score, target_score)
+                step += score.shape[0]
+                batch_step += 1
 
-    #             # Store metrics in logger
-    #             scene_ids =  train_df['scene'].iloc[i.numpy()].values
-    #             video_ids =  train_df['distorted_folder'].iloc[i.numpy()].values
-    #             train_logger.add_entries(
-    #                 {
-    #                 'loss': loss.detach().cpu(),
-    #                 'mse': mse_fn(predicted_score, target_score).detach().cpu(),
-    #             }, video_ids = video_ids, scene_ids = scene_ids)
+                # Store metrics in logger
+                scene_ids =  train_df['scene'].iloc[i.numpy()].values
+                video_ids =  train_df['distorted_folder'].iloc[i.numpy()].values
+                train_logger.add_entries(
+                    {
+                    'loss': loss.detach().cpu(),
+                    'mse': mse_fn(predicted_score, target_score).detach().cpu(),
+                }, video_ids = video_ids, scene_ids = scene_ids)
 
-    #             # Accumulate gradients
-    #             loss = loss.mean()
-    #             loss.backward()
+                # Accumulate gradients
+                loss = loss.mean()
+                loss.backward()
 
-    #             # Log accumulated train metrics
-    #             train_logger.log_summary(step)
+                # Log accumulated train metrics
+                train_logger.log_summary(step)
                 
-    #             # Update parameters every batches_per_step steps or on the last iteration
-    #             optimizer.step()
-    #             if config.project_weights == 'True':
-    #                 model.dists_model.project_weights()
-    #         scheduler.step()
-    #         if (epoch+1) % 10 == 0:
-    #             # Validation step
-    #             model.eval()  # Set model to evaluation mode
-    #             with torch.no_grad():
-    #                 for dist, ref, score, i in tqdm(val_dataloader, total=val_size, desc="Validating..."):
-    #                     # Compute score
-    #                     stats = gather_stats(val_df)
-    #                     predicted_score = model(dist.to(device), ref.to(device), stats)
-    #                     target_score = score.to(device).float()
+                # Update parameters every batches_per_step steps or on the last iteration
+                optimizer.step()
+                if config.project_weights == 'True':
+                    model.dists_model.project_weights()
+            scheduler.step()
+            if (epoch+1) % 10 == 0:
+                # Validation step
+                model.eval()  # Set model to evaluation mode
+                with torch.no_grad():
+                    for dist, ref, score, i in tqdm(val_dataloader, total=val_size, desc="Validating..."):
+                        # Compute score
+                        stats = gather_stats(val_df)
+                        predicted_score = model(dist.to(device), ref.to(device), stats)
+                        target_score = score.to(device).float()
 
-    #                     # Compute loss
-    #                     loss = loss_fn(predicted_score, target_score)
+                        # Compute loss
+                        loss = loss_fn(predicted_score, target_score)
                         
-    #                     # Store metrics in logger
-    #                     scene_ids = val_df['scene'].iloc[i.numpy()].values
-    #                     video_ids = val_df['distorted_folder'].iloc[i.numpy()].values
-    #                     val_logger.add_entries(
-    #                         {
-    #                         'loss': loss.detach().cpu(),
-    #                         'mse': mse_fn(predicted_score, target_score).detach().cpu(),
-    #                         'mos': score,
-    #                         'pred_score': predicted_score.detach().cpu(),
-    #                     }, video_ids = video_ids, scene_ids = scene_ids)
+                        # Store metrics in logger
+                        scene_ids = val_df['scene'].iloc[i.numpy()].values
+                        video_ids = val_df['distorted_folder'].iloc[i.numpy()].values
+                        val_logger.add_entries(
+                            {
+                            'loss': loss.detach().cpu(),
+                            'mse': mse_fn(predicted_score, target_score).detach().cpu(),
+                            'mos': score,
+                            'pred_score': predicted_score.detach().cpu(),
+                        }, video_ids = video_ids, scene_ids = scene_ids)
 
-    #                 # Log accumulated metrics
-    #                 val_logger.log_summary(step)
-    #                 wandb.log({ 
-    #                     "Model/dists_weight/alpha": wandb.Histogram(model.dists_model.alpha.detach().cpu()),
-    #                     "Model/dists_weight/beta": wandb.Histogram(model.dists_model.beta.detach().cpu()),
-    #                     "Model/dists_weight/alpha_min": torch.min(model.dists_model.alpha),
-    #                     "Model/dists_weight/beta_min": torch.min(model.dists_model.beta),
-    #                 }, step=step)
+                    # Log accumulated metrics
+                    val_logger.log_summary(step)
+                    wandb.log({ 
+                        "Model/dists_weight/alpha": wandb.Histogram(model.dists_model.alpha.detach().cpu()),
+                        "Model/dists_weight/beta": wandb.Histogram(model.dists_model.beta.detach().cpu()),
+                        "Model/dists_weight/alpha_min": torch.min(model.dists_model.alpha),
+                        "Model/dists_weight/beta_min": torch.min(model.dists_model.beta),
+                    }, step=step)
         
-    #     cv_correlations.append(val_logger.last_correlations)
-    #     cv_scene_mins.append(val_logger.last_scene_min)
-    #     cv_last_mses.append(val_logger.last_mse)
-    #     cv_last_losses.append(val_logger.last_loss)
+        cv_correlations.append(val_logger.last_correlations)
+        cv_scene_mins.append(val_logger.last_scene_min)
+        cv_last_mses.append(val_logger.last_mse)
+        cv_last_losses.append(val_logger.last_loss)
 
-    # cv_correlations_concat = {}
-    # cv_scene_mins_concat = {}
+    cv_correlations_concat = {}
+    cv_scene_mins_concat = {}
 
-    # # Loop through each dictionary in the list
-    # for scores in cv_correlations:
-    #     for key, value in scores.items():
-    #         if key in cv_correlations_concat:
-    #             cv_correlations_concat[key].append(value)
-    #         else:
-    #             cv_correlations_concat[key] = [value]
+    # Loop through each dictionary in the list
+    for scores in cv_correlations:
+        for key, value in scores.items():
+            if key in cv_correlations_concat:
+                cv_correlations_concat[key].append(value)
+            else:
+                cv_correlations_concat[key] = [value]
     
-    # # Loop through each dictionary in the list
-    # for scores in cv_scene_mins:
-    #     for key, value in scores.items():
-    #         if key in cv_scene_mins_concat:
-    #             cv_scene_mins_concat[key].append(value)
-    #         else:
-    #             cv_scene_mins_concat[key] = [value]
+    # Loop through each dictionary in the list
+    for scores in cv_scene_mins:
+        for key, value in scores.items():
+            if key in cv_scene_mins_concat:
+                cv_scene_mins_concat[key].append(value)
+            else:
+                cv_scene_mins_concat[key] = [value]
 
 
-    # for key, value in cv_correlations_concat.items():
-    #     wandb.log({ 
-    #         f"Cross-Val Metrics Dict/correlations/mean_{key}": np.mean(value),
-    #         f"Cross-Val Metrics Dict/correlations/std_{key}": np.std(value),
-    #     }, step=step)
+    for key, value in cv_correlations_concat.items():
+        wandb.log({ 
+            f"Cross-Val Metrics Dict/correlations/mean_{key}": np.mean(value),
+            f"Cross-Val Metrics Dict/correlations/std_{key}": np.std(value),
+        }, step=step)
 
-    # for key, value in cv_scene_mins_concat.items():
-    #     wandb.log({ 
-    #         f"Cross-Val Metrics Dict/correlations/scene_min/mean_{key}": np.mean(value),
-    #         f"Cross-Val Metrics Dict/correlations/scene_min/std_{key}": np.std(value),
-    #     }, step=step)
-    # wandb.log({ 
-    #     f"Cross-Val Metrics Dict/mean_mse": np.mean(cv_last_mses),
-    #     f"Cross-Val Metrics Dict/std_mse": np.std(cv_last_mses),
-    #     f"Cross-Val Metrics Dict/mean_loss": np.mean(cv_last_losses),
-    #     f"Cross-Val Metrics Dict/std_loss": np.std(cv_last_losses),
-    # }, step=step)
+    for key, value in cv_scene_mins_concat.items():
+        wandb.log({ 
+            f"Cross-Val Metrics Dict/correlations/scene_min/mean_{key}": np.mean(value),
+            f"Cross-Val Metrics Dict/correlations/scene_min/std_{key}": np.std(value),
+        }, step=step)
+    wandb.log({ 
+        f"Cross-Val Metrics Dict/mean_mse": np.mean(cv_last_mses),
+        f"Cross-Val Metrics Dict/std_mse": np.std(cv_last_mses),
+        f"Cross-Val Metrics Dict/mean_loss": np.mean(cv_last_losses),
+        f"Cross-Val Metrics Dict/std_loss": np.std(cv_last_losses),
+    }, step=step)
 
 
-    # del train_dataloader
-    # del val_dataloader
+    del train_dataloader
+    del val_dataloader
     train_df = scores_df
     train_dataloader = create_test2_dataloader(train_df, dir=DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=False)
     train_size = len(train_dataloader)
@@ -312,66 +312,66 @@ if __name__ == '__main__':
     train_logger = MetricCollectionLogger(f'Train Metrics Dict')
 
     model = NeRFQAModel(train_df=train_df, mode=config.mode).to(device)
-    # optimizer = optim.Adam(model.parameters(),
-    #     lr=config.lr,
-    #     betas=(config.beta1, config.beta2),
-    #     eps=config.eps
-    # )
-    # # scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
-    # scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.epochs - config.warmup_steps/train_size, eta_min=0, last_epoch=-1)
+    optimizer = optim.Adam(model.parameters(),
+        lr=config.lr,
+        betas=(config.beta1, config.beta2),
+        eps=config.eps
+    )
+    # scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.epochs - config.warmup_steps/train_size, eta_min=0, last_epoch=-1)
 
-    # batch_step = 0
+    batch_step = 0
 
-    # for epoch in range(wandb.config.epochs):
-    #     print(f"Epoch {epoch+1}/{wandb.config.epochs}")
+    for epoch in range(wandb.config.epochs):
+        print(f"Epoch {epoch+1}/{wandb.config.epochs}")
 
-    #     # Train step
-    #     model.train()  # Set model to training mode
+        # Train step
+        model.train()  # Set model to training mode
 
-    #     for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."):  # Start index from 1 for easier modulus operation   
-    #         if batch_step < config.warmup_steps:
-    #             warmup_lr = config.lr + batch_step * (config.lr - config.lr * 1e-4) / config.warmup_steps
-    #             for param_group in optimizer.param_groups:
-    #                 param_group['lr'] = warmup_lr  
-    #         elif batch_step == config.warmup_steps:
-    #             scheduler.last_epoch = epoch - 1          
-    #         optimizer.zero_grad()  # Zero the gradients after updating
+        for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."):  # Start index from 1 for easier modulus operation   
+            if batch_step < config.warmup_steps:
+                warmup_lr = config.lr + batch_step * (config.lr - config.lr * 1e-4) / config.warmup_steps
+                for param_group in optimizer.param_groups:
+                    param_group['lr'] = warmup_lr  
+            elif batch_step == config.warmup_steps:
+                scheduler.last_epoch = epoch - 1          
+            optimizer.zero_grad()  # Zero the gradients after updating
 
-    #         # Load scores
-    #         # scene_type = train_df['scene_type'].iloc[i.numpy()].values
+            # Load scores
+            # scene_type = train_df['scene_type'].iloc[i.numpy()].values
             
-    #         stats = gather_stats(train_df)
-    #         predicted_score = model(dist.to(device),ref.to(device), stats)
-    #         target_score = score.to(device).float()
+            stats = gather_stats(train_df)
+            predicted_score = model(dist.to(device),ref.to(device), stats)
+            target_score = score.to(device).float()
             
-    #         # Compute loss
-    #         loss = loss_fn(predicted_score, target_score)
-    #         step += score.shape[0]
-    #         batch_step += 1
+            # Compute loss
+            loss = loss_fn(predicted_score, target_score)
+            step += score.shape[0]
+            batch_step += 1
 
-    #         # Store metrics in logger
-    #         scene_ids =  train_df['scene'].iloc[i.numpy()].values
-    #         video_ids =  train_df['distorted_folder'].iloc[i.numpy()].values
-    #         train_logger.add_entries(
-    #             {
-    #             'loss': loss.detach().cpu(),
-    #             'mse': mse_fn(predicted_score, target_score).detach().cpu(),
-    #             # 'mos': score,
-    #             # 'pred_score': predicted_score.detach().cpu(),
-    #         }, video_ids = video_ids, scene_ids = scene_ids)
+            # Store metrics in logger
+            scene_ids =  train_df['scene'].iloc[i.numpy()].values
+            video_ids =  train_df['distorted_folder'].iloc[i.numpy()].values
+            train_logger.add_entries(
+                {
+                'loss': loss.detach().cpu(),
+                'mse': mse_fn(predicted_score, target_score).detach().cpu(),
+                # 'mos': score,
+                # 'pred_score': predicted_score.detach().cpu(),
+            }, video_ids = video_ids, scene_ids = scene_ids)
 
-    #         # Accumulate gradients
-    #         loss = loss.mean()
-    #         loss.backward()
+            # Accumulate gradients
+            loss = loss.mean()
+            loss.backward()
 
-    #         # Log accumulated train metrics
-    #         train_logger.log_summary(step)
+            # Log accumulated train metrics
+            train_logger.log_summary(step)
             
-    #         # Update parameters every batches_per_step steps or on the last iteration
-    #         optimizer.step()
-    #         if config.project_weights == 'True':
-    #             model.dists_model.project_weights()
-    #     scheduler.step()
+            # Update parameters every batches_per_step steps or on the last iteration
+            optimizer.step()
+            if config.project_weights == 'True':
+                model.dists_model.project_weights()
+        scheduler.step()
 
     # Test step
     model.eval()  # Set model to evaluation mode
