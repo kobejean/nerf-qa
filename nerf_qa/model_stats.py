@@ -25,12 +25,23 @@ class NeRFQAModel(nn.Module):
     def __init__(self, train_df, mode = 'mean'):
         super(NeRFQAModel, self).__init__()
 
-        X = np.transpose(np.stack([
-            train_df['DISTS'].values,
-            train_df['DISTS_std'].values,
-            train_df['DISTS_min'].values,
-            train_df['DISTS_max'].values,
-        ]))
+        if self.mode == 'mean-std-min-max':
+            X = np.transpose(np.stack([
+                train_df['DISTS'].values,
+                train_df['DISTS_std'].values,
+                train_df['DISTS_min'].values,
+                train_df['DISTS_max'].values,
+            ]))
+        elif self.mode == 'mean-std':
+            X = np.transpose(np.stack([
+                train_df['DISTS'].values,
+                train_df['DISTS_std'].values,
+            ]))
+        else:
+            X = np.transpose(np.array([
+                train_df['DISTS'].values,
+            ]))
+        
         print("X.shape", X.shape)
         y = train_df['MOS'].values  # Response
 
