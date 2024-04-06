@@ -25,6 +25,7 @@ class NeRFQAModel(nn.Module):
     def __init__(self, train_df, mode = 'mean'):
         super(NeRFQAModel, self).__init__()
 
+        self.mode = mode
         if self.mode == 'mean-std-min-max':
             X = np.transpose(np.stack([
                 train_df['DISTS'].values,
@@ -55,7 +56,6 @@ class NeRFQAModel(nn.Module):
         self.dists_model = DISTS()
         self.dists_weight = nn.Parameter(torch.tensor([model.coef_], dtype=torch.float32).T)
         self.dists_bias = nn.Parameter(torch.tensor([model.intercept_], dtype=torch.float32))
-        self.mode = mode
             
     
     def compute_dists_with_batches(self, dataloader):
