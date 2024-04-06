@@ -75,9 +75,9 @@ class NeRFQAModel(nn.Module):
             score_min = score_mean
             score_max = score_mean
         
-        if self.mode == 'mean,std,min,max':
+        if self.mode == 'mean-std-min-max':
             agg_score = torch.stack([score_mean, score_std, score_min, score_max], dim=1)
-        elif self.mode == 'mean,std':
+        elif self.mode == 'mean-std':
             agg_score = torch.stack([score_mean, score_std], dim=1)
         else:
             agg_score = score_mean.unsqueeze(1)
@@ -96,7 +96,7 @@ class NeRFQAModel(nn.Module):
         dists_scores = self.dists_model.forward_from_feats(feats0, feats1)
         
 
-        if self.mode == 'mean,std,min,max' or self.mode == 'mean,std':
+        if self.mode == 'mean-std-min-max' or self.mode == 'mean-std':
             dists_scores = torch.concat([
                 dists_scores.unsqueeze(1),
                 stats

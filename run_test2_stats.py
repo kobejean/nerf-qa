@@ -65,7 +65,7 @@ if __name__ == '__main__':
     parser.add_argument('--scene_type_bias_weight_loss_coef', type=float, default=0.1, help='Random seed.')
     parser.add_argument('--optimizer', type=str, default='adam', help='Random seed.')
     parser.add_argument('--project_weights', type=str, default='True', help='Random seed.')
-    parser.add_argument('--mode', type=str, default='mean,std,min,max', help='Random seed.')
+    parser.add_argument('--mode', type=str, default='mean-std-min-max', help='Random seed.')
     parser.add_argument('--gamma', type=float, default=0.95, help='Random seed.')
     parser.add_argument('--warmup_steps', type=int, default=0, help='Random seed.')
 
@@ -120,13 +120,13 @@ if __name__ == '__main__':
 
 
     def gather_stats(stats_df):
-        if config.mode == 'mean,std,min,max':
+        if config.mode == 'mean-std-min-max':
             stats = torch.tensor([
                 stats_df['DISTS_std'].iloc[i.numpy()].values,
                 stats_df['DISTS_min'].iloc[i.numpy()].values,
                 stats_df['DISTS_max'].iloc[i.numpy()].values,
             ], dtype=torch.float32).T.to(device)
-        elif config.mode == 'mean,std':
+        elif config.mode == 'mean-std':
             stats = torch.tensor([
                 stats_df['DISTS_std'].iloc[i.numpy()].values,
             ], dtype=torch.float32).T.to(device)
