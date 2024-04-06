@@ -1,6 +1,6 @@
 program: run_test2_cross.py
 metric:
-  name: Cross-Val Metrics Dict/mean_mse
+  name: Cross-Val Metrics Dict/mean_mae
   goal: minimize
 
 method: bayes

@@ -129,6 +129,7 @@ if __name__ == '__main__':
     cv_correlations = []
     cv_scene_mins = []
     cv_last_mses = []
+    cv_last_losses = []
 
     # Create splits
     for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups)):
@@ -237,6 +238,7 @@ if __name__ == '__main__':
         cv_correlations.append(val_logger.last_correlations)
         cv_scene_mins.append(val_logger.last_scene_min)
         cv_last_mses.append(val_logger.last_mse)
+        cv_last_losses.append(val_logger.last_loss)
 
     cv_correlations_concat = {}
     cv_scene_mins_concat = {}
@@ -272,6 +274,8 @@ if __name__ == '__main__':
     wandb.log({ 
         f"Cross-Val Metrics Dict/mean_mse": np.mean(cv_last_mses),
         f"Cross-Val Metrics Dict/std_mse": np.std(cv_last_mses),
+        f"Cross-Val Metrics Dict/mean_loss": np.mean(cv_last_losses),
+        f"Cross-Val Metrics Dict/std_loss": np.std(cv_last_losses),
     }, step=step)
 
 

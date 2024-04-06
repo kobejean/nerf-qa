@@ -75,7 +75,8 @@ class MetricCollectionLogger():
         self.scene_ids = []
         self.last_correlations = {}
         self.last_scene_min = {}
-        self.last_mse = {}
+        self.last_mse = None
+        self.last_loss = None
 
     def add_entries(self, metrics, video_ids, scene_ids):
         video_ids = np.array(video_ids)
@@ -269,8 +270,12 @@ class MetricCollectionLogger():
                     if save_last:
                         self.last_correlations = correlations
                         self.last_scene_min = scene_min
-                        video_mse = [video_averages['mse'][vid] for vid in unique_videos]
-                        self.last_mse = np.mean(video_mse)
+                        if 'mse' in video_averages:
+                            video_mse = [video_averages['mse'][vid] for vid in unique_videos]
+                            self.last_mse = np.mean(video_mse)
+                        if 'loss' in video_averages:
+                            video_loss = [video_averages['loss'][vid] for vid in unique_videos]
+                            self.last_loss = np.mean(video_loss)
 
             # Prepare video_pred_scores for correlation calculation
             video_pred_scores = video_averages['pred_score']

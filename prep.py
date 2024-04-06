@@ -145,12 +145,12 @@ test_video_dataloader_tr_map = {
 }
 
 # Batch creation function
-def create_test_video_dataloader(row, dir, resize=True, keep_aspect_ratio=True):
+def create_test_video_dataloader(row, dir, resize=True, keep_aspect_ratio=False):
     ref_dir = path.join(dir, "Reference")
     syn_dir = path.join(dir, "NeRF-QA_videos")
     dist_video_path = path.join(syn_dir, row['distorted_filename'])
     dist = load_video_frames(dist_video_path, resize=resize, keep_aspect_ratio=keep_aspect_ratio)
-    if row['scene'] in test_video_dataloader_tr_map:
+    if False and row['scene'] in test_video_dataloader_tr_map:
         gt_dir = test_video_dataloader_tr_map[row['scene']]
         gt_files = [os.path.join(gt_dir, f) for f in os.listdir(gt_dir) if f.endswith((".jpg", ".png"))]
         gt_files.sort()
@@ -184,12 +184,18 @@ for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Processing..."
         frame_dists_scores.append(batch_dists_scores.detach().cpu().numpy())
     video_adists_score = np.mean(np.concatenate(frame_adists_scores))
     video_dists_score = np.mean(np.concatenate(frame_dists_scores))
+    video_adists_score_std = np.std(np.concatenate(frame_adists_scores))
+    video_dists_score_std = np.std(np.concatenate(frame_dists_scores))
+    video_adists_score_min = np.min(np.concatenate(frame_adists_scores))
+    video_dists_score_min = np.min(np.concatenate(frame_dists_scores))
+    video_adists_score_max = np.max(np.concatenate(frame_adists_scores))
+    video_dists_score_max = np.max(np.concatenate(frame_dists_scores))
     print(video_adists_score, batch_adists_scores)
     print(video_dists_score, batch_dists_scores)
     video_adists_scores.append(video_adists_score)
     video_dists_scores.append(video_dists_score)
-test_df['A-DISTS_tr'] = video_adists_scores
-test_df['DISTS_tr'] = video_dists_scores
+test_df['A-DISTS'] = video_adists_scores
+test_df['DISTS'] = video_dists_scores
 
 #%%
 TEST_DATA_DIR = "/home/ccl/Datasets/NeRF-QA"
