@@ -65,10 +65,10 @@ class NeRFQAModel(nn.Module):
         # Concatenate all score tensors into a single tensor
         all_scores_tensor = torch.cat(all_scores, dim=0)
         if all_scores_tensor.numel() > 0:
-            score_mean = torch.mean(all_scores_tensor)
-            score_std = torch.mean(all_scores_tensor)
-            score_min = torch.min(all_scores_tensor)
-            score_max = torch.max(all_scores_tensor)
+            score_mean = torch.mean(all_scores_tensor, keepdim=True)
+            score_std = torch.mean(all_scores_tensor, keepdim=True)
+            score_min = torch.min(all_scores_tensor, keepdim=True)
+            score_max = torch.max(all_scores_tensor, keepdim=True)
         else:
             score_mean = all_scores_tensor
             score_std = torch.zeros_like(score_mean)
