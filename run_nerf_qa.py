@@ -298,7 +298,7 @@ if __name__ == '__main__':
 
     test_df = pd.read_csv(TEST_SCORE_FILE)
     test_df['scene'] = test_df['reference_folder'].str.replace('gt_', '', regex=False)
-    test_dataloader = create_test2_dataloader(test_df, dir=DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=False, scene_balanced=False)
+    test_dataloader = create_test2_dataloader(test_df, dir=TEST_DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=False, scene_balanced=False)
     test_size = len(test_dataloader)
 
 
