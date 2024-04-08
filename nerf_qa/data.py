@@ -289,7 +289,7 @@ class NeRFQAResizedDataset(Dataset):
         self.scores_df = scores_df
         
         def get_files(row, base_dir, column_name):
-            folder_path = os.path.join(base_dir, row[column_name])
+            folder_path = os.path.join(base_dir, row[column_name], '256x256')
             file_list = [f for f in os.listdir(folder_path) if f.endswith((".jpg", ".png"))]
             print(folder_path, file_list)
             file_list.sort()
@@ -323,8 +323,8 @@ class NeRFQAResizedDataset(Dataset):
         referenced_filename = f'{frame_within_video:03d}.png'
 
         # Construct the full paths
-        distorted_path = os.path.join(self.dist_dir, distorted_foldername, distorted_filename)
-        referenced_path = os.path.join(self.ref_dir, referenced_foldername, referenced_filename)
+        distorted_path = os.path.join(self.dist_dir, distorted_foldername, '256x256', distorted_filename)
+        referenced_path = os.path.join(self.ref_dir, referenced_foldername, '256x256', referenced_filename)
 
         # Load and optionally resize images
         distorted_image = transforms.ToTensor()(Image.open(distorted_path).convert("RGB"))
