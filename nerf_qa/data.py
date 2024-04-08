@@ -293,6 +293,9 @@ class NeRFQAResizedDataset(Dataset):
             file_list = [f for f in os.listdir(folder_path) if f.endswith((".jpg", ".png"))]
             file_list.sort()
             return file_list
+        
+        self.scores_df['distorted_folder'] = self.scores_df.apply(lambda path: os.path.splitext(path)[0], axis=1, args=(self.dist_dir, 'distorted_filename'))
+        self.scores_df['reference_folder'] = self.scores_df.apply(lambda path: os.path.splitext(path)[0], axis=1, args=(self.dist_dir, 'reference_filename'))
         self.scores_df['render_files'] = self.scores_df.apply(get_files, axis=1, args=(self.dist_dir, 'distorted_folder'))
         self.scores_df['gt_files'] = self.scores_df.apply(get_files, axis=1, args=(self.ref_dir, 'reference_folder'))
         self.scores_df['frame_count'] = self.scores_df['gt_files'].apply(len, axis=1)
@@ -312,8 +315,8 @@ class NeRFQAResizedDataset(Dataset):
             frame_within_video = idx
 
         # Get the filenames for the distorted and referenced frames
-        distorted_foldername = self.scores_df.iloc[video_idx]['distorted_filename']
-        referenced_foldername = self.scores_df.iloc[video_idx]['reference_filename']
+        distorted_foldername = self.scores_df.iloc[video_idx]['distorted_folder']
+        referenced_foldername = self.scores_df.iloc[video_idx]['reference_folder']
         distorted_filename = f'{frame_within_video:03d}.png'
         referenced_filename = f'{frame_within_video:03d}.png'
 
@@ -332,7 +335,7 @@ class NeRFQAResizedDataset(Dataset):
     def get_scene_indices(self):
         scene_indices = {}
         for i, row in self.scores_df.iterrows():
-            scene = row['distorted_filename']
+            scene = row['distorted_folder']
             start_idx = 0 if i == 0 else self.cumulative_frame_counts.iloc[i - 1]
             end_idx = self.cumulative_frame_counts.iloc[i]
             indices = list(range(start_idx, end_idx))
