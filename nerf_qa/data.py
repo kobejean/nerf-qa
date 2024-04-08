@@ -299,7 +299,7 @@ class NeRFQAResizedDataset(Dataset):
 
         self.scores_df['render_files'] = self.scores_df.apply(get_files, axis=1, args=(self.dist_dir, 'distorted_folder'))
         self.scores_df['gt_files'] = self.scores_df.apply(get_files, axis=1, args=(self.ref_dir, 'reference_folder'))
-        self.scores_df['frame_count'] = self.scores_df['gt_files'].apply(len, axis=1)
+        self.scores_df['frame_count'] = self.scores_df['gt_files'].apply(len)
         self.total_size = self.scores_df['frame_count'].sum()
         self.cumulative_frame_counts = self.scores_df['frame_count'].cumsum()
         
