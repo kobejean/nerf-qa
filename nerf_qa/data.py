@@ -287,6 +287,15 @@ class NeRFQAResizedDataset(Dataset):
         self.ref_dir = path.join(dir, "Reference")
         self.dist_dir = path.join(dir, "NeRF-QA_videos")
         self.scores_df = scores_df
+        
+        def get_files(row, base_dir, column_name):
+            folder_path = os.path.join(base_dir, row[column_name])
+            file_list = [f for f in os.listdir(folder_path) if f.endswith((".jpg", ".png"))]
+            file_list.sort()
+            return file_list
+        self.scores_df['render_files'] = self.scores_df.apply(get_files, axis=1, args=(self.dist_dir, 'distorted_folder'))
+        self.scores_df['gt_files'] = self.scores_df.apply(get_files, axis=1, args=(self.ref_dir, 'reference_folder'))
+        self.scores_df['frame_count'] = self.scores_df['gt_files'].apply(len, axis=1)
         self.total_size = self.scores_df['frame_count'].sum()
         self.cumulative_frame_counts = self.scores_df['frame_count'].cumsum()
         
