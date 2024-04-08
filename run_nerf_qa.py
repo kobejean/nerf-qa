@@ -164,8 +164,8 @@ if __name__ == '__main__':
                 elif batch_step == config.warmup_steps:
                     scheduler.last_epoch = epoch - 1        
                 
-                for i, param_group in enumerate(optimizer.param_groups):
-                    wandb.log({ f'Optimizer/lr_{i}': param_group['lr'] }, step = step)
+                for it, param_group in enumerate(optimizer.param_groups):
+                    wandb.log({ f'Optimizer/lr_{it}': param_group['lr'] }, step = step)
                 optimizer.zero_grad()  # Zero the gradients after updating
 
                 # Load scores
