@@ -298,6 +298,7 @@ if __name__ == '__main__':
 
     test_df = pd.read_csv(TEST_SCORE_FILE)
     test_df['scene'] = test_df['reference_folder'].str.replace('gt_', '', regex=False)
+    test_balanced_dataloader = create_test2_dataloader(test_df, dir=TEST_DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=False, scene_balanced=True)
     test_dataloader = create_test2_dataloader(test_df, dir=TEST_DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=False, scene_balanced=False)
     test_size = len(test_dataloader)
 
@@ -383,7 +384,8 @@ if __name__ == '__main__':
         if config.optimizer == 'sadamw':
             optimizer.eval()
         with torch.no_grad():
-            for dist, ref, score, i in tqdm(test_dataloader, total=test_size, desc="Testing..."):
+            
+            for dist, ref, score, i in tqdm((test_dataloader if epoch+1 < config.epochs else test_balanced_dataloader), total=test_size, desc="Testing..."):
                 # Compute score
                 predicted_score = model(dist.to(device), ref.to(device))
                 target_score = score.to(device).float()
