@@ -3,7 +3,7 @@ metric:
   # name: Cross-Val Metrics Dict/mean_mse
 
   name: Cross-Val Metrics Dict/correlations/scene_min/mean_plcc
-  goal: minimize
+  goal: maximize
 
 method: bayes
 parameters:
@@ -11,7 +11,7 @@ parameters:
     # value: 1e-5
     distribution: q_log_uniform_values
     min: 5e-7
-    max: 1e-3
+    max: 1e-4
     q: 1e-7
   eps:
     # distribution: q_log_uniform_values
@@ -44,7 +44,7 @@ parameters:
     value: 'mean'
   project_weights:
     # values: ['True', 'False']
-    value: 'True'
+    value: 'False'
   optimizer:
     value: 'adam'
     # values: ['adam', 'sadamw'] #: ['nadam', 'adam', 'sgd', 'sgd_momentum']
