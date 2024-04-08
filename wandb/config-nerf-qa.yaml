@@ -40,7 +40,7 @@ parameters:
   project_weights:
     values: ['True', 'False']
   optimizer:
-    value: ['adam', 'sadamw'] #: ['nadam', 'adam', 'sgd', 'sgd_momentum']
+    values: ['adam', 'sadamw'] #: ['nadam', 'adam', 'sgd', 'sgd_momentum']
 
 command:
 - ${env}
