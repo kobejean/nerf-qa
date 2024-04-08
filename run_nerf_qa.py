@@ -41,6 +41,7 @@ TEST_SCORE_FILE = path.join(DATA_DIR, "scores_new.csv")
 import argparse
 import wandb
 import multiprocessing as mp
+import schedulefree
 
 if __name__ == '__main__':
     # Set the start method for multiprocessing
@@ -51,7 +52,7 @@ if __name__ == '__main__':
 
     # Basic configurations
     parser.add_argument('--seed', type=int, default=42, help='Random seed.')
-    parser.add_argument('--lr', type=float, default=5e-6, help='Random seed.')
+    parser.add_argument('--lr', type=float, default=1e-5, help='Random seed.')
     parser.add_argument('--beta1', type=float, default=0.85, help='Random seed.')
     parser.add_argument('--beta2', type=float, default=0.9995, help='Random seed.')
     parser.add_argument('--momentum', type=float, default=0.9, help='Random seed.')
@@ -87,7 +88,7 @@ if __name__ == '__main__':
     scores_df['scene_type'] = scores_df['scene'].apply(get_scene_type)
 
 
-    epochs = 5
+    epochs = 10
     config = {
         "epochs": epochs,
         # "lr": 5e-5,
@@ -141,12 +142,20 @@ if __name__ == '__main__':
 
         # Reset model and optimizer for each fold (if you want to start fresh for each fold)
         model = NeRFQAModel(train_df=train_df, mode=config.mode).to(device)
-        optimizer = optim.Adam(model.parameters(),
-            lr=config.lr,
-            betas=(config.beta1, config.beta2),
-            eps=config.eps,
-        )
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.epochs - config.warmup_steps/train_size, eta_min=0, last_epoch=-1)
+        if config.optimizer == 'sadamw':
+            optimizer = schedulefree.AdamWScheduleFree(model.parameters(),                
+                lr=config.lr,
+                betas=(config.beta1, config.beta2),
+                eps=config.eps,
+                warmup_steps=config.warmup_steps,
+            )
+        else:
+            optimizer = optim.Adam(model.parameters(),
+                lr=config.lr,
+                betas=(config.beta1, config.beta2),
+                eps=config.eps,
+            )
+            scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.epochs - config.warmup_steps/train_size, eta_min=0, last_epoch=-1)
 
 
         # Training loop
@@ -155,17 +164,19 @@ if __name__ == '__main__':
 
             # Train step
             model.train()  # Set model to training mode
+            optimizer.train()
 
             for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."):  # Start index from 1 for easier modulus operation 
-                if batch_step < config.warmup_steps:
-                    warmup_lr = config.lr * 1e-4 + batch_step * (config.lr - config.lr * 1e-4) / config.warmup_steps
-                    for param_group in optimizer.param_groups:
-                        param_group['lr'] = warmup_lr  
-                elif batch_step == config.warmup_steps:
-                    scheduler.last_epoch = epoch - 1        
-                
-                for it, param_group in enumerate(optimizer.param_groups):
-                    wandb.log({ f'Optimizer/lr_{it}': param_group['lr'] }, step = step)
+                if config.optimizer != 'sadamw':
+                    if batch_step < config.warmup_steps:
+                        warmup_lr = config.lr * 1e-4 + batch_step * (config.lr - config.lr * 1e-4) / config.warmup_steps
+                        for param_group in optimizer.param_groups:
+                            param_group['lr'] = warmup_lr  
+                    elif batch_step == config.warmup_steps:
+                        scheduler.last_epoch = epoch        
+                    
+                    for it, param_group in enumerate(optimizer.param_groups):
+                        wandb.log({ f'Optimizer/lr_{it}': param_group['lr'] }, step = step)
                 optimizer.zero_grad()  # Zero the gradients after updating
 
                 # Load scores
@@ -197,10 +208,13 @@ if __name__ == '__main__':
                 optimizer.step()
                 if config.project_weights == 'True':
                     model.dists_model.project_weights()
-            scheduler.step()
+                    
+            if config.optimizer != 'sadamw':
+                scheduler.step()
 
             # Validation step
             model.eval()  # Set model to evaluation mode
+            optimizer.eval()
             with torch.no_grad():
                 for dist, ref, score, i in tqdm(val_dataloader, total=val_size, desc="Validating..."):
                     # Compute score
@@ -288,13 +302,21 @@ if __name__ == '__main__':
     train_logger = MetricCollectionLogger(f'Train Metrics Dict')
 
     model = NeRFQAModel(train_df=train_df, mode=config.mode).to(device)
-    optimizer = optim.Adam(model.parameters(),
-        lr=config.lr,
-        betas=(config.beta1, config.beta2),
-        eps=config.eps
-    )
-    # scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.epochs - config.warmup_steps/train_size, eta_min=0, last_epoch=-1)
+    if config.optimizer == 'sadamw':
+        optimizer = schedulefree.AdamWScheduleFree(model.parameters(),                
+            lr=config.lr,
+            betas=(config.beta1, config.beta2),
+            eps=config.eps,
+            warmup_steps=config.warmup_steps,
+        )
+    else:
+        optimizer = optim.Adam(model.parameters(),
+            lr=config.lr,
+            betas=(config.beta1, config.beta2),
+            eps=config.eps,
+        )
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.epochs - config.warmup_steps/train_size, eta_min=0, last_epoch=-1)
+        
 
     batch_step = 0
 
@@ -303,14 +325,16 @@ if __name__ == '__main__':
 
         # Train step
         model.train()  # Set model to training mode
+        optimizer.train()
 
         for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."):  # Start index from 1 for easier modulus operation   
-            if batch_step < config.warmup_steps:
-                warmup_lr = config.lr * 1e-4 + batch_step * (config.lr - config.lr * 1e-4) / config.warmup_steps
-                for param_group in optimizer.param_groups:
-                    param_group['lr'] = warmup_lr  
-            elif batch_step == config.warmup_steps:
-                scheduler.last_epoch = epoch - 1          
+            if config.optimizer != 'sadamw':
+                if batch_step < config.warmup_steps:
+                    warmup_lr = config.lr * 1e-4 + batch_step * (config.lr - config.lr * 1e-4) / config.warmup_steps
+                    for param_group in optimizer.param_groups:
+                        param_group['lr'] = warmup_lr  
+                elif batch_step == config.warmup_steps:
+                    scheduler.last_epoch = epoch          
             optimizer.zero_grad()  # Zero the gradients after updating
 
             predicted_score = model(dist.to(device),ref.to(device))
@@ -343,10 +367,13 @@ if __name__ == '__main__':
             optimizer.step()
             if config.project_weights == 'True':
                 model.dists_model.project_weights()
-        scheduler.step()
+
+        if config.optimizer != 'sadamw':
+            scheduler.step()
 
         # Test step
         model.eval()  # Set model to evaluation mode
+        optimizer.eval()
         with torch.no_grad():
             for dist, ref, score, i in tqdm(test_dataloader, total=test_size, desc="Testing..."):
                 # Compute score

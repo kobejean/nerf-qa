@@ -1,0 +1,49 @@
+program: run_test2_stats.py
+metric:
+  name: Cross-Val Metrics Dict/mean_mse
+  goal: minimize
+
+method: random
+parameters:
+  lr:
+    # value: 1e-5
+    distribution: q_log_uniform_values
+    min: 5e-6
+    max: 5e-5
+    q: 1e-7
+  eps:
+    # distribution: q_log_uniform_values
+    # min: 1e-10
+    # max: 1e-5
+    # q: 1e-10
+    value: 1e-7
+  beta1:
+    value: 0.85
+    # distribution: uniform
+    # min: 0.8
+    # max: 0.9
+  beta2:
+    value: 0.9995
+    # distribution: uniform
+    # min: 0.999
+    # max: 0.99999
+  warmup_steps:
+    values: [0, 90, 180]
+  epochs:
+    values: [20, 50, 100]
+  # gamma:
+  #   distribution: uniform
+  #   min: 0.80
+  #   max: 1.0
+  mode:
+    values: ['mean']
+  project_weights:
+    values: ['True', 'False']
+  optimizer:
+    value: ['adam', 'sadamw'] #: ['nadam', 'adam', 'sgd', 'sgd_momentum']
+
+command:
+- ${env}
+- ${interpreter}
+- ${program}
+- ${args}
