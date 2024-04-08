@@ -1,103 +1,72 @@
 #%%
 import cv2
 import os
+from os import path
+import pandas as pd
+import cv2
+import torch
 
-# Create an output directory if it doesn't exist
-output_dir = 'output/reference/lego'
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
-
-# Load the video
-video_path = '/Users/kobejean/Developer/GitHub/NeRF-QA-Database/Reference Videos/Realistic Synthetic 360/lego_reference.mp4'
-cap = cv2.VideoCapture(video_path)
-
-frame_number = 0
-while True:
-    # Read a new frame
-    success, frame = cap.read()
-    if not success:
-        break  # If no frame is found, end the loop
-
-    # Save the frame as a PNG file
-    frame_path = os.path.join(output_dir, f"{frame_number}.png")
-    cv2.imwrite(frame_path, frame)
-    frame_number += 1
-
-cap.release()
-print(f"Done! Extracted {frame_number} frames.")
-
-# %%
-# Create an output directory if it doesn't exist
-output_dir = 'output/synthetic/tensorf/lego'
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
-
-# Load the video
-video_path = '/Users/kobejean/Developer/GitHub/NeRF-QA-Database/Synthesized Videos/Realistic Synthetic 360/Lego/lego_tensorf.mp4'
-cap = cv2.VideoCapture(video_path)
-
-frame_number = 0
-while True:
-    # Read a new frame
-    success, frame = cap.read()
-    if not success:
-        break  # If no frame is found, end the loop
-
-    # Save the frame as a PNG file
-    frame_path = os.path.join(output_dir, f"r_{frame_number}.png")
-    cv2.imwrite(frame_path, frame)
-    frame_number += 1
-
-cap.release()
-print(f"Done! Extracted {frame_number} frames.")
-# %%
-from PIL import Image
-import numpy as np
-import math
-from torchvision import models,transforms
-from DISTS_pytorch import DISTS
-D = DISTS()
+#%%
 
 
-def psnr(img1, img2):
-    img1 = np.array(img1)
-    img2 = np.array(img2)
-    mse = np.mean((img1 - img2) ** 2)
-    if mse == 0:
-        return 100
-    PIXEL_MAX = 255.0
-    return 20 * math.log10(PIXEL_MAX / math.sqrt(mse))
+import os
+import cv2
+from os import path
 
-def prepare_image(image, resize=True):
-    if resize and min(image.size)>256:
-        image = transforms.functional.resize(image,256)
-    image = transforms.ToTensor()(image)
-    return image.unsqueeze(0)
+def resize_frame(frame, width, height, keep_aspect_ratio):
+    if keep_aspect_ratio:
+        # Get current dimensions
+        h, w = frame.shape[:2]
+        # Calculate the target dimensions
+        scale = min(width/w, height/h)
+        # Resize while keeping aspect ratio
+        new_w = int(w * scale)
+        new_h = int(h * scale)
+        resized_frame = cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_AREA)
+        # Create a new canvas with the target dimensions
+        canvas = np.zeros((height, width, 3), dtype=np.uint8)
+        # Compute center offset
+        x_center = (width - new_w) // 2
+        y_center = (height - new_h) // 2
+        # Place the resized frame in the center of the canvas
+        canvas[y_center:y_center+new_h, x_center:x_center+new_w] = resized_frame
+        return canvas
+    else:
+        # Resize without keeping aspect ratio
+        return cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
 
-def dists(img1, img2):
-    img1 = prepare_image(img1)
-    img2 = prepare_image(img2)
-    return D(img1, img2)
+def convert_frames(video_path, keep_aspect_ratio=False):
+    images_path = path.splitext(video_path)[0]
+    if keep_aspect_ratio:
+        images_path = path.join(images_path, '256_aspect_ratio')
+    else:
+        images_path = path.join(images_path, '256x256')
+    os.makedirs(images_path, exist_ok=True)
+    cap = cv2.VideoCapture(video_path)
+    i = 0
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+        # Resize the frame before saving
+        resized_frame = resize_frame(frame, 256, 256, keep_aspect_ratio)
+        nerf_image_path = os.path.join(images_path, f"{i:03d}.png")
+        cv2.imwrite(nerf_image_path, resized_frame)
+        i += 1
+    cap.release()
 
-def metrics_from_paths(a_path, b_path):
-    a_img = Image.open(a_path)
-    b_img = Image.open(b_path)
-    return psnr(a_img, b_img), dists(a_img, b_img)
-    
+TEST_DATA_DIR = "/home/ccl/Datasets/NeRF-QA"
+TEST_SCORE_FILE = path.join(TEST_DATA_DIR, "NeRF_VQA_MOS.csv")
+test_df = pd.read_csv("/Users/kobejean/Developer/GitHub/NeRF-QA-Database/NeRF-QA/NeRF_VQA_MOS.csv")
+test_df['scene'] = test_df['reference_filename'].str.replace('_reference.mp4', '', regex=False)
+test_size = test_df.shape[0]
 
+ref_dir = path.join(TEST_DATA_DIR, "Reference")
+syn_dir = path.join(TEST_DATA_DIR, "NeRF-QA_videos")
+for i, row in test_df.iterrows():
+    print(syn_dir, row)
+    nerf_video_path = path.join(syn_dir, row['distorted_filename'])
+    ref_video_path = path.join(ref_dir, row['reference_filename'])
+    convert_frames(ref_video_path)
+    convert_frames(nerf_video_path)
 
-# Load the images
-gt_img_path = "output/nerf-qa-examples/gt_199.png"
-ref_vid_img_path = "output/nerf-qa-examples/ref_vid_199.png"
-tensorf_img_path = "output/nerf-qa-examples/tensorf_199.png"
-
-
-# %%
-metrics_from_paths(gt_img_path, ref_vid_img_path)
-# %%
-
-metrics_from_paths(gt_img_path, tensorf_img_path)
-# %%
-
-metrics_from_paths(ref_vid_img_path, tensorf_img_path)
-# %%
