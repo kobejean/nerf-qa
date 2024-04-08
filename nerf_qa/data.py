@@ -281,6 +281,68 @@ def create_large_qa_dataloader(scores_df, dir, resize=True, batch_size = DEVICE_
     return dataloader
 
 
+class NeRFQAResizedDataset(Dataset):
+
+    def __init__(self, dir, scores_df):
+        self.ref_dir = path.join(dir, "Reference")
+        self.dist_dir = path.join(dir, "NeRF-QA_videos")
+        self.scores_df = scores_df
+        self.total_size = self.scores_df['frame_count'].sum()
+        self.cumulative_frame_counts = self.scores_df['frame_count'].cumsum()
+        
+
+    def __len__(self):
+        return self.total_size
+
+    def __getitem__(self, idx):
+        # Determine which video the index falls into
+        video_idx = (self.cumulative_frame_counts > idx).idxmax()
+        if video_idx > 0:
+            frame_within_video = idx - self.cumulative_frame_counts.iloc[video_idx - 1]
+        else:
+            frame_within_video = idx
+
+        # Get the filenames for the distorted and referenced frames
+        distorted_foldername = self.scores_df.iloc[video_idx]['distorted_filename']
+        referenced_foldername = self.scores_df.iloc[video_idx]['reference_filename']
+        distorted_filename = f'{frame_within_video:03d}.png'
+        referenced_filename = f'{frame_within_video:03d}.png'
+
+        # Construct the full paths
+        distorted_path = os.path.join(self.dist_dir, distorted_foldername, distorted_filename)
+        referenced_path = os.path.join(self.ref_dir, referenced_foldername, referenced_filename)
+
+        # Load and optionally resize images
+        distorted_image = transforms.ToTensor()(Image.open(distorted_path).convert("RGB"))
+        referenced_image = transforms.ToTensor()(Image.open(referenced_path).convert("RGB"))
+
+        row = self.scores_df.iloc[video_idx]
+        score = row['MOS']
+        return distorted_image, referenced_image, score, video_idx
+    
+    def get_scene_indices(self):
+        scene_indices = {}
+        for i, row in self.scores_df.iterrows():
+            scene = row['distorted_filename']
+            start_idx = 0 if i == 0 else self.cumulative_frame_counts.iloc[i - 1]
+            end_idx = self.cumulative_frame_counts.iloc[i]
+            indices = list(range(start_idx, end_idx))
+            if scene not in scene_indices:
+                scene_indices[scene] = []
+            scene_indices[scene].extend(indices)
+        return scene_indices
+
+# Batch creation function
+def create_nerf_qa_resize_dataloader(scores_df, dir, batch_size = DEVICE_BATCH_SIZE, scene_balanced=True):
+    # Create a dataset and dataloader for efficient batching
+    dataset = NeRFQAResizedDataset(dir=dir, scores_df=scores_df)
+    sampler = SceneBalancedSampler(dataset)
+    if scene_balanced:
+        dataloader = DataLoader(dataset, sampler=sampler, batch_size = batch_size, num_workers=4, pin_memory=True, persistent_workers=True)
+    else:
+        dataloader = DataLoader(dataset, batch_size = batch_size, num_workers=4, pin_memory=True, persistent_workers=True)
+    return dataloader
+
 # Example function to load a video and process it frame by frame
 def load_video_frames(video_path, resize=True, keep_aspect_ratio=False):
     cap = cv2.VideoCapture(video_path)
