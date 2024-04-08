@@ -100,7 +100,7 @@ class NeRFQAModel(nn.Module):
         
         return raw_scores
 
-    def forward(self, dist, ref, stats):
+    def forward(self, dist, ref, stats = None):
         with torch.no_grad():
             feats0 = self.dists_model.forward_once(dist)
             feats1 = self.dists_model.forward_once(ref) 
