@@ -385,7 +385,7 @@ if __name__ == '__main__':
             optimizer.eval()
         with torch.no_grad():
             
-            for dist, ref, score, i in tqdm((test_dataloader if epoch+1 < config.epochs else test_balanced_dataloader), total=test_size, desc="Testing..."):
+            for dist, ref, score, i in tqdm((test_dataloader if epoch+1 == config.epochs else test_balanced_dataloader), total=test_size, desc="Testing..."):
                 # Compute score
                 predicted_score = model(dist.to(device), ref.to(device))
                 target_score = score.to(device).float()
