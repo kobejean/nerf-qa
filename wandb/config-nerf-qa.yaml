@@ -44,7 +44,7 @@ parameters:
     value: 'mean'
   project_weights:
     # values: ['True', 'False']
-    value: 'False'
+    value: 'True'
   optimizer:
     value: 'adam'
     # values: ['adam', 'sadamw'] #: ['nadam', 'adam', 'sgd', 'sgd_momentum']

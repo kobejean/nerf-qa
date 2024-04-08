@@ -80,7 +80,7 @@ class DISTS(torch.nn.Module):
             self.beta.data = weights['beta']
 
     def project_weights(self):
-        lower_bound = torch.zeros_like(self.alpha.data) + 1e-8
+        lower_bound = torch.zeros_like(self.alpha.data)
         lower_bound[:,:3,:,:] = 0.02
         alpha = torch.max(self.alpha.data, lower_bound)
         beta = torch.max(self.beta.data, lower_bound)
