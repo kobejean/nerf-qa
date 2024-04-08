@@ -61,7 +61,7 @@ if __name__ == '__main__':
     parser.add_argument('--project_weights', type=str, default='True', help='Random seed.')
     parser.add_argument('--mode', type=str, default='mean', help='Random seed.')
     parser.add_argument('--gamma', type=float, default=0.95, help='Random seed.')
-    parser.add_argument('--warmup_steps', type=int, default=8, help='Random seed.')
+    parser.add_argument('--warmup_steps', type=int, default=90, help='Random seed.')
 
     # Parse arguments
     args = parser.parse_args()
@@ -158,7 +158,7 @@ if __name__ == '__main__':
 
             for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."):  # Start index from 1 for easier modulus operation 
                 if batch_step < config.warmup_steps:
-                    warmup_lr = config.lr + batch_step * (config.lr - config.lr * 1e-4) / config.warmup_steps
+                    warmup_lr = config.lr * 1e-4 + batch_step * (config.lr - config.lr * 1e-4) / config.warmup_steps
                     for param_group in optimizer.param_groups:
                         param_group['lr'] = warmup_lr  
                 elif batch_step == config.warmup_steps:
@@ -306,7 +306,7 @@ if __name__ == '__main__':
 
         for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."):  # Start index from 1 for easier modulus operation   
             if batch_step < config.warmup_steps:
-                warmup_lr = config.lr + batch_step * (config.lr - config.lr * 1e-4) / config.warmup_steps
+                warmup_lr = config.lr * 1e-4 + batch_step * (config.lr - config.lr * 1e-4) / config.warmup_steps
                 for param_group in optimizer.param_groups:
                     param_group['lr'] = warmup_lr  
             elif batch_step == config.warmup_steps:
