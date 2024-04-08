@@ -20,22 +20,6 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def linear_func(x, a, b):
     return a * x + b
 
-class ConvLayer(nn.Module):
-    def __init__(self, in_chns, out_chns, activation_enabled=True):
-        super(ConvLayer, self).__init__()
-        self.dropout = nn.Dropout2d(p=0.5)
-        self.conv = nn.Conv2d(in_chns, out_chns, kernel_size = 1, stride=1, padding='same', dilation=1, groups=1, bias=True)
-        self.activation_enabled = activation_enabled
-        if self.activation_enabled:
-            self.act_layer = nn.GELU()
-
-    def forward(self, x):
-        x = self.dropout(x)
-        x = self.conv(x)
-        if self.activation_enabled:
-            x = self.act_layer(x)
-        return x
-
 class NeRFQAModel(nn.Module):
     def __init__(self, train_df):
         super(NeRFQAModel, self).__init__()
@@ -53,30 +37,6 @@ class NeRFQAModel(nn.Module):
         self.dists_model = DISTS()
         self.dists_weight = nn.Parameter(torch.tensor([model.coef_[0]], dtype=torch.float32))
         self.dists_bias = nn.Parameter(torch.tensor([model.intercept_], dtype=torch.float32))
-
-    
-
-    def get_param_lr(self):
-        linear_layer_params = [
-            # self.dists_scene_type_weight,
-            # self.dists_scene_type_bias,
-            self.dists_weight,
-            self.dists_bias,
-            # self.scene_type_bias_weight
-        ]
-        # cnn_layer_params = [
-        #     self.conv.conv.weight,
-        #     self.conv.conv.bias,
-        # ]
-
-        # Collect the remaining parameters
-        remaining_params = [param for param in self.parameters() if all(param is not p for p in linear_layer_params)]
-        # remaining_params = [param for param in self.parameters() if all(param is not p for p in (linear_layer_params + cnn_layer_params))]
-        return  [
-            {'params': linear_layer_params, 'lr': wandb.config.lr },  # Set the learning rate for the 
-            # {'params': cnn_layer_params, 'lr': wandb.config.cnn_layer_lr },  # Set the learning rate for the specific layer
-            {'params': remaining_params }  # Set the learning rate for the remaining parameters
-        ]
 
             
     

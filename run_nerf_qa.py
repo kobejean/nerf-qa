@@ -51,21 +51,17 @@ if __name__ == '__main__':
 
     # Basic configurations
     parser.add_argument('--seed', type=int, default=42, help='Random seed.')
-    parser.add_argument('--lr', type=float, default=1e-5, help='Random seed.')
-    parser.add_argument('--beta1', type=float, default=0.9, help='Random seed.')
+    parser.add_argument('--lr', type=float, default=5e-6, help='Random seed.')
+    parser.add_argument('--beta1', type=float, default=0.85, help='Random seed.')
     parser.add_argument('--beta2', type=float, default=0.9995, help='Random seed.')
     parser.add_argument('--momentum', type=float, default=0.9, help='Random seed.')
     parser.add_argument('--momentum_decay', type=float, default=0.004, help='Random seed.')
     parser.add_argument('--eps', type=float, default=1e-7, help='Random seed.')
-    parser.add_argument('--linear_layer_lr', type=float, default=1e-5, help='Random seed.')
-    parser.add_argument('--cnn_layer_lr', type=float, default=1e-3, help='Random seed.')
-    parser.add_argument('--init_scene_type_bias_weight', type=float, default=0.5, help='Random seed.')
-    parser.add_argument('--scene_type_bias_weight_loss_coef', type=float, default=0.1, help='Random seed.')
     parser.add_argument('--optimizer', type=str, default='adam', help='Random seed.')
     parser.add_argument('--project_weights', type=str, default='True', help='Random seed.')
-    parser.add_argument('--mode', type=str, default='mean-std-min-max', help='Random seed.')
+    parser.add_argument('--mode', type=str, default='mean', help='Random seed.')
     parser.add_argument('--gamma', type=float, default=0.95, help='Random seed.')
-    parser.add_argument('--warmup_steps', type=int, default=0, help='Random seed.')
+    parser.add_argument('--warmup_steps', type=int, default=8, help='Random seed.')
 
     # Parse arguments
     args = parser.parse_args()
@@ -112,20 +108,6 @@ if __name__ == '__main__':
     config = wandb.config
 
 
-    def gather_stats(stats_df):
-        if config.mode == 'mean-std-min-max':
-            stats = torch.tensor([
-                stats_df['DISTS_std'].iloc[i.numpy()].values,
-                stats_df['DISTS_min'].iloc[i.numpy()].values,
-                stats_df['DISTS_max'].iloc[i.numpy()].values,
-            ], dtype=torch.float32).T.to(device)
-        elif config.mode == 'mean-std':
-            stats = torch.tensor([
-                stats_df['DISTS_std'].iloc[i.numpy()].values,
-            ], dtype=torch.float32).T.to(device)
-        else:
-            stats = None
-        return stats
 
     mse_fn = nn.MSELoss(reduction='none')
     loss_fn = nn.L1Loss(reduction='none')
