@@ -11,6 +11,7 @@ import torch
 
 import os
 import cv2
+import numpy as np
 from os import path
 
 def resize_frame(frame, width, height, keep_aspect_ratio):
@@ -57,7 +58,7 @@ def convert_frames(video_path, keep_aspect_ratio=False):
 
 TEST_DATA_DIR = "/home/ccl/Datasets/NeRF-QA"
 TEST_SCORE_FILE = path.join(TEST_DATA_DIR, "NeRF_VQA_MOS.csv")
-test_df = pd.read_csv("/Users/kobejean/Developer/GitHub/NeRF-QA-Database/NeRF-QA/NeRF_VQA_MOS.csv")
+test_df = pd.read_csv(TEST_SCORE_FILE)
 test_df['scene'] = test_df['reference_filename'].str.replace('_reference.mp4', '', regex=False)
 test_size = test_df.shape[0]
 
@@ -70,3 +71,5 @@ for i, row in test_df.iterrows():
     convert_frames(ref_video_path)
     convert_frames(nerf_video_path)
 
+
+# %%
