@@ -291,7 +291,6 @@ class NeRFQAResizedDataset(Dataset):
         def get_files(row, base_dir, column_name):
             folder_path = os.path.join(base_dir, row[column_name], '256x256')
             file_list = [f for f in os.listdir(folder_path) if f.endswith((".jpg", ".png"))]
-            print(folder_path, file_list)
             file_list.sort()
             return file_list
         
