@@ -2,4 +2,5 @@
 wandb/*
 !wandb/config*.yaml
 outputs/
+output/
 *.pt
