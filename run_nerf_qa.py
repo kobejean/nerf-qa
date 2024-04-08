@@ -392,8 +392,8 @@ if __name__ == '__main__':
                 loss = loss_fn(predicted_score, target_score)
                 
                 # Store metrics in logger
-                scene_ids = val_df['scene'].iloc[i.numpy()].values
-                video_ids = val_df['distorted_folder'].iloc[i.numpy()].values
+                scene_ids = test_df['scene'].iloc[i.numpy()].values
+                video_ids = test_df['distorted_folder'].iloc[i.numpy()].values
                 test_logger.add_entries(
                     {
                     'loss': loss.detach().cpu(),
