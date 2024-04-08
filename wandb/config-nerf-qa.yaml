@@ -1,6 +1,8 @@
 program: run_nerf_qa.py
 metric:
-  name: Cross-Val Metrics Dict/mean_mse
+  # name: Cross-Val Metrics Dict/mean_mse
+
+  name: Cross-Val Metrics Dict/correlations/scene_min/mean_plcc
   goal: minimize
 
 method: bayes
