@@ -10,7 +10,7 @@ parameters:
   lr:
     # value: 1e-5
     distribution: q_log_uniform_values
-    min: 5e-6
+    min: 1e-7
     max: 5e-5
     q: 1e-7
   eps:
@@ -33,8 +33,8 @@ parameters:
     value: 90
     # values: [0, 90, 180]
   epochs:
-    # value: 10
-    values: [10, 20, 50, 100]
+    value: 10
+    # values: [10, 20, 50, 100]
   # gamma:
   #   distribution: uniform
   #   min: 0.80
@@ -46,7 +46,7 @@ parameters:
     # values: ['True', 'False']
     value: 'True'
   optimizer:
-    value: 'adam'
+    value: 'sadamw'
     # values: ['adam', 'sadamw'] #: ['nadam', 'adam', 'sgd', 'sgd_momentum']
 
 command:
