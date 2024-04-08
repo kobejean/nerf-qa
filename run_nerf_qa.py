@@ -165,7 +165,8 @@ if __name__ == '__main__':
 
             # Train step
             model.train()  # Set model to training mode
-            optimizer.train()
+            if config.optimizer == 'sadamw':
+                optimizer.train()
 
             for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."):  # Start index from 1 for easier modulus operation 
                 if config.optimizer != 'sadamw':
@@ -215,7 +216,9 @@ if __name__ == '__main__':
 
             # Validation step
             model.eval()  # Set model to evaluation mode
-            optimizer.eval()
+
+            if config.optimizer == 'sadamw':
+                optimizer.eval()
             with torch.no_grad():
                 for dist, ref, score, i in tqdm(val_dataloader, total=val_size, desc="Validating..."):
                     # Compute score
@@ -326,7 +329,9 @@ if __name__ == '__main__':
 
         # Train step
         model.train()  # Set model to training mode
-        optimizer.train()
+
+        if config.optimizer == 'sadamw':
+            optimizer.train()
 
         for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."):  # Start index from 1 for easier modulus operation   
             if config.optimizer != 'sadamw':
@@ -374,7 +379,9 @@ if __name__ == '__main__':
 
         # Test step
         model.eval()  # Set model to evaluation mode
-        optimizer.eval()
+
+        if config.optimizer == 'sadamw':
+            optimizer.eval()
         with torch.no_grad():
             for dist, ref, score, i in tqdm(test_dataloader, total=test_size, desc="Testing..."):
                 # Compute score
