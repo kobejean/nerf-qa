@@ -3,7 +3,7 @@ metric:
   name: Cross-Val Metrics Dict/mean_mse
   goal: minimize
 
-method: random
+method: bayes
 parameters:
   lr:
     # value: 1e-5
