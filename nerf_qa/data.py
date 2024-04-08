@@ -294,8 +294,9 @@ class NeRFQAResizedDataset(Dataset):
             file_list.sort()
             return file_list
         
-        self.scores_df['distorted_folder'] = self.scores_df.apply(lambda row, col: os.path.splitext(row[col])[0], axis=1, args=('distorted_filename'))
-        self.scores_df['reference_folder'] = self.scores_df.apply(lambda row, col: os.path.splitext(row[col])[0], axis=1, args=('reference_filename'))
+        self.scores_df['distorted_folder'] = self.scores_df['distorted_filename'].apply(lambda x: os.path.splitext(x)[0])
+        self.scores_df['reference_folder'] = self.scores_df['reference_filename'].apply(lambda x: os.path.splitext(x)[0])
+
         self.scores_df['render_files'] = self.scores_df.apply(get_files, axis=1, args=(self.dist_dir, 'distorted_folder'))
         self.scores_df['gt_files'] = self.scores_df.apply(get_files, axis=1, args=(self.ref_dir, 'reference_folder'))
         self.scores_df['frame_count'] = self.scores_df['gt_files'].apply(len, axis=1)
