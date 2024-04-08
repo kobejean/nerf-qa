@@ -63,6 +63,7 @@ if __name__ == '__main__':
     parser.add_argument('--mode', type=str, default='mean', help='Random seed.')
     parser.add_argument('--gamma', type=float, default=0.95, help='Random seed.')
     parser.add_argument('--warmup_steps', type=int, default=90, help='Random seed.')
+    parser.add_argument('--epochs', type=int, default=5, help='Random seed.')
 
     # Parse arguments
     args = parser.parse_args()
@@ -90,7 +91,7 @@ if __name__ == '__main__':
 
     epochs = 10
     config = {
-        "epochs": epochs,
+        # "epochs": epochs,
         # "lr": 5e-5,
         # "beta1": 0.99,
         # "beta2": 0.9999,

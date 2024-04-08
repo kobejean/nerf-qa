@@ -30,7 +30,7 @@ parameters:
   warmup_steps:
     values: [0, 90, 180]
   epochs:
-    values: [20, 50, 100]
+    values: [10, 20, 50, 100]
   # gamma:
   #   distribution: uniform
   #   min: 0.80
