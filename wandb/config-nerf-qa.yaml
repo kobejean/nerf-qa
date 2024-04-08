@@ -28,9 +28,11 @@ parameters:
     # min: 0.999
     # max: 0.99999
   warmup_steps:
-    values: [0, 90, 180]
+    value: 90
+    # values: [0, 90, 180]
   epochs:
-    values: [10, 20, 50, 100]
+    value: 10
+    # values: [10, 20, 50, 100]
   # gamma:
   #   distribution: uniform
   #   min: 0.80
@@ -42,7 +44,8 @@ parameters:
     # values: ['True', 'False']
     value: 'True'
   optimizer:
-    values: ['adam', 'sadamw'] #: ['nadam', 'adam', 'sgd', 'sgd_momentum']
+    value: 'adam'
+    # values: ['adam', 'sadamw'] #: ['nadam', 'adam', 'sgd', 'sgd_momentum']
 
 command:
 - ${env}
