@@ -87,7 +87,7 @@ if __name__ == '__main__':
     scores_df['scene_type'] = scores_df['scene'].apply(get_scene_type)
 
 
-    epochs = 50
+    epochs = 5
     config = {
         "epochs": epochs,
         # "lr": 5e-5,
@@ -195,37 +195,36 @@ if __name__ == '__main__':
                     model.dists_model.project_weights()
             scheduler.step()
 
-            if (epoch+1) % 10 == 0:
-                # Validation step
-                model.eval()  # Set model to evaluation mode
-                with torch.no_grad():
-                    for dist, ref, score, i in tqdm(val_dataloader, total=val_size, desc="Validating..."):
-                        # Compute score
-                        predicted_score = model(dist.to(device), ref.to(device))
-                        target_score = score.to(device).float()
+            # Validation step
+            model.eval()  # Set model to evaluation mode
+            with torch.no_grad():
+                for dist, ref, score, i in tqdm(val_dataloader, total=val_size, desc="Validating..."):
+                    # Compute score
+                    predicted_score = model(dist.to(device), ref.to(device))
+                    target_score = score.to(device).float()
 
-                        # Compute loss
-                        loss = loss_fn(predicted_score, target_score)
-                        
-                        # Store metrics in logger
-                        scene_ids = val_df['scene'].iloc[i.numpy()].values
-                        video_ids = val_df['distorted_filename'].iloc[i.numpy()].values
-                        val_logger.add_entries(
-                            {
-                            'loss': loss.detach().cpu(),
-                            'mse': mse_fn(predicted_score, target_score).detach().cpu(),
-                            'mos': score,
-                            'pred_score': predicted_score.detach().cpu(),
-                        }, video_ids = video_ids, scene_ids = scene_ids)
+                    # Compute loss
+                    loss = loss_fn(predicted_score, target_score)
+                    
+                    # Store metrics in logger
+                    scene_ids = val_df['scene'].iloc[i.numpy()].values
+                    video_ids = val_df['distorted_filename'].iloc[i.numpy()].values
+                    val_logger.add_entries(
+                        {
+                        'loss': loss.detach().cpu(),
+                        'mse': mse_fn(predicted_score, target_score).detach().cpu(),
+                        'mos': score,
+                        'pred_score': predicted_score.detach().cpu(),
+                    }, video_ids = video_ids, scene_ids = scene_ids)
 
-                    # Log accumulated metrics
-                    val_logger.log_summary(step)
-                    wandb.log({ 
-                        "Model/dists_weight/alpha": wandb.Histogram(model.dists_model.alpha.detach().cpu()),
-                        "Model/dists_weight/beta": wandb.Histogram(model.dists_model.beta.detach().cpu()),
-                        "Model/dists_weight/alpha_min": torch.min(model.dists_model.alpha),
-                        "Model/dists_weight/beta_min": torch.min(model.dists_model.beta),
-                    }, step=step)
+                # Log accumulated metrics
+                val_logger.log_summary(step)
+                wandb.log({ 
+                    "Model/dists_weight/alpha": wandb.Histogram(model.dists_model.alpha.detach().cpu()),
+                    "Model/dists_weight/beta": wandb.Histogram(model.dists_model.beta.detach().cpu()),
+                    "Model/dists_weight/alpha_min": torch.min(model.dists_model.alpha),
+                    "Model/dists_weight/beta_min": torch.min(model.dists_model.beta),
+                }, step=step)
         
         cv_correlations.append(val_logger.last_correlations)
         cv_scene_mins.append(val_logger.last_scene_min)
@@ -342,32 +341,32 @@ if __name__ == '__main__':
                 model.dists_model.project_weights()
         scheduler.step()
 
-    # Test step
-    model.eval()  # Set model to evaluation mode
-    with torch.no_grad():
-        for dist, ref, score, i in tqdm(test_dataloader, total=test_size, desc="Testing..."):
-            # Compute score
-            predicted_score = model(dist.to(device), ref.to(device))
-            target_score = score.to(device).float()
+        # Test step
+        model.eval()  # Set model to evaluation mode
+        with torch.no_grad():
+            for dist, ref, score, i in tqdm(test_dataloader, total=test_size, desc="Testing..."):
+                # Compute score
+                predicted_score = model(dist.to(device), ref.to(device))
+                target_score = score.to(device).float()
 
-            # Compute loss
-            loss = loss_fn(predicted_score, target_score)
-            
-            # Store metrics in logger
-            scene_ids = val_df['scene'].iloc[i.numpy()].values
-            video_ids = val_df['distorted_folder'].iloc[i.numpy()].values
-            test_logger.add_entries(
-                {
-                'loss': loss.detach().cpu(),
-                'mse': mse_fn(predicted_score, target_score).detach().cpu(),
-                'mos': score,
-                'pred_score': predicted_score.detach().cpu(),
-            }, video_ids = video_ids, scene_ids = scene_ids)
+                # Compute loss
+                loss = loss_fn(predicted_score, target_score)
+                
+                # Store metrics in logger
+                scene_ids = val_df['scene'].iloc[i.numpy()].values
+                video_ids = val_df['distorted_folder'].iloc[i.numpy()].values
+                test_logger.add_entries(
+                    {
+                    'loss': loss.detach().cpu(),
+                    'mse': mse_fn(predicted_score, target_score).detach().cpu(),
+                    'mos': score,
+                    'pred_score': predicted_score.detach().cpu(),
+                }, video_ids = video_ids, scene_ids = scene_ids)
 
-        # Log results
-        results_df = test_logger.video_metrics_df()
-        results_df.to_csv('results.csv')
-        test_logger.log_summary(step)
+    # Log results
+    results_df = test_logger.video_metrics_df()
+    results_df.to_csv('results.csv')
+    test_logger.log_summary(step)
 
 
     torch.save(model, f'{exp_name}.pth')
