@@ -36,9 +36,11 @@ parameters:
   #   min: 0.80
   #   max: 1.0
   mode:
-    values: ['mean']
+    # values: ['mean']
+    value: 'mean'
   project_weights:
-    values: ['True', 'False']
+    # values: ['True', 'False']
+    value: 'True'
   optimizer:
     values: ['adam', 'sadamw'] #: ['nadam', 'adam', 'sgd', 'sgd_momentum']
 
