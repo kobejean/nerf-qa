@@ -214,7 +214,7 @@ class MetricCollectionLogger():
                 logs.update({ f"{self.collection_name}/plot/{name}/scene_regression": plot_with_group_regression(pred, gt, scene_video_ids) })
 
                 real_scene_ids = ['train', 'm60', 'playground', 'truck', 'fortress', 'horns', 'trex', 'room']
-                synth_scene_ids = ['ship', 'lego', 'drums', 'ficus', 'hotdog', 'materials', 'mic']
+                synth_scene_ids = ['ship', 'lego', 'drums', 'ficus', 'hotdog', 'materials', 'mic', 'chair']
 
                 # Aggregate and compute correlations by scene_id
                 scene_correlations = {}

@@ -10,8 +10,8 @@ parameters:
   lr:
     # value: 1e-5
     distribution: q_log_uniform_values
-    min: 5e-7
-    max: 1e-4
+    min: 8e-6
+    max: 5e-5
     q: 1e-7
   eps:
     # distribution: q_log_uniform_values
@@ -20,12 +20,12 @@ parameters:
     # q: 1e-10
     value: 1e-7
   beta1:
-    value: 0.85
+    value: 0.9
     # distribution: uniform
     # min: 0.8
     # max: 0.9
   beta2:
-    value: 0.9995
+    value: 0.999
     # distribution: uniform
     # min: 0.999
     # max: 0.99999

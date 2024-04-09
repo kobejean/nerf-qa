@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
     # Lists of scene IDs
     real_scene_ids = ['train', 'm60', 'playground', 'truck', 'fortress', 'horns', 'trex', 'room']
-    synth_scene_ids = ['ship', 'lego', 'drums', 'ficus', 'hotdog', 'materials', 'mic']
+    synth_scene_ids = ['ship', 'lego', 'drums', 'ficus', 'hotdog', 'materials', 'mic', 'chair']
 
     # Function to determine the scene type
     def get_scene_type(scene):
