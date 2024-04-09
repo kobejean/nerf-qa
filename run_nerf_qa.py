@@ -478,8 +478,8 @@ if __name__ == '__main__':
     
     for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Processing..."):
         frames_data = create_test_dataloader(row, TEST_DATA_DIR)
-        i = np.full(shape=config.batch_size, fill_value=index)
         for ref, render in frames_data:
+            i = np.full(shape=render.shape[0], fill_value=index)
             # Compute score
             predicted_score = model(render.to(device), ref.to(device))
             score = test_df['MOS'].iloc[i].values
