@@ -481,7 +481,7 @@ if __name__ == '__main__':
         i = np.full(shape=config.batch_size, fill_value=index)
         for ref, render in frames_data:
             # Compute score
-            predicted_score = model(dist.to(device), ref.to(device))
+            predicted_score = model(render.to(device), ref.to(device))
             score = test_df['MOS'].iloc[i].values
             target_score = torch.tensor(score, device=device).float()
 
