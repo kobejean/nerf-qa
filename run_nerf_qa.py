@@ -406,7 +406,6 @@ if __name__ == '__main__':
                     'pred_score': predicted_score.detach().cpu(),
                 }, video_ids = video_ids, scene_ids = scene_ids)
 
-            results_df = test_logger.video_metrics_df()
             test_logger.log_summary(step)
 
 
@@ -474,22 +473,24 @@ if __name__ == '__main__':
     def create_test_dataloader(row, dir):
         # Create a dataset and dataloader for efficient batching
         dataset = Test2Dataset(row, dir)
-        dataloader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn = recursive_collate)
+        dataloader = DataLoader(dataset, batch_size=config.batch_size, shuffle=False, collate_fn = recursive_collate)
         return dataloader 
     
     for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Processing..."):
         frames_data = create_test_dataloader(row, TEST_DATA_DIR)
+        i = np.full(shape=config.batch_size, fill_value=index)
         for ref, render in frames_data:
             # Compute score
             predicted_score = model(dist.to(device), ref.to(device))
-            target_score = score.to(device).float()
+            score = test_df['MOS'].iloc[i].values
+            target_score = torch.tensor(score, device=device).float()
 
             # Compute loss
             loss = loss_fn(predicted_score, target_score)
             
             # Store metrics in logger
-            scene_ids = test_df['scene'].iloc[i.numpy()].values
-            video_ids = test_df['distorted_folder'].iloc[i.numpy()].values
+            scene_ids = test_df['scene'].iloc[i].values
+            video_ids = test_df['distorted_folder'].iloc[i].values
             test_logger.add_entries(
                 {
                 'loss': loss.detach().cpu(),
@@ -498,6 +499,7 @@ if __name__ == '__main__':
                 'pred_score': predicted_score.detach().cpu(),
             }, video_ids = video_ids, scene_ids = scene_ids)
     
+    results_df = test_logger.video_metrics_df()
     test_logger.log_summary(step+1)
         
 
