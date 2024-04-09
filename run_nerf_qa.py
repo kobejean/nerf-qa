@@ -406,9 +406,8 @@ if __name__ == '__main__':
 
             results_df = test_logger.video_metrics_df()
             test_logger.log_summary(step)
+            
     results_df.to_csv('results.csv')
-
-
     torch.save(model, f'{exp_name}.pth')
 
     # Create and log an artifact for the results
