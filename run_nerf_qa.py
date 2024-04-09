@@ -106,7 +106,7 @@ if __name__ == '__main__':
     exp_name=f"l1-bs:{config['batch_size']}-lr:{config['lr']:.0e}-b1:{config['beta1']:.3f}-b2:{config['beta2']:.4f}"
 
     # Initialize wandb with the parsed arguments, further simplifying parameter names
-    wandb.init(project='nerf-qa-2', name=exp_name, config=config)
+    run = wandb.init(project='nerf-qa-2', name=exp_name, config=config)
     config = wandb.config
 
 
@@ -410,5 +410,15 @@ if __name__ == '__main__':
 
 
     torch.save(model, f'{exp_name}.pth')
+
+    # Create and log an artifact for the results
+    results_artifact = wandb.Artifact('results', type='dataset')
+    results_artifact.add_file('results.csv')
+    wandb.log_artifact(results_artifact)
+
+    # Create and log an artifact for the model
+    model_artifact = wandb.Artifact(exp_name, type='model')
+    model_artifact.add_file(f'{exp_name}.pth')
+    wandb.log_artifact(model_artifact)
 
     wandb.finish()
