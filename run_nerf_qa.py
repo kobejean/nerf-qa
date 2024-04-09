@@ -10,16 +10,19 @@ import argparse
 import numpy as np
 import torch
 from torch import nn
+import torch.nn.functional as F
 import torch.optim as optim
 import wandb
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import GroupKFold
 from scipy.optimize import curve_fit
+from torch.utils.data import Dataset, DataLoader, Sampler
 import math
 
 # data 
 import pandas as pd
 from tqdm import tqdm
+from PIL import Image
 
 # local
 from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS
@@ -299,8 +302,7 @@ if __name__ == '__main__':
     test_df = pd.read_csv(TEST_SCORE_FILE)
     test_df['scene'] = test_df['reference_folder'].str.replace('gt_', '', regex=False)
     test_balanced_dataloader = create_test2_dataloader(test_df, dir=TEST_DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=False, scene_balanced=True)
-    test_dataloader = create_test2_dataloader(test_df, dir=TEST_DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=False, scene_balanced=False)
-    test_size = len(test_dataloader)
+    test_size = len(test_balanced_dataloader)
 
 
     test_logger = MetricCollectionLogger('Test Metrics Dict')
@@ -385,7 +387,7 @@ if __name__ == '__main__':
             optimizer.eval()
         with torch.no_grad():
             
-            for dist, ref, score, i in tqdm((test_dataloader if epoch+1 == config.epochs else test_balanced_dataloader), total=test_size, desc="Testing..."):
+            for dist, ref, score, i in tqdm(test_balanced_dataloader, total=test_size, desc="Testing..."):
                 # Compute score
                 predicted_score = model(dist.to(device), ref.to(device))
                 target_score = score.to(device).float()
@@ -406,6 +408,98 @@ if __name__ == '__main__':
 
             results_df = test_logger.video_metrics_df()
             test_logger.log_summary(step)
+
+
+    class Test2Dataset(Dataset):
+        def __init__(self, row, dir):
+            gt_dir = path.join(dir, "Reference", row['reference_folder'])
+            render_dir = path.join(dir, "Renders", row['distorted_folder'])
+
+            gt_files = [os.path.join(gt_dir, f) for f in os.listdir(gt_dir) if f.endswith((".jpg", ".png"))]
+            gt_files.sort()
+            render_files = [os.path.join(render_dir, f) for f in os.listdir(render_dir) if f.endswith((".jpg", ".png"))]
+            render_files.sort()
+
+            self.files = list(zip(gt_files, render_files))
+            
+        def __len__(self):
+            return len(self.files)
+        
+        def __getitem__(self, index):
+            # Retrieve the data row at the given index
+            gt_path, render_path = self.files[index]
+            gt = self.load_image(gt_path)
+            render = self.load_image(render_path)
+            return gt, render
+        
+        def load_image(self, path):
+            image = Image.open(path)
+
+            if image.mode == 'RGBA':
+                # If the image has an alpha channel, create a white background
+                background = Image.new('RGBA', image.size, (255, 255, 255))
+                
+                # Paste the image onto the white background using alpha compositing
+                background.paste(image, mask=image.split()[3])
+                
+                # Convert the image to RGB mode
+                image = background.convert('RGB')
+            else:
+                # If the image doesn't have an alpha channel, directly convert it to RGB
+                image = image.convert('RGB')
+
+            image = torch.from_numpy(np.array(image)).permute(2, 0, 1).float() / 255.0
+            W=H=256
+            # h, w = (int(image.shape[1]*0.7), int(image.shape[2]*0.7))
+            # i, j = (image.shape[1]-h)//2, (image.shape[2]-w)//2
+            # # Crop to avoid black region due to postprocessed distortion
+            # image = TF.crop(image, i, j, h, w)
+            image = F.interpolate(image.unsqueeze(0), size=(H, W), mode='bilinear', align_corners=False).squeeze(0)
+
+            return image
+        
+    def recursive_collate(batch):
+        if isinstance(batch[0], torch.Tensor):
+            return (torch.stack(batch) if batch[0].dim() == 0 or batch[0].shape[0] > 1 else torch.concat(batch, dim=0)).detach()
+        elif isinstance(batch[0], tuple):
+            return tuple(recursive_collate(samples) for samples in zip(*batch))
+        elif isinstance(batch[0], list):
+            return [recursive_collate(samples) for samples in zip(*batch)]
+        elif isinstance(batch[0], dict):
+            return {key: recursive_collate([sample[key] for sample in batch]) for key in batch[0]}
+        else:
+            return batch
+        
+    # Batch creation function
+    def create_test_dataloader(row, dir):
+        # Create a dataset and dataloader for efficient batching
+        dataset = Test2Dataset(row, dir)
+        dataloader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn = recursive_collate)
+        return dataloader 
+    
+    for index, row in tqdm(test_df.iterrows(), total=test_size, desc="Processing..."):
+        frames_data = create_test_dataloader(row, TEST_DATA_DIR)
+        for ref, render in frames_data:
+            # Compute score
+            predicted_score = model(dist.to(device), ref.to(device))
+            target_score = score.to(device).float()
+
+            # Compute loss
+            loss = loss_fn(predicted_score, target_score)
+            
+            # Store metrics in logger
+            scene_ids = test_df['scene'].iloc[i.numpy()].values
+            video_ids = test_df['distorted_folder'].iloc[i.numpy()].values
+            test_logger.add_entries(
+                {
+                'loss': loss.detach().cpu(),
+                'mse': mse_fn(predicted_score, target_score).detach().cpu(),
+                'mos': score,
+                'pred_score': predicted_score.detach().cpu(),
+            }, video_ids = video_ids, scene_ids = scene_ids)
+    
+    test_logger.log_summary(step+1)
+        
 
     results_df.to_csv('results.csv')
     torch.save(model, f'model.pth')
