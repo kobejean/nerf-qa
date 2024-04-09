@@ -327,86 +327,86 @@ if __name__ == '__main__':
 
     batch_step = 0
 
-    for epoch in range(wandb.config.epochs):
-        print(f"Epoch {epoch+1}/{wandb.config.epochs}")
+    # for epoch in range(wandb.config.epochs):
+    #     print(f"Epoch {epoch+1}/{wandb.config.epochs}")
 
-        # Train step
-        model.train()  # Set model to training mode
+    #     # Train step
+    #     model.train()  # Set model to training mode
 
-        if config.optimizer == 'sadamw':
-            optimizer.train()
+    #     if config.optimizer == 'sadamw':
+    #         optimizer.train()
 
-        for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."):  # Start index from 1 for easier modulus operation   
-            if config.optimizer != 'sadamw':
-                if batch_step < config.warmup_steps:
-                    warmup_lr = config.lr * 1e-4 + batch_step * (config.lr - config.lr * 1e-4) / config.warmup_steps
-                    for param_group in optimizer.param_groups:
-                        param_group['lr'] = warmup_lr  
-                elif batch_step == config.warmup_steps:
-                    scheduler.last_epoch = epoch          
-            optimizer.zero_grad()  # Zero the gradients after updating
+    #     for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."):  # Start index from 1 for easier modulus operation   
+    #         if config.optimizer != 'sadamw':
+    #             if batch_step < config.warmup_steps:
+    #                 warmup_lr = config.lr * 1e-4 + batch_step * (config.lr - config.lr * 1e-4) / config.warmup_steps
+    #                 for param_group in optimizer.param_groups:
+    #                     param_group['lr'] = warmup_lr  
+    #             elif batch_step == config.warmup_steps:
+    #                 scheduler.last_epoch = epoch          
+    #         optimizer.zero_grad()  # Zero the gradients after updating
 
-            predicted_score = model(dist.to(device),ref.to(device))
-            target_score = score.to(device).float()
+    #         predicted_score = model(dist.to(device),ref.to(device))
+    #         target_score = score.to(device).float()
             
-            # Compute loss
-            loss = loss_fn(predicted_score, target_score)
-            step += score.shape[0]
-            batch_step += 1
+    #         # Compute loss
+    #         loss = loss_fn(predicted_score, target_score)
+    #         step += score.shape[0]
+    #         batch_step += 1
 
-            # Store metrics in logger
-            scene_ids =  train_df['scene'].iloc[i.numpy()].values
-            video_ids =  train_df['distorted_filename'].iloc[i.numpy()].values
-            train_logger.add_entries(
-                {
-                'loss': loss.detach().cpu(),
-                'mse': mse_fn(predicted_score, target_score).detach().cpu(),
-                # 'mos': score,
-                # 'pred_score': predicted_score.detach().cpu(),
-            }, video_ids = video_ids, scene_ids = scene_ids)
+    #         # Store metrics in logger
+    #         scene_ids =  train_df['scene'].iloc[i.numpy()].values
+    #         video_ids =  train_df['distorted_filename'].iloc[i.numpy()].values
+    #         train_logger.add_entries(
+    #             {
+    #             'loss': loss.detach().cpu(),
+    #             'mse': mse_fn(predicted_score, target_score).detach().cpu(),
+    #             # 'mos': score,
+    #             # 'pred_score': predicted_score.detach().cpu(),
+    #         }, video_ids = video_ids, scene_ids = scene_ids)
 
-            # Accumulate gradients
-            loss = loss.mean()
-            loss.backward()
+    #         # Accumulate gradients
+    #         loss = loss.mean()
+    #         loss.backward()
 
-            # Log accumulated train metrics
-            train_logger.log_summary(step)
+    #         # Log accumulated train metrics
+    #         train_logger.log_summary(step)
             
-            # Update parameters every batches_per_step steps or on the last iteration
-            optimizer.step()
-            if config.project_weights == 'True':
-                model.dists_model.project_weights()
+    #         # Update parameters every batches_per_step steps or on the last iteration
+    #         optimizer.step()
+    #         if config.project_weights == 'True':
+    #             model.dists_model.project_weights()
 
-        if config.optimizer != 'sadamw':
-            scheduler.step()
+    #     if config.optimizer != 'sadamw':
+    #         scheduler.step()
 
-        # Test step
-        model.eval()  # Set model to evaluation mode
+    #     # Test step
+    #     model.eval()  # Set model to evaluation mode
 
-        if config.optimizer == 'sadamw':
-            optimizer.eval()
-        with torch.no_grad():
+    #     if config.optimizer == 'sadamw':
+    #         optimizer.eval()
+    #     with torch.no_grad():
             
-            for dist, ref, score, i in tqdm(test_balanced_dataloader, total=test_size, desc="Testing..."):
-                # Compute score
-                predicted_score = model(dist.to(device), ref.to(device))
-                target_score = score.to(device).float()
+    #         for dist, ref, score, i in tqdm(test_balanced_dataloader, total=test_size, desc="Testing..."):
+    #             # Compute score
+    #             predicted_score = model(dist.to(device), ref.to(device))
+    #             target_score = score.to(device).float()
 
-                # Compute loss
-                loss = loss_fn(predicted_score, target_score)
+    #             # Compute loss
+    #             loss = loss_fn(predicted_score, target_score)
                 
-                # Store metrics in logger
-                scene_ids = test_df['scene'].iloc[i.numpy()].values
-                video_ids = test_df['distorted_folder'].iloc[i.numpy()].values
-                test_logger.add_entries(
-                    {
-                    'loss': loss.detach().cpu(),
-                    'mse': mse_fn(predicted_score, target_score).detach().cpu(),
-                    'mos': score,
-                    'pred_score': predicted_score.detach().cpu(),
-                }, video_ids = video_ids, scene_ids = scene_ids)
+    #             # Store metrics in logger
+    #             scene_ids = test_df['scene'].iloc[i.numpy()].values
+    #             video_ids = test_df['distorted_folder'].iloc[i.numpy()].values
+    #             test_logger.add_entries(
+    #                 {
+    #                 'loss': loss.detach().cpu(),
+    #                 'mse': mse_fn(predicted_score, target_score).detach().cpu(),
+    #                 'mos': score,
+    #                 'pred_score': predicted_score.detach().cpu(),
+    #             }, video_ids = video_ids, scene_ids = scene_ids)
 
-            test_logger.log_summary(step)
+    #         test_logger.log_summary(step)
 
 
     class Test2Dataset(Dataset):
