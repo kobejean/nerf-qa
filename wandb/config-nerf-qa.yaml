@@ -1,7 +1,7 @@
 program: run_nerf_qa.py
 metric:
-  name: Cross-Val Metrics Dict/mean_loss
-  goal: minimize
+  name: Cross-Val Metrics Dict/correlations/mean_plcc
+  goal: maximize
 
 method: bayes
 parameters:
@@ -9,7 +9,7 @@ parameters:
     # value: 1e-5
     distribution: q_log_uniform_values
     min: 7e-7
-    max: 3e-6
+    max: 1e-4
     q: 1e-7
   eps:
     # distribution: q_log_uniform_values
@@ -18,12 +18,12 @@ parameters:
     # q: 1e-10
     value: 1e-7
   beta1:
-    value: 0.85
+    value: 0.9
     # distribution: uniform
     # min: 0.8
     # max: 0.9
   beta2:
-    value: 0.9995
+    value: 0.999
     # distribution: uniform
     # min: 0.999
     # max: 0.99999
@@ -42,7 +42,7 @@ parameters:
     value: 'mean'
   project_weights:
     # values: ['True', 'False']
-    value: 'False'
+    value: 'True'
   optimizer:
     value: 'adam'
     # values: ['adam', 'sadamw'] #: ['nadam', 'adam', 'sgd', 'sgd_momentum']

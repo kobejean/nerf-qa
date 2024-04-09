@@ -448,6 +448,12 @@ if __name__ == '__main__':
                 image = image.convert('RGB')
 
             image = torch.from_numpy(np.array(image)).permute(2, 0, 1).float() / 255.0
+            # _, OH, OW = image.shape
+            # if OW >= OH:
+            #     ratio = float(OW)/float(OH)
+            #     256*256/ratio
+            # else:
+            # Z = 256*256 ()
             W=H=256
             # h, w = (int(image.shape[1]*0.7), int(image.shape[2]*0.7))
             # i, j = (image.shape[1]-h)//2, (image.shape[2]-w)//2
