@@ -9,7 +9,7 @@ parameters:
     # value: 1e-5
     distribution: q_log_uniform_values
     min: 1e-7
-    max: 1e-3
+    max: 1e-6
     q: 1e-7
   eps:
     # distribution: q_log_uniform_values
