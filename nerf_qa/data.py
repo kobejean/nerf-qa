@@ -313,6 +313,7 @@ class NeRFQAResizedDataset(Dataset):
 
     def transform_pair(self, render_image, reference_image):
         i, j, h, w = transforms.RandomCrop.get_params(render_image, output_size=(256,256))
+        assert i == 0 and h == 256 and w == 256
         render_image = TF.crop(render_image, i, j, h, w)
         reference_image = TF.crop(reference_image, i, j, h, w)
         return render_image, reference_image
@@ -338,7 +339,7 @@ class NeRFQAResizedDataset(Dataset):
         # Load and optionally resize images
         distorted_image = self.static_transforms(Image.open(distorted_path).convert("RGB"))
         referenced_image = self.static_transforms(Image.open(referenced_path).convert("RGB"))
-        # distorted_image, referenced_image = self.transform_pair(distorted_image, referenced_image)
+        distorted_image, referenced_image = self.transform_pair(distorted_image, referenced_image)
 
         row = self.scores_df.iloc[video_idx]
         score = row['MOS']
