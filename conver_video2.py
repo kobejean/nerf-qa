@@ -38,10 +38,11 @@ def resize_frame(frame, width, height, keep_aspect_ratio):
 
 def convert_frames(video_path, keep_aspect_ratio=False):
     images_path = path.splitext(video_path)[0]
-    if keep_aspect_ratio:
-        images_path = path.join(images_path, '256_aspect_ratio')
-    else:
-        images_path = path.join(images_path, '256x256')
+    images_path = path.join(images_path, 'original_size')
+    # if keep_aspect_ratio:
+    #     images_path = path.join(images_path, '256_aspect_ratio')
+    # else:
+    #     images_path = path.join(images_path, '256x256')
     os.makedirs(images_path, exist_ok=True)
     cap = cv2.VideoCapture(video_path)
     i = 0
@@ -50,9 +51,9 @@ def convert_frames(video_path, keep_aspect_ratio=False):
         if not ret:
             break
         # Resize the frame before saving
-        resized_frame = resize_frame(frame, 256, 256, keep_aspect_ratio)
+        # resized_frame = resize_frame(frame, 256, 256, keep_aspect_ratio)
         nerf_image_path = os.path.join(images_path, f"{i:03d}.png")
-        cv2.imwrite(nerf_image_path, resized_frame)
+        cv2.imwrite(nerf_image_path, frame)
         i += 1
     cap.release()
 
