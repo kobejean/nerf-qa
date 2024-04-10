@@ -25,7 +25,7 @@ def compute_correlations(pred_scores, mos):
     }
 #%%
 # TEST_DATA_DIR = "/home/ccl/Datasets/NeRF-QA"
-test_df = pd.read_csv("scores_aspect.csv")
+test_df = pd.read_csv("scores_aspect_2.csv")
 test_df['scene'] = test_df['reference_folder'].str.replace('gt_', '', regex=False)
 test_size = test_df.shape[0]
 test_df.columns
@@ -92,7 +92,7 @@ data = []
 #        'LPIPS(vgg)', 'SSIM', 'PSNR', 'GMSD', 'FSIMc', 'NLPD',
 #        'ST-LPIPS', 'AHIQ']
 
-metrics = ['DISTS', 'DISTS_square', 'DISTS_pixel_count', 'A-DISTS', 'A-DISTS_square', 'A-DISTS_pixel_count']
+metrics = ['DISTS', 'DISTS_square', 'A-DISTS', 'A-DISTS_square']
 
 # Assuming syn_df, tnt_df, and test_df are your DataFrames with the data
 for metric in metrics:

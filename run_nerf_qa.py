@@ -138,8 +138,8 @@ if __name__ == '__main__':
         train_logger = MetricCollectionLogger(f'Train Metrics Dict/fold_{fold}')
         val_logger = MetricCollectionLogger(f'Val Metrics Dict/fold_{fold}')
 
-        train_dataloader = create_nerf_qa_resize_dataloader(train_df, dir=DATA_DIR, batch_size=DEVICE_BATCH_SIZE)
-        val_dataloader = create_nerf_qa_resize_dataloader(val_df, dir=DATA_DIR, batch_size=DEVICE_BATCH_SIZE, scene_balanced=False)
+        train_dataloader = create_nerf_qa_resize_dataloader(train_df, dir=DATA_DIR, batch_size=config.batch_size)
+        val_dataloader = create_nerf_qa_resize_dataloader(val_df, dir=DATA_DIR, batch_size=config.batch_size, scene_balanced=False)
         train_size = len(train_dataloader)
         val_size = len(val_dataloader)
 
@@ -297,12 +297,12 @@ if __name__ == '__main__':
 
 
     train_df = scores_df
-    train_dataloader = create_nerf_qa_resize_dataloader(train_df, dir=DATA_DIR, batch_size=DEVICE_BATCH_SIZE)
+    train_dataloader = create_nerf_qa_resize_dataloader(train_df, dir=DATA_DIR, batch_size=config.batch_size)
     train_size = len(train_dataloader)
 
     test_df = pd.read_csv(TEST_SCORE_FILE)
     test_df['scene'] = test_df['reference_folder'].str.replace('gt_', '', regex=False)
-    test_balanced_dataloader = create_test2_dataloader(test_df, dir=TEST_DATA_DIR, batch_size=DEVICE_BATCH_SIZE, in_memory=False, scene_balanced=True)
+    test_balanced_dataloader = create_test2_dataloader(test_df, dir=TEST_DATA_DIR, batch_size=config.batch_size, in_memory=False, scene_balanced=True)
     test_size = len(test_balanced_dataloader)
 
 
