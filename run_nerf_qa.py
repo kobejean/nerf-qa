@@ -451,7 +451,7 @@ if __name__ == '__main__':
                 image = transforms.functional.resize(image, 256)
                 # image = transforms.functional.resize(image,(256, 256))
             image = transforms.ToTensor()(image)
-            return image.unsqueeze(0)
+            return image
         
     def recursive_collate(batch):
         if isinstance(batch[0], torch.Tensor):
