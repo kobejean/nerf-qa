@@ -120,7 +120,7 @@ if __name__ == '__main__':
     # Specify the number of splits
     n_splits = 4
     gkf = GroupKFold(n_splits=n_splits)
-    scores_df = scores_df[scores_df['scene'] != 'lego'].reset_index()
+    scores_df = scores_df[scores_df['scene_type'] != 'synthetic'].reset_index()
     groups = scores_df['scene']
     step = 0
 
