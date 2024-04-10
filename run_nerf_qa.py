@@ -31,7 +31,6 @@ from nerf_qa.data import create_test2_dataloader, create_nerf_qa_resize_dataload
 from nerf_qa.logger import MetricCollectionLogger
 from nerf_qa.settings_fr import DEVICE_BATCH_SIZE
 from nerf_qa.model_stats import NeRFQAModel
-DEVICE_BATCH_SIZE = 1
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -101,7 +100,7 @@ if __name__ == '__main__':
         # "beta1": 0.99,
         # "beta2": 0.9999,
         # "eps": 1e-7,
-        "batch_size": 1,
+        "batch_size": DEVICE_BATCH_SIZE,
         "resize": True
     }     
     config.update(vars(args))

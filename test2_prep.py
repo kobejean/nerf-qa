@@ -451,9 +451,9 @@ test_df['DISTS_square_max'] = video_dists_scores_max
 # test_df['A-DISTS_pixel_count_max'] = video_adists_scores_max
 # test_df['DISTS_pixel_count_max'] = video_dists_scores_max
 
-# #%%
+#%%
 
-# test_df.to_csv(path.join(TEST_DATA_DIR, "scores_aspect.csv"))
+test_df.to_csv(path.join(TEST_DATA_DIR, "scores_aspect.csv"))
 # #%%
 # syn_files = ['gt_chair', 'gt_mic', 'gt_hotdog', 'gt_materials']
 # tnt_files = ['gt_horns', 'gt_trex', 'gt_fortress', 'gt_room']
