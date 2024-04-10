@@ -302,10 +302,20 @@ class NeRFQAResizedDataset(Dataset):
         self.scores_df['frame_count'] = self.scores_df['gt_files'].apply(len)
         self.total_size = self.scores_df['frame_count'].sum()
         self.cumulative_frame_counts = self.scores_df['frame_count'].cumsum()
-        
+        self.static_transforms = transforms.Compose([
+            transforms.Resize(256), 
+            transforms.ToTensor()
+        ])
 
     def __len__(self):
         return self.total_size
+    
+
+    def transform_pair(self, render_image, reference_image):
+        i, j, h, w = transforms.RandomCrop.get_params(render_image, output_size=(256,256))
+        render_image = TF.crop(render_image, i, j, h, w)
+        reference_image = TF.crop(reference_image, i, j, h, w)
+        return render_image, reference_image
 
     def __getitem__(self, idx):
         # Determine which video the index falls into
@@ -322,12 +332,13 @@ class NeRFQAResizedDataset(Dataset):
         referenced_filename = f'{frame_within_video:03d}.png'
 
         # Construct the full paths
-        distorted_path = os.path.join(self.dist_dir, distorted_foldername, '256x256', distorted_filename)
-        referenced_path = os.path.join(self.ref_dir, referenced_foldername, '256x256', referenced_filename)
+        distorted_path = os.path.join(self.dist_dir, distorted_foldername, 'original_size', distorted_filename)
+        referenced_path = os.path.join(self.ref_dir, referenced_foldername, 'original_size', referenced_filename)
 
         # Load and optionally resize images
-        distorted_image = transforms.ToTensor()(Image.open(distorted_path).convert("RGB"))
-        referenced_image = transforms.ToTensor()(Image.open(referenced_path).convert("RGB"))
+        distorted_image = self.static_transforms(Image.open(distorted_path).convert("RGB"))
+        referenced_image = self.static_transforms(Image.open(referenced_path).convert("RGB"))
+        distorted_image, referenced_image = self.transform_pair(distorted_image, referenced_image)
 
         row = self.scores_df.iloc[video_idx]
         score = row['MOS']
