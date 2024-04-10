@@ -338,7 +338,7 @@ class NeRFQAResizedDataset(Dataset):
         # Load and optionally resize images
         distorted_image = self.static_transforms(Image.open(distorted_path).convert("RGB"))
         referenced_image = self.static_transforms(Image.open(referenced_path).convert("RGB"))
-        distorted_image, referenced_image = self.transform_pair(distorted_image, referenced_image)
+        # distorted_image, referenced_image = self.transform_pair(distorted_image, referenced_image)
 
         row = self.scores_df.iloc[video_idx]
         score = row['MOS']
