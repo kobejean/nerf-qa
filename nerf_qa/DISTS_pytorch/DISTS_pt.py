@@ -238,7 +238,7 @@ class DISTS(torch.nn.Module):
 def prepare_image(image, resize=True, keep_aspect_ratio=False):
     if resize and min(image.size)>256:
         if keep_aspect_ratio:
-            image = transforms.functional.resize(image,256)
+            image = transforms.functional.resize(image, 256)
         else:
             image = transforms.functional.resize(image,(256, 256))
     image = transforms.ToTensor()(image)

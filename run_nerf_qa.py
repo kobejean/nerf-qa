@@ -4,6 +4,7 @@ import os
 from os import path
 import sys
 import argparse
+from torchvision import models,transforms
 
 
 # deep learning
@@ -434,7 +435,6 @@ if __name__ == '__main__':
         
         def load_image(self, path):
             image = Image.open(path)
-
             if image.mode == 'RGBA':
                 # If the image has an alpha channel, create a white background
                 background = Image.new('RGBA', image.size, (255, 255, 255))
@@ -448,21 +448,11 @@ if __name__ == '__main__':
                 # If the image doesn't have an alpha channel, directly convert it to RGB
                 image = image.convert('RGB')
 
-            image = torch.from_numpy(np.array(image)).permute(2, 0, 1).float() / 255.0
-            # _, OH, OW = image.shape
-            # if OW >= OH:
-            #     ratio = float(OW)/float(OH)
-            #     256*256/ratio
-            # else:
-            # Z = 256*256 ()
-            W=H=256
-            # h, w = (int(image.shape[1]*0.7), int(image.shape[2]*0.7))
-            # i, j = (image.shape[1]-h)//2, (image.shape[2]-w)//2
-            # # Crop to avoid black region due to postprocessed distortion
-            # image = TF.crop(image, i, j, h, w)
-            image = F.interpolate(image.unsqueeze(0), size=(H, W), mode='bilinear', align_corners=False).squeeze(0)
-
-            return image
+            if min(image.size)>256:
+                image = transforms.functional.resize(image, 256)
+                # image = transforms.functional.resize(image,(256, 256))
+            image = transforms.ToTensor()(image)
+            return image.unsqueeze(0)
         
     def recursive_collate(batch):
         if isinstance(batch[0], torch.Tensor):
