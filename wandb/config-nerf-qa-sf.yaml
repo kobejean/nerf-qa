@@ -8,8 +8,8 @@ parameters:
   lr:
     # value: 1e-5
     distribution: q_log_uniform_values
-    min: 5e-7
-    max: 1e-3
+    min: 5e-8
+    max: 1e-4
     q: 1e-7
   eps:
     # distribution: q_log_uniform_values
@@ -18,12 +18,12 @@ parameters:
     # q: 1e-10
     value: 1e-7
   beta1:
-    value: 0.9
+    value: 0.997
     # distribution: uniform
     # min: 0.8
     # max: 0.9
   beta2:
-    value: 0.999
+    value: 0.99997
     # distribution: uniform
     # min: 0.999
     # max: 0.99999
@@ -42,7 +42,7 @@ parameters:
     value: 'mean'
   project_weights:
     # values: ['True', 'False']
-    value: 'True'
+    value: 'False'
   optimizer:
     value: 'sadamw'
     # values: ['adam', 'sadamw'] #: ['nadam', 'adam', 'sgd', 'sgd_momentum']

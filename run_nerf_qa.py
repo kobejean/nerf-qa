@@ -99,7 +99,7 @@ if __name__ == '__main__':
         # "beta1": 0.99,
         # "beta2": 0.9999,
         # "eps": 1e-7,
-        "batch_size": DEVICE_BATCH_SIZE,
+        "batch_size": 1,
         "resize": True
     }     
     config.update(vars(args))
@@ -327,8 +327,8 @@ if __name__ == '__main__':
 
     batch_step = 0
 
-    for epoch in range(wandb.config.epochs):
-        print(f"Epoch {epoch+1}/{wandb.config.epochs}")
+    for epoch in range(wandb.config.epochs // 2):
+        print(f"Epoch {epoch+1}/{wandb.config.epochs // 2}")
 
         # Train step
         model.train()  # Set model to training mode
