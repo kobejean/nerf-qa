@@ -87,10 +87,12 @@ def get_correlations(col, syn_df, tnt_df, test_df):
 # List of metrics to compute correlations for
 
 data = []
-metrics = ['Ours', 'DISTS', 'A-DISTS', 'LPIPS(alex)',
-       'VIF', 'MS-SSIM', 'MAD', 'PieAPP', 'WaDiQaM', 'TOPIQ-FR',
-       'LPIPS(vgg)', 'SSIM', 'PSNR', 'GMSD', 'FSIMc', 'NLPD',
-       'ST-LPIPS', 'AHIQ']
+# metrics = ['Ours', 'DISTS', 'A-DISTS', 'LPIPS(alex)',
+#        'VIF', 'MS-SSIM', 'MAD', 'PieAPP', 'WaDiQaM', 'TOPIQ-FR',
+#        'LPIPS(vgg)', 'SSIM', 'PSNR', 'GMSD', 'FSIMc', 'NLPD',
+#        'ST-LPIPS', 'AHIQ']
+
+metrics = ['DISTS', 'DISTS_square', 'DISTS_pixel_count', 'A-DISTS', 'A-DISTS_square', 'A-DISTS_pixel_count']
 
 # Assuming syn_df, tnt_df, and test_df are your DataFrames with the data
 for metric in metrics:
