@@ -34,7 +34,7 @@ test_df = pd.read_csv("Test2_new.csv")
 test_df['scene'] = test_df['reference_folder'].str.replace('gt_', '', regex=False)
 test_size = test_df.shape[0]
 test_df.columns
-results_df = pd.read_csv('results_test2_v32.csv')
+results_df = pd.read_csv('results_v115.csv')
 
 results_df
 #%%
