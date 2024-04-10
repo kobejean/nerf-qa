@@ -30,6 +30,7 @@ from nerf_qa.data import create_test2_dataloader, create_nerf_qa_resize_dataload
 from nerf_qa.logger import MetricCollectionLogger
 from nerf_qa.settings_fr import DEVICE_BATCH_SIZE
 from nerf_qa.model_stats import NeRFQAModel
+DEVICE_BATCH_SIZE = 1
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -322,7 +323,7 @@ if __name__ == '__main__':
             betas=(config.beta1, config.beta2),
             eps=config.eps,
         )
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.epochs - config.warmup_steps/train_size, eta_min=0, last_epoch=-1)
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=(wandb.config.epochs // 2) - config.warmup_steps/train_size, eta_min=0, last_epoch=-1)
         
 
     batch_step = 0
