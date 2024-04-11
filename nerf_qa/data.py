@@ -303,7 +303,7 @@ class NeRFQAResizedDataset(Dataset):
         self.total_size = self.scores_df['frame_count'].sum()
         self.cumulative_frame_counts = self.scores_df['frame_count'].cumsum()
         self.static_transforms = transforms.Compose([
-            transforms.Resize(256), 
+            # transforms.Resize(256), 
             transforms.ToTensor()
         ])
 
@@ -313,7 +313,7 @@ class NeRFQAResizedDataset(Dataset):
 
     def transform_pair(self, render_image, reference_image):
         i, j, h, w = transforms.RandomCrop.get_params(render_image, output_size=(256,256))
-        assert i == 0 and h == 256 and w == 256
+        assert h == 256 and w == 256
         render_image = TF.crop(render_image, i, j, h, w)
         reference_image = TF.crop(reference_image, i, j, h, w)
         return render_image, reference_image
