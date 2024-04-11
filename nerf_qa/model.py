@@ -45,7 +45,7 @@ class NeRFQAModel(nn.Module):
             feats1 = self.dists_model.forward_once(ref) 
         dists_scores = self.dists_model.forward_from_feats(feats0, feats1)
         scores = torch.sqrt(dists_scores) * self.dists_weight + self.dists_bias # linear function
-        return scores
+        return scores, dists_scores
 
 
 
