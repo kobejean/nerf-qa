@@ -117,7 +117,7 @@ class Test2Dataset(Dataset):
 def create_test_dataloader(row, dir):
     # Create a dataset and dataloader for efficient batching
     dataset = Test2Dataset(row, dir)
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn = recursive_collate)
+    dataloader = DataLoader(dataset, batch_size=8, shuffle=False, collate_fn = recursive_collate)
     return dataloader  
 
 def to_str(array):
@@ -230,7 +230,7 @@ class Test2Dataset(Dataset):
 def create_test_dataloader(row, dir):
     # Create a dataset and dataloader for efficient batching
     dataset = Test2Dataset(row, dir)
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn = recursive_collate)
+    dataloader = DataLoader(dataset, batch_size=8, shuffle=False, collate_fn = recursive_collate)
     return dataloader  
 
 def to_str(array):
@@ -330,7 +330,7 @@ class Test2Dataset(Dataset):
 def create_test_dataloader(row, dir):
     # Create a dataset and dataloader for efficient batching
     dataset = Test2Dataset(row, dir)
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn = recursive_collate)
+    dataloader = DataLoader(dataset, batch_size=8, shuffle=False, collate_fn = recursive_collate)
     return dataloader  
 
 def to_str(array):
@@ -427,11 +427,11 @@ class Test2Dataset(Dataset):
         _, OH, OW = image.shape
         if OW >= OH:
             ratio = float(OW)/float(OH)
-            H = math.sqrt(256^2/ratio)
+            H = math.sqrt(256*256/ratio)
             W = int(ratio * H)
         else:
             ratio = float(OH)/float(OW)
-            W = math.sqrt(256^2/ratio)
+            W = math.sqrt(256*256/ratio)
             H = int(ratio * W)
 
         image = F.interpolate(image.unsqueeze(0), size=(H, W), mode='bilinear', align_corners=False).squeeze(0)
@@ -442,7 +442,7 @@ class Test2Dataset(Dataset):
 def create_test_dataloader(row, dir):
     # Create a dataset and dataloader for efficient batching
     dataset = Test2Dataset(row, dir)
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn = recursive_collate)
+    dataloader = DataLoader(dataset, batch_size=2, shuffle=False, collate_fn = recursive_collate)
     return dataloader  
 
 def to_str(array):
@@ -544,3 +544,5 @@ test_df.to_csv(path.join(TEST_DATA_DIR, "scores_aspect.csv"))
 # # %%
 # test_df.to_csv(path.join(TEST_DATA_DIR, "scores_new.csv"))
 # # %%
+
+# %%
