@@ -12,7 +12,6 @@ from scipy.optimize import curve_fit
 import math
 
 # local
-from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -22,14 +21,19 @@ def linear_func(x, a, b):
 
 
 class NeRFQAModel(nn.Module):
-    def __init__(self, train_df, mode = 'mean'):
+    def __init__(self, train_df, mode = 'normal'):
         super(NeRFQAModel, self).__init__()
 
         self.mode = mode
 
-        X = np.sqrt(np.transpose(np.array([
-            train_df['DISTS'].values,
-        ])))
+        if wandb.config.mode in ["sqrt", "softmax+sqrt"]:
+            X = np.sqrt(np.transpose(np.array([
+                train_df['DISTS'].values,
+            ])))
+        else:
+            X = np.transpose(np.array([
+                train_df['DISTS'].values,
+            ]))
     
         print("X.shape", X.shape)
         y = train_df['MOS'].values  # Response
@@ -40,15 +44,25 @@ class NeRFQAModel(nn.Module):
 
         # Print the coefficients
         print(f"Coefficient: {model.coef_}")
-        print(f"Intercept: {model.intercept_}")
+        print(f"Intercept: {model.intercept_}")  
+        if wandb.config.mode in ["softmax", "softmax+sqrt"]:
+            from nerf_qa.DISTS_pytorch.DISTS_pt_softmax import DISTS
+        else:
+            from nerf_qa.DISTS_pytorch.DISTS_pt_original import DISTS
+
         self.dists_model = DISTS()
         self.dists_weight = nn.Parameter(torch.tensor([model.coef_], dtype=torch.float32).T)
         self.dists_bias = nn.Parameter(torch.tensor([model.intercept_], dtype=torch.float32))
-            
-  
+          
+
     def forward(self, dist, ref, stats = None):
         dists_scores = self.dists_model(dist, ref)
         dists_scores = dists_scores.unsqueeze(1)
-        scores = (torch.sqrt(dists_scores) @ self.dists_weight).squeeze(1) + self.dists_bias # linear function
+
+        if wandb.config.mode in ["sqrt", "softmax+sqrt"]:
+            scores = (torch.sqrt(dists_scores) @ self.dists_weight).squeeze(1) + self.dists_bias # linear function
+        else:
+            scores = (dists_scores @ self.dists_weight).squeeze(1) + self.dists_bias # linear function
+        
         return scores, dists_scores
 
