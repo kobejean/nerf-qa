@@ -62,31 +62,31 @@ class DISTS(torch.nn.Module):
         if load_weights:
             weights = torch.load(os.path.join(sys.prefix,'weights.pt'))
 
-            # alpha = weights['alpha']
-            # beta = weights['beta']
-            # # Ensure alpha and beta are flattened and concatenated to form a single weight vector
-            # weights_concat = torch.cat([alpha, beta], dim=1)
-            # print("torch.min(weights_concat)", torch.min(weights_concat), torch.relu(torch.min(weights_concat)))
-            # #weights_concat = weights_concat + torch.relu(torch.min(weights_concat))
-            # logits_approx = torch.log(torch.clamp(weights_concat, min=0.0) + 1e-10)
-            # print(torch.max(torch.abs(torch.softmax(logits_approx, dim=1) - weights_concat)))
-            # alpha_logits, beta_logits = torch.split(logits_approx, [alpha.numel(), beta.numel()], dim=1)
+            alpha = weights['alpha']
+            beta = weights['beta']
+            # Ensure alpha and beta are flattened and concatenated to form a single weight vector
+            weights_concat = torch.cat([alpha, beta], dim=1)
+            print("torch.min(weights_concat)", torch.min(weights_concat), torch.relu(torch.min(weights_concat)))
+            #weights_concat = weights_concat + torch.relu(torch.min(weights_concat))
+            logits_approx = torch.log(torch.clamp(weights_concat, min=0.0) + 1e-10)
+            print(torch.max(torch.abs(torch.softmax(logits_approx, dim=1) - weights_concat)))
+            alpha_logits, beta_logits = torch.split(logits_approx, [alpha.numel(), beta.numel()], dim=1)
 
-            # self.alpha.data = alpha_logits
-            # self.beta.data = beta_logits
+            self.alpha.data = alpha_logits
+            self.beta.data = beta_logits
             # self.alpha.data = torch.clamp(alpha, min=1e-10)
             # self.beta.data = torch.clamp(beta, min=1e-10)
-            self.alpha.data = weights['alpha']
-            self.beta.data = weights['beta']
+            # self.alpha.data = weights['alpha']
+            # self.beta.data = weights['beta']
 
-    def project_weights(self):
-        lower_bound = torch.zeros_like(self.alpha.data)
-        lower_bound[:,:3,:,:] = 0.02
-        alpha = torch.max(self.alpha.data, lower_bound)
-        beta = torch.max(self.beta.data, lower_bound)
-        weight_sum = torch.cat([alpha, beta], dim=1).sum()
-        self.alpha.data = alpha / weight_sum
-        self.beta.data = beta / weight_sum
+    # def project_weights(self):
+    #     lower_bound = torch.zeros_like(self.alpha.data)
+    #     lower_bound[:,:3,:,:] = 0.02
+    #     alpha = torch.max(self.alpha.data, lower_bound)
+    #     beta = torch.max(self.beta.data, lower_bound)
+    #     weight_sum = torch.cat([alpha, beta], dim=1).sum()
+    #     self.alpha.data = alpha / weight_sum
+    #     self.beta.data = beta / weight_sum
         
     def forward_once(self, x):
         h = (x-self.mean)/self.std
@@ -115,18 +115,18 @@ class DISTS(torch.nn.Module):
         c1 = 1e-6
         c2 = 1e-6
         
-        # w_concat = torch.cat([self.alpha, self.beta], dim=1)
-        # w_softmax = torch.softmax(w_concat, dim=1)
-        # alpha, beta = torch.split(w_softmax, self.alpha.shape[1], dim=1)
-        # alpha = torch.split(alpha, self.chns, dim=1)
-        # beta = torch.split(beta, self.chns, dim=1)
-        alpha = self.alpha
-        beta = self.beta
+        w_concat = torch.cat([self.alpha, self.beta], dim=1)
+        w_softmax = torch.softmax(w_concat, dim=1)
+        alpha, beta = torch.split(w_softmax, self.alpha.shape[1], dim=1)
+        alpha = torch.split(alpha, self.chns, dim=1)
+        beta = torch.split(beta, self.chns, dim=1)
+        # alpha = self.alpha
+        # beta = self.beta
         # alpha = torch.relu(self.alpha)
         # beta = torch.relu(self.beta)
-        w_sum = alpha.sum() + beta.sum()
-        alpha = torch.split(alpha/w_sum, self.chns, dim=1)
-        beta = torch.split(beta/w_sum, self.chns, dim=1)
+        # w_sum = alpha.sum() + beta.sum()
+        # alpha = torch.split(alpha/w_sum, self.chns, dim=1)
+        # beta = torch.split(beta/w_sum, self.chns, dim=1)
         for k in range(len(self.chns)):
             x_mean = feats0[k].mean([2,3], keepdim=True)
             y_mean = feats1[k].mean([2,3], keepdim=True)
