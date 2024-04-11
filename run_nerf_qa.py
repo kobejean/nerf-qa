@@ -121,7 +121,7 @@ if __name__ == '__main__':
     # Specify the number of splits
     n_splits = 4
     gkf = GroupKFold(n_splits=n_splits)
-    # scores_df = scores_df[scores_df['scene_type'] != 'synthetic'].reset_index()
+    scores_df = scores_df[scores_df['scene_type'] != 'synthetic'].reset_index()
     groups = scores_df['scene']
     step = 0
 
@@ -186,7 +186,7 @@ if __name__ == '__main__':
     #             optimizer.zero_grad()  # Zero the gradients after updating
 
     #             # Load scores
-    #             predicted_score = model(dist.to(device),ref.to(device))
+    #             predicted_score, dists_score = model(dist.to(device),ref.to(device))
     #             target_score = score.to(device).float()
                 
     #             # Compute loss
@@ -226,7 +226,7 @@ if __name__ == '__main__':
     #         with torch.no_grad():
     #             for dist, ref, score, i in tqdm(val_dataloader, total=val_size, desc="Validating..."):
     #                 # Compute score
-    #                 predicted_score = model(dist.to(device), ref.to(device))
+    #                 predicted_score, dists_score = model(dist.to(device), ref.to(device))
     #                 target_score = score.to(device).float()
 
     #                 # Compute loss
@@ -404,7 +404,7 @@ if __name__ == '__main__':
             for ref, render in frames_data:
                 i = np.full(shape=render.shape[0], fill_value=index)
                 # Compute score
-                predicted_score = model(render.to(device), ref.to(device))
+                predicted_score, dists_score = model(render.to(device), ref.to(device))
                 score = test_df['MOS'].iloc[i].values
                 target_score = torch.tensor(score, device=device).float()
 
@@ -419,7 +419,7 @@ if __name__ == '__main__':
                     'loss': loss.detach().cpu(),
                     'mse': mse_fn(predicted_score, target_score).detach().cpu(),
                     'mos': score,
-                    'pred_score': predicted_score.detach().cpu(),
+                    'pred_score': dists_score.detach().cpu(),
                 }, video_ids = video_ids, scene_ids = scene_ids)
 
 
@@ -445,7 +445,7 @@ if __name__ == '__main__':
                     scheduler.last_epoch = epoch          
             optimizer.zero_grad()  # Zero the gradients after updating
 
-            predicted_score = model(dist.to(device),ref.to(device))
+            predicted_score, dists_score = model(dist.to(device),ref.to(device))
             target_score = score.to(device).float()
             
             # Compute loss
@@ -491,7 +491,7 @@ if __name__ == '__main__':
                     for ref, render in frames_data:
                         i = np.full(shape=render.shape[0], fill_value=index)
                         # Compute score
-                        predicted_score = model(render.to(device), ref.to(device))
+                        predicted_score, dists_score = model(render.to(device), ref.to(device))
                         score = test_df['MOS'].iloc[i].values
                         target_score = torch.tensor(score, device=device).float()
 
@@ -506,7 +506,7 @@ if __name__ == '__main__':
                             'loss': loss.detach().cpu(),
                             'mse': mse_fn(predicted_score, target_score).detach().cpu(),
                             'mos': score,
-                            'pred_score': predicted_score.detach().cpu(),
+                            'pred_score': dists_score.detach().cpu(),
                         }, video_ids = video_ids, scene_ids = scene_ids)
 
         
