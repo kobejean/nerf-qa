@@ -12,7 +12,7 @@ from scipy.optimize import curve_fit
 import math
 
 # local
-from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS
+from nerf_qa.DISTS_pytorch.DISTS_pt_original import DISTS
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -40,10 +40,11 @@ class NeRFQAModel(nn.Module):
 
 
     def forward(self, dist, ref):
-        with torch.no_grad():
-            feats0 = self.dists_model.forward_once(dist)
-            feats1 = self.dists_model.forward_once(ref) 
-        dists_scores = self.dists_model.forward_from_feats(feats0, feats1)
+        # with torch.no_grad():
+        #     feats0 = self.dists_model.forward_once(dist)
+        #     feats1 = self.dists_model.forward_once(ref) 
+        # dists_scores = self.dists_model.forward_from_feats(feats0, feats1)
+        dists_scores = self.dists_model(dist, ref)
         scores = torch.sqrt(dists_scores) * self.dists_weight + self.dists_bias # linear function
         return scores, dists_scores
 

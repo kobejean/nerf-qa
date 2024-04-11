@@ -8,8 +8,8 @@ parameters:
   lr:
     # value: 1e-5
     distribution: q_log_uniform_values
-    min: 1e-7
-    max: 1e-3
+    min: 1e-4
+    max: 1e-2
     q: 1e-7
   eps:
     # distribution: q_log_uniform_values
