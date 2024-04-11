@@ -330,7 +330,7 @@ class Test2Dataset(Dataset):
 def create_test_dataloader(row, dir):
     # Create a dataset and dataloader for efficient batching
     dataset = Test2Dataset(row, dir)
-    dataloader = DataLoader(dataset, batch_size=8, shuffle=False, collate_fn = recursive_collate)
+    dataloader = DataLoader(dataset, batch_size=2, shuffle=False, collate_fn = recursive_collate)
     return dataloader  
 
 def to_str(array):
@@ -545,4 +545,6 @@ test_df.to_csv(path.join(TEST_DATA_DIR, "scores_aspect.csv"))
 # test_df.to_csv(path.join(TEST_DATA_DIR, "scores_new.csv"))
 # # %%
 
+# %%
+test_df.columns
 # %%
