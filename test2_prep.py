@@ -29,7 +29,7 @@ import plotly.graph_objects as go
 from scipy.optimize import curve_fit
 
 # local
-from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS
+from nerf_qa.DISTS_pytorch.DISTS_pt_original import DISTS
 from nerf_qa.ADISTS import ADISTS
 from nerf_qa.data import NerfNRQADataset, SceneBalancedSampler
 from nerf_qa.logger import MetricCollectionLogger
