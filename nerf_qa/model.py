@@ -24,7 +24,7 @@ class NeRFQAModel(nn.Module):
     def __init__(self, train_df):
         super(NeRFQAModel, self).__init__()
 
-        X = train_df['DISTS'].values.reshape(-1, 1)  # Predictor
+        X = np.sqrt(train_df['DISTS'].values.reshape(-1, 1))  # Predictor
         y = train_df['MOS'].values  # Response
 
         # Create a linear regression model to initialize linear layer
@@ -38,39 +38,13 @@ class NeRFQAModel(nn.Module):
         self.dists_weight = nn.Parameter(torch.tensor([model.coef_[0]], dtype=torch.float32))
         self.dists_bias = nn.Parameter(torch.tensor([model.intercept_], dtype=torch.float32))
 
-            
-    
-    def compute_dists_with_batches(self, dataloader):
-        all_scores = []  # Collect scores from all batches as tensors
-
-        for dist_batch, ref_batch in dataloader:
-            ref_images = ref_batch.to(device)  # Assuming ref_batch[0] is the tensor of images
-            dist_images = dist_batch.to(device)  # Assuming dist_batch[0] is the tensor of images
-            with torch.no_grad():
-                scores = self.forward(ref_images, dist_images)  # Returns a tensor of scores
-            
-            # Collect scores tensors
-            all_scores.append(scores)
-
-        # Concatenate all score tensors into a single tensor
-        all_scores_tensor = torch.cat(all_scores, dim=0)
-
-        # Compute the average score across all batches
-        average_score = torch.mean(all_scores_tensor) if all_scores_tensor.numel() > 0 else torch.tensor(0.0).to(device)
-
-        return average_score
-        
-    def forward_dataloader(self, dataloader):
-        raw_scores = self.compute_dists_with_batches(dataloader)
-        
-        return raw_scores
 
     def forward(self, dist, ref):
         with torch.no_grad():
             feats0 = self.dists_model.forward_once(dist)
             feats1 = self.dists_model.forward_once(ref) 
         dists_scores = self.dists_model.forward_from_feats(feats0, feats1)
-        scores = dists_scores * self.dists_weight + self.dists_bias # linear function
+        scores = torch.sqrt(dists_scores) * self.dists_weight + self.dists_bias # linear function
         return scores
 
 
