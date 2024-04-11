@@ -86,7 +86,7 @@ class DISTS(torch.nn.Module):
         weight_sum = torch.cat([alpha, beta], dim=1).sum()
         self.alpha.data = alpha / weight_sum
         self.beta.data = beta / weight_sum
-        
+
     def forward(self, x, y, require_grad=False, batch_average=False):
         if require_grad:
             feats0 = self.forward_once(x)
@@ -122,6 +122,7 @@ class DISTS(torch.nn.Module):
 
 def prepare_image(image, resize=True):
     if resize and min(image.size)>256:
+        print("resize")
         image = transforms.functional.resize(image,256)
     image = transforms.ToTensor()(image)
     return image.unsqueeze(0)
