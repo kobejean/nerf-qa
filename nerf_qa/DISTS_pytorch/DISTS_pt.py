@@ -62,31 +62,31 @@ class DISTS(torch.nn.Module):
         if load_weights:
             weights = torch.load(os.path.join(sys.prefix,'weights.pt'))
 
-            # alpha = weights['alpha']
-            # beta = weights['beta']
-            # # Ensure alpha and beta are flattened and concatenated to form a single weight vector
-            # weights_concat = torch.cat([alpha, beta], dim=1)
-            # print("torch.min(weights_concat)", torch.min(weights_concat), torch.relu(torch.min(weights_concat)))
-            # #weights_concat = weights_concat + torch.relu(torch.min(weights_concat))
-            # logits_approx = torch.log(torch.clamp(weights_concat, min=0.0) + 1e-10)
-            # print(torch.max(torch.abs(torch.softmax(logits_approx, dim=1) - weights_concat)))
-            # alpha_logits, beta_logits = torch.split(logits_approx, [alpha.numel(), beta.numel()], dim=1)
+            alpha = weights['alpha']
+            beta = weights['beta']
+            # Ensure alpha and beta are flattened and concatenated to form a single weight vector
+            weights_concat = torch.cat([alpha, beta], dim=1)
+            print("torch.min(weights_concat)", torch.min(weights_concat), torch.relu(torch.min(weights_concat)))
+            #weights_concat = weights_concat + torch.relu(torch.min(weights_concat))
+            logits_approx = torch.log(torch.clamp(weights_concat, min=0.0) + 1e-10)
+            print(torch.max(torch.abs(torch.softmax(logits_approx, dim=1) - weights_concat)))
+            alpha_logits, beta_logits = torch.split(logits_approx, [alpha.numel(), beta.numel()], dim=1)
 
-            # self.alpha.data = alpha_logits
-            # self.beta.data = beta_logits
+            self.alpha.data = alpha_logits
+            self.beta.data = beta_logits
             # self.alpha.data = torch.clamp(alpha, min=1e-10)
             # self.beta.data = torch.clamp(beta, min=1e-10)
-            self.alpha.data = weights['alpha']
-            self.beta.data = weights['beta']
+            # self.alpha.data = weights['alpha']
+            # self.beta.data = weights['beta']
 
-    def project_weights(self):
-        lower_bound = torch.zeros_like(self.alpha.data)
-        lower_bound[:,:3,:,:] = 0.02
-        alpha = torch.max(self.alpha.data, lower_bound)
-        beta = torch.max(self.beta.data, lower_bound)
-        weight_sum = torch.cat([alpha, beta], dim=1).sum()
-        self.alpha.data = alpha / weight_sum
-        self.beta.data = beta / weight_sum
+    # def project_weights(self):
+    #     lower_bound = torch.zeros_like(self.alpha.data)
+    #     lower_bound[:,:3,:,:] = 0.02
+    #     alpha = torch.max(self.alpha.data, lower_bound)
+    #     beta = torch.max(self.beta.data, lower_bound)
+    #     weight_sum = torch.cat([alpha, beta], dim=1).sum()
+    #     self.alpha.data = alpha / weight_sum
+    #     self.beta.data = beta / weight_sum
         
     def forward_once(self, x):
         h = (x-self.mean)/self.std
@@ -101,19 +101,6 @@ class DISTS(torch.nn.Module):
         h = self.stage5(h)
         h_relu5_3 = h
         return [x,h_relu1_2, h_relu2_2, h_relu3_3, h_relu4_3, h_relu5_3]
-    
-    def warp(self, features, warp, certainty):
-        _, _, H, W = features.shape
-        print("warp", H, W)
-        warp = F.interpolate(warp, size=(H, W), mode='bilinear', align_corners=False).permute(0,2,3,1)
-        certainty = F.interpolate(certainty, size=(H, W), mode='bilinear', align_corners=False)
-        print(certainty.shape)
-        print(warp.shape)
-
-        features = F.grid_sample(
-            features, warp, mode="bilinear", align_corners=False
-        )[0]
-        return features, certainty
 
     def forward(self, x, y, require_grad=False, batch_average=False, warp=None, certainty=None):
         if require_grad:
@@ -128,44 +115,29 @@ class DISTS(torch.nn.Module):
         c1 = 1e-6
         c2 = 1e-6
         
-        # w_concat = torch.cat([self.alpha, self.beta], dim=1)
-        # w_softmax = torch.softmax(w_concat, dim=1)
-        # alpha, beta = torch.split(w_softmax, self.alpha.shape[1], dim=1)
-        # alpha = torch.split(alpha, self.chns, dim=1)
-        # beta = torch.split(beta, self.chns, dim=1)
-        alpha = self.alpha
-        beta = self.beta
+        w_concat = torch.cat([self.alpha, self.beta], dim=1)
+        w_softmax = torch.softmax(w_concat, dim=1)
+        alpha, beta = torch.split(w_softmax, self.alpha.shape[1], dim=1)
+        alpha = torch.split(alpha, self.chns, dim=1)
+        beta = torch.split(beta, self.chns, dim=1)
+        # alpha = self.alpha
+        # beta = self.beta
         # alpha = torch.relu(self.alpha)
         # beta = torch.relu(self.beta)
-        w_sum = alpha.sum() + beta.sum()
-        alpha = torch.split(alpha/w_sum, self.chns, dim=1)
-        beta = torch.split(beta/w_sum, self.chns, dim=1)
+        # w_sum = alpha.sum() + beta.sum()
+        # alpha = torch.split(alpha/w_sum, self.chns, dim=1)
+        # beta = torch.split(beta/w_sum, self.chns, dim=1)
         for k in range(len(self.chns)):
-            if warp is None or certainty is None:
-                x_mean = feats0[k].mean([2,3], keepdim=True)
-                y_mean = feats1[k].mean([2,3], keepdim=True)
+            x_mean = feats0[k].mean([2,3], keepdim=True)
+            y_mean = feats1[k].mean([2,3], keepdim=True)
 
-                S1 = (2*x_mean*y_mean+c1)/(x_mean**2+y_mean**2+c1)
-                dist1 = dist1+(alpha[k]*S1).sum(1,keepdim=True)
+            S1 = (2*x_mean*y_mean+c1)/(x_mean**2+y_mean**2+c1)
+            dist1 = dist1+(alpha[k]*S1).sum(1,keepdim=True)
 
-                x_var = ((feats0[k]-x_mean)**2).mean([2,3], keepdim=True)
-                y_var = ((feats1[k]-y_mean)**2).mean([2,3], keepdim=True)
-                xy_cov = (feats0[k]*feats1[k]).mean([2,3],keepdim=True) - x_mean*y_mean
-            else:
-                feats1[k], certainty_k = self.warp(feats1[k], warp, certainty)
-                certainty_sum = certainty_k.sum()
-                print("C", certainty_k.shape)
-                certainty_k = certainty_k
-                x_mean = (feats0[k] * certainty_k).sum([2,3], keepdim=True) / certainty_sum
-                y_mean = (feats1[k] * certainty_k).sum([2,3], keepdim=True) / certainty_sum
+            x_var = ((feats0[k]-x_mean)**2).mean([2,3], keepdim=True)
+            y_var = ((feats1[k]-y_mean)**2).mean([2,3], keepdim=True)
+            xy_cov = (feats0[k]*feats1[k]).mean([2,3],keepdim=True) - x_mean*y_mean
 
-                S1 = (2*x_mean*y_mean+c1)/(x_mean**2+y_mean**2+c1)
-                dist1 = dist1+(alpha[k]*S1).sum(1,keepdim=True)
-
-                x_var = (certainty_k*(feats0[k]-x_mean)**2).sum([2,3], keepdim=True) / certainty_sum
-                y_var = (certainty_k*(feats1[k]-y_mean)**2).sum([2,3], keepdim=True) / certainty_sum
-                xy_cov = (certainty_k*feats0[k]*feats1[k]).sum([2,3], keepdim=True) / certainty_sum - x_mean*y_mean
-            
             S2 = (2*xy_cov+c2)/(x_var+y_var+c2)
             dist2 = dist2+(beta[k]*S2).sum(1,keepdim=True)
 

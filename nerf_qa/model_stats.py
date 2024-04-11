@@ -12,7 +12,7 @@ from scipy.optimize import curve_fit
 import math
 
 # local
-from nerf_qa.DISTS_pytorch.DISTS_pt_original import DISTS
+from nerf_qa.DISTS_pytorch.DISTS_pt import DISTS
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
