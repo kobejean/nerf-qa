@@ -41,7 +41,7 @@ parameters:
   #   max: 1.0
   mode:
     # values: ['mean']
-    value: 'softmax'
+    value: 'normal'
   project_weights:
     # values: ['True', 'False']
     value: 'False'
