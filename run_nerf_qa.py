@@ -351,7 +351,7 @@ if __name__ == '__main__':
         
         def load_image(self, path):
             image = Image.open(path).convert("RGB")
-            image = prepare_image(image)
+            image = prepare_image(image, resize=False)
             return image
         
     def recursive_collate(batch):
@@ -370,7 +370,7 @@ if __name__ == '__main__':
     def create_test_dataloader(row, dir):
         # Create a dataset and dataloader for efficient batching
         dataset = Test2Dataset(row, dir)
-        dataloader = DataLoader(dataset, batch_size=config.batch_size, shuffle=False, collate_fn = recursive_collate)
+        dataloader = DataLoader(dataset, batch_size=config.batch_size//4, shuffle=False, collate_fn = recursive_collate)
         return dataloader 
     
 
