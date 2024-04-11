@@ -350,24 +350,8 @@ if __name__ == '__main__':
             return gt, render
         
         def load_image(self, path):
-            image = Image.open(path)
-            if image.mode == 'RGBA':
-                # If the image has an alpha channel, create a white background
-                background = Image.new('RGBA', image.size, (255, 255, 255))
-                
-                # Paste the image onto the white background using alpha compositing
-                background.paste(image, mask=image.split()[3])
-                
-                # Convert the image to RGB mode
-                image = background.convert('RGB')
-            else:
-                # If the image doesn't have an alpha channel, directly convert it to RGB
-                image = image.convert('RGB')
-
-            if min(image.size)>256:
-                image = transforms.functional.resize(image, 256)
-                # image = transforms.functional.resize(image,(256, 256))
-            image = transforms.ToTensor()(image)
+            image = Image.open(path).convert("RGB")
+            image = prepare_image(image)
             return image
         
     def recursive_collate(batch):
