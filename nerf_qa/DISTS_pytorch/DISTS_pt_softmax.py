@@ -141,81 +141,6 @@ class DISTS(torch.nn.Module):
         # alpha = torch.split(alpha/w_sum, self.chns, dim=1)
         # beta = torch.split(beta/w_sum, self.chns, dim=1)
         for k in range(len(self.chns)):
-            if warp is None or certainty is None:
-                x_mean = feats0[k].mean([2,3], keepdim=True)
-                y_mean = feats1[k].mean([2,3], keepdim=True)
-
-                S1 = (2*x_mean*y_mean+c1)/(x_mean**2+y_mean**2+c1)
-                dist1 = dist1+(alpha[k]*S1).sum(1,keepdim=True)
-
-                x_var = ((feats0[k]-x_mean)**2).mean([2,3], keepdim=True)
-                y_var = ((feats1[k]-y_mean)**2).mean([2,3], keepdim=True)
-                xy_cov = (feats0[k]*feats1[k]).mean([2,3],keepdim=True) - x_mean*y_mean
-            else:
-                feats1[k], certainty_k = self.warp(feats1[k], warp, certainty)
-                certainty_sum = certainty_k.sum()
-                print("C", certainty_k.shape)
-                certainty_k = certainty_k
-                x_mean = (feats0[k] * certainty_k).sum([2,3], keepdim=True) / certainty_sum
-                y_mean = (feats1[k] * certainty_k).sum([2,3], keepdim=True) / certainty_sum
-
-                S1 = (2*x_mean*y_mean+c1)/(x_mean**2+y_mean**2+c1)
-                dist1 = dist1+(alpha[k]*S1).sum(1,keepdim=True)
-
-                x_var = (certainty_k*(feats0[k]-x_mean)**2).sum([2,3], keepdim=True) / certainty_sum
-                y_var = (certainty_k*(feats1[k]-y_mean)**2).sum([2,3], keepdim=True) / certainty_sum
-                xy_cov = (certainty_k*feats0[k]*feats1[k]).sum([2,3], keepdim=True) / certainty_sum - x_mean*y_mean
-            
-            S2 = (2*xy_cov+c2)/(x_var+y_var+c2)
-            dist2 = dist2+(beta[k]*S2).sum(1,keepdim=True)
-
-        score = 1 - (dist1+dist2).squeeze(dim=[1,2,3])
-        if batch_average:
-            return score.mean()
-        else:
-            return score
-
-
-    # def forward_from_s1_s2(self, s1, s2, require_grad=False, batch_average=False, warp=None, certainty=None):
-
-    #     dist1 = 0 
-    #     dist2 = 0 
-    #     c1 = 1e-6
-    #     c2 = 1e-6
-    #     w_sum = self.alpha.sum() + self.beta.sum()
-    #     alpha = torch.split(self.alpha/w_sum, self.chns, dim=1)
-    #     beta = torch.split(self.beta/w_sum, self.chns, dim=1)
-    #     for k in range(len(self.chns)):
-    #         x_mean = feats0[k].mean([2,3], keepdim=True)
-    #         y_mean = feats1[k].mean([2,3], keepdim=True)
-
-    #         S1 = feats1[k]
-    #         dist1 = dist1+(alpha[k]*S1).sum(1,keepdim=True)
-
-    #         x_var = ((feats0[k]-x_mean)**2).mean([2,3], keepdim=True)
-    #         y_var = ((feats1[k]-y_mean)**2).mean([2,3], keepdim=True)
-    #         xy_cov = (feats0[k]*feats1[k]).mean([2,3],keepdim=True) - x_mean*y_mean
-            
-    #         S2 = (2*xy_cov+c2)/(x_var+y_var+c2)
-    #         dist2 = dist2+(beta[k]*S2).sum(1,keepdim=True)
-
-    #     score = 1 - (dist1+dist2).squeeze()
-    #     if batch_average:
-    #         return score.mean()
-    #     else:
-    #         return score
-
-
-    def forward_from_feats(self, feats0, feats1, batch_average=False):
-
-        dist1 = 0 
-        dist2 = 0 
-        c1 = 1e-6
-        c2 = 1e-6
-        w_sum = self.alpha.sum() + self.beta.sum()
-        alpha = torch.split(self.alpha/w_sum, self.chns, dim=1)
-        beta = torch.split(self.beta/w_sum, self.chns, dim=1)
-        for k in range(len(self.chns)):
             x_mean = feats0[k].mean([2,3], keepdim=True)
             y_mean = feats1[k].mean([2,3], keepdim=True)
 
@@ -225,11 +150,11 @@ class DISTS(torch.nn.Module):
             x_var = ((feats0[k]-x_mean)**2).mean([2,3], keepdim=True)
             y_var = ((feats1[k]-y_mean)**2).mean([2,3], keepdim=True)
             xy_cov = (feats0[k]*feats1[k]).mean([2,3],keepdim=True) - x_mean*y_mean
-   
+
             S2 = (2*xy_cov+c2)/(x_var+y_var+c2)
             dist2 = dist2+(beta[k]*S2).sum(1,keepdim=True)
 
-        score = 1 - (dist1+dist2).squeeze([1,2,3])
+        score = 1 - (dist1+dist2).squeeze(dim=[1,2,3])
         if batch_average:
             return score.mean()
         else:

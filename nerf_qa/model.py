@@ -12,7 +12,6 @@ from scipy.optimize import curve_fit
 import math
 
 # local
-from nerf_qa.DISTS_pytorch.DISTS_pt_original import DISTS
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -24,7 +23,10 @@ class NeRFQAModel(nn.Module):
     def __init__(self, train_df):
         super(NeRFQAModel, self).__init__()
 
-        X = np.sqrt(train_df['DISTS'].values.reshape(-1, 1))  # Predictor
+        if wandb.config.mode in ["sqrt", "softmax+sqrt"]:
+            X = np.sqrt(train_df['DISTS'].values.reshape(-1, 1))  # Predictor
+        else:
+            X = train_df['DISTS'].values.reshape(-1, 1)  # Predictor
         y = train_df['MOS'].values  # Response
 
         # Create a linear regression model to initialize linear layer
@@ -34,6 +36,12 @@ class NeRFQAModel(nn.Module):
         # Print the coefficients
         print(f"Coefficient: {model.coef_[0]}")
         print(f"Intercept: {model.intercept_}")
+
+        if wandb.config.mode in ["softmax", "softmax+sqrt"]:
+            from nerf_qa.DISTS_pytorch.DISTS_pt_softmax import DISTS
+        else:
+            from nerf_qa.DISTS_pytorch.DISTS_pt_original import DISTS
+
         self.dists_model = DISTS()
         self.dists_weight = nn.Parameter(torch.tensor([model.coef_[0]], dtype=torch.float32))
         self.dists_bias = nn.Parameter(torch.tensor([model.intercept_], dtype=torch.float32))
@@ -45,7 +53,11 @@ class NeRFQAModel(nn.Module):
         #     feats1 = self.dists_model.forward_once(ref) 
         # dists_scores = self.dists_model.forward_from_feats(feats0, feats1)
         dists_scores = self.dists_model(dist, ref)
-        scores = torch.sqrt(dists_scores) * self.dists_weight + self.dists_bias # linear function
+
+        if wandb.config.mode in ["sqrt", "softmax+sqrt"]:
+            scores = torch.sqrt(dists_scores) * self.dists_weight + self.dists_bias # linear function
+        else:
+            scores = dists_scores * self.dists_weight + self.dists_bias # linear function
         return scores, dists_scores
 
 

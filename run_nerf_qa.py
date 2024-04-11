@@ -378,38 +378,38 @@ if __name__ == '__main__':
     batch_step = 0
 
 
-    # Test step
-    model.eval()  # Set model to evaluation mode
+    # # Test step
+    # model.eval()  # Set model to evaluation mode
 
-    if config.optimizer == 'sadamw':
-        optimizer.eval()
-    with torch.no_grad():
-        for index, row in tqdm(test_df.iterrows(), total=len(test_df), desc="Processing..."):
-            frames_data = create_test_dataloader(row, TEST_DATA_DIR)
-            for ref, render in frames_data:
-                i = np.full(shape=render.shape[0], fill_value=index)
-                # Compute score
-                predicted_score, dists_score = model(render.to(device), ref.to(device))
-                score = test_df['MOS'].iloc[i].values
-                target_score = torch.tensor(score, device=device).float()
+    # if config.optimizer == 'sadamw':
+    #     optimizer.eval()
+    # with torch.no_grad():
+    #     for index, row in tqdm(test_df.iterrows(), total=len(test_df), desc="Processing..."):
+    #         frames_data = create_test_dataloader(row, TEST_DATA_DIR)
+    #         for ref, render in frames_data:
+    #             i = np.full(shape=render.shape[0], fill_value=index)
+    #             # Compute score
+    #             predicted_score, dists_score = model(render.to(device), ref.to(device))
+    #             score = test_df['MOS'].iloc[i].values
+    #             target_score = torch.tensor(score, device=device).float()
 
-                # Compute loss
-                loss = loss_fn(predicted_score, target_score)
+    #             # Compute loss
+    #             loss = loss_fn(predicted_score, target_score)
                 
-                # Store metrics in logger
-                scene_ids = test_df['scene'].iloc[i].values
-                video_ids = test_df['distorted_folder'].iloc[i].values
-                test_logger.add_entries(
-                    {
-                    'loss': loss.detach().cpu(),
-                    'mse': mse_fn(predicted_score, target_score).detach().cpu(),
-                    'mos': score,
-                    'pred_score': dists_score.detach().cpu(),
-                }, video_ids = video_ids, scene_ids = scene_ids)
+    #             # Store metrics in logger
+    #             scene_ids = test_df['scene'].iloc[i].values
+    #             video_ids = test_df['distorted_folder'].iloc[i].values
+    #             test_logger.add_entries(
+    #                 {
+    #                 'loss': loss.detach().cpu(),
+    #                 'mse': mse_fn(predicted_score, target_score).detach().cpu(),
+    #                 'mos': score,
+    #                 'pred_score': dists_score.detach().cpu(),
+    #             }, video_ids = video_ids, scene_ids = scene_ids)
 
 
-        results_df = test_logger.video_metrics_df()
-        test_logger.log_summary(step)
+    #     results_df = test_logger.video_metrics_df()
+    #     test_logger.log_summary(step)
 
     for epoch in range(test_epochs):
         print(f"Epoch {epoch+1}/{test_epochs}")
