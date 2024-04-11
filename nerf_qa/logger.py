@@ -248,16 +248,22 @@ class MetricCollectionLogger():
                     logs.update({ f"{self.collection_name}/correlations/synthetic/{name}/{metric}": value for metric, value in synth_correlations.items() })
 
                 # Log correlations for each scene
-                scene_min = {}
+                scene_agg = { 'plcc': [], 'srcc': [], 'ktcc': [], }
+                real_scene_agg = { 'plcc': [], 'srcc': [], 'ktcc': [], }
+                synth_scene_agg = { 'plcc': [], 'srcc': [], 'ktcc': [], }
                 for scene_id, corr_values in scene_correlations.items():
                     logs.update({f"{self.collection_name}/correlations/scene/{scene_id}/{name}/{metric}": value for metric, value in corr_values.items()})
                     for metric, value in corr_values.items():
-                        if metric in scene_min:
-                            scene_min[metric] = min(np.abs(value), scene_min[metric])
+                        scene_agg[metric].append(np.abs(value))
+                        if scene_id in real_scene_ids:
+                            real_scene_agg[metric].append(np.abs(value))
                         else:
-                            scene_min[metric] = np.abs(value)
+                            synth_scene_agg[metric].append(np.abs(value))
                 
-                logs.update({f"{self.collection_name}/correlations/scene_min/{name}/{metric}": value for metric, value in scene_min.items()})
+                logs.update({f"{self.collection_name}/correlations/scene_min/{name}/{metric}": np.min(value) for metric, value in scene_agg.items()})
+                logs.update({f"{self.collection_name}/correlations/scene_mean/{name}/{metric}": np.mean(value) for metric, value in scene_agg.items()})
+                logs.update({f"{self.collection_name}/real/correlations/scene_mean/{name}/{metric}": np.mean(value) for metric, value in real_scene_agg.items()})
+                logs.update({f"{self.collection_name}/synthetic/correlations/scene_mean/{name}/{metric}": np.mean(value) for metric, value in synth_scene_agg.items()})
 
                 if len(unique_videos) > 1:
                     # Log correlations over all scenes
