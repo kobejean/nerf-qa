@@ -56,7 +56,7 @@ if __name__ == '__main__':
 
     # Basic configurations
     parser.add_argument('--seed', type=int, default=42, help='Random seed.')
-    parser.add_argument('--lr', type=float, default=3e-6, help='Random seed.')
+    parser.add_argument('--lr', type=float, default=1e-6, help='Random seed.')
     parser.add_argument('--beta1', type=float, default=0.9, help='Random seed.')
     parser.add_argument('--beta2', type=float, default=0.999, help='Random seed.')
     parser.add_argument('--eps', type=float, default=1e-7, help='Random seed.')
@@ -132,7 +132,7 @@ if __name__ == '__main__':
     test_df['scene'] = test_df['reference_folder'].str.replace('gt_', '', regex=False)
     test_balanced_dataloader = create_test2_dataloader(test_df, dir=TEST_DATA_DIR, batch_size=config.batch_size, in_memory=False, scene_balanced=True)
     test_size = len(test_balanced_dataloader)
-    test_epochs = int(wandb.config.epochs * 0.75)
+    test_epochs = wandb.config.epochs
 
 
     test_logger = MetricCollectionLogger('Test Metrics Dict')
@@ -243,6 +243,8 @@ if __name__ == '__main__':
         global step
         # Train step
         model.train()
+        
+        wandb.log({ f'Optimizer/lr': next(optimizer.param_groups)['lr'] }, step = step)
 
         for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."): 
             # if step < config.warmup_steps:
