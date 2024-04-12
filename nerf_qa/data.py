@@ -313,7 +313,7 @@ class NeRFQAResizedDataset(Dataset):
     
 
     def transform_pair(self, render_image, reference_image):
-        C,H,W = render_image
+        C,H,W = render_image.shape
         min_length = min(H,W)
         resize_length = random.randint(256, min_length)
         render_image = TF.resize(render_image, resize_length)
