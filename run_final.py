@@ -205,7 +205,7 @@ if __name__ == '__main__':
 
     batch_step = 0
 
-    def test():
+    def test(model, test_df):
         # Test step
         model.eval()  # Set model to evaluation mode
 
@@ -239,16 +239,17 @@ if __name__ == '__main__':
         model.train()
         return results_df
     
-    def train_epoch():
+    def train_epoch(model, train_dataloader, train_size):
+        global step
         # Train step
         model.train()
 
         for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."): 
-            # if batch_step < config.warmup_steps:
-            #     warmup_lr = config.lr * 1e-4 + batch_step * (config.lr - config.lr * 1e-4) / config.warmup_steps
+            # if step < config.warmup_steps:
+            #     warmup_lr = config.lr * 1e-4 + step * (config.lr - config.lr * 1e-4) / config.warmup_steps
             #     for param_group in optimizer.param_groups:
             #         param_group['lr'] = warmup_lr  
-            # elif batch_step == config.warmup_steps:
+            # elif step == config.warmup_steps:
             #     scheduler.last_epoch = epoch          
             optimizer.zero_grad()  # Zero the gradients after updating
 
@@ -258,7 +259,6 @@ if __name__ == '__main__':
             # Compute loss
             loss = loss_fn(predicted_score, target_score)
             step += 1
-            batch_step += 1
 
             # Store metrics in logger
             scene_ids =  train_df['scene'].iloc[i.numpy()].values
@@ -287,9 +287,9 @@ if __name__ == '__main__':
 
     for epoch in range(test_epochs):
         print(f"Epoch {epoch+1}/{test_epochs}")
-        train_epoch()
+        train_epoch(model, train_dataloader, train_size)
 
-    results_df = test()
+        results_df = test(model, test_df)
 
     results_df.to_csv('results.csv')
     torch.save(model, f'model.pth')
