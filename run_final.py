@@ -65,7 +65,7 @@ if __name__ == '__main__':
     parser.add_argument('--mode', type=str, default='normal', help='Random seed.')
     parser.add_argument('--gamma', type=float, default=0.95, help='Random seed.')
     # parser.add_argument('--warmup_steps', type=int, default=0, help='Random seed.')
-    parser.add_argument('--epochs', type=int, default=5, help='Random seed.')
+    parser.add_argument('--epochs', type=int, default=10, help='Random seed.')
 
     # Parse arguments
     args = parser.parse_args()
@@ -91,7 +91,6 @@ if __name__ == '__main__':
     scores_df['scene_type'] = scores_df['scene'].apply(get_scene_type)
 
 
-    epochs = 10
     config = {
         # "epochs": epochs,
         # "lr": 5e-5,

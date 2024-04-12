@@ -303,7 +303,7 @@ class NeRFQAResizedDataset(Dataset):
         self.total_size = self.scores_df['frame_count'].sum()
         self.cumulative_frame_counts = self.scores_df['frame_count'].cumsum()
         self.static_transforms = transforms.Compose([
-            # transforms.Resize(256), 
+            transforms.Resize(256), 
             transforms.ToTensor()
         ])
 
