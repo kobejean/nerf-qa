@@ -48,12 +48,7 @@ class NeRFQAModel(nn.Module):
 
 
     def forward(self, dist, ref):
-        # with torch.no_grad():
-        #     feats0 = self.dists_model.forward_once(dist)
-        #     feats1 = self.dists_model.forward_once(ref) 
-        # dists_scores = self.dists_model.forward_from_feats(feats0, feats1)
         dists_scores = self.dists_model(dist, ref)
-
         if wandb.config.mode in ["sqrt", "softmax+sqrt"]:
             scores = torch.sqrt(dists_scores) * self.dists_weight + self.dists_bias # linear function
         else:
