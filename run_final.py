@@ -65,7 +65,7 @@ if __name__ == '__main__':
     parser.add_argument('--mode', type=str, default='normal', help='Random seed.')
     parser.add_argument('--gamma', type=float, default=0.95, help='Random seed.')
     # parser.add_argument('--warmup_steps', type=int, default=0, help='Random seed.')
-    parser.add_argument('--epochs', type=int, default=10, help='Random seed.')
+    parser.add_argument('--epochs', type=int, default=100, help='Random seed.')
 
     # Parse arguments
     args = parser.parse_args()
@@ -149,6 +149,7 @@ if __name__ == '__main__':
 
     # Calculate the decay rate to halve the learning rate every 1000 iterations
     gamma = 0.5 ** (iterations_per_epoch / decay_step)
+    gamma = 1.0
 
     # Create the scheduler
     scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=gamma)
