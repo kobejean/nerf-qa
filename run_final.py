@@ -245,13 +245,13 @@ if __name__ == '__main__':
         
 
         for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."): 
-            # if epoch == 0:
-            #     warmup_lr_init_lr = config.lr * 1e-4
-            #     warmup_lr = warmup_lr_init_lr + step * (config.lr - warmup_lr_init_lr) / train_size
-            #     for param_group in optimizer.param_groups:
-            #         param_group['lr'] = warmup_lr  
-            # elif epoch == 1:
-            #     scheduler.last_epoch = epoch          
+            if epoch == 0:
+                warmup_lr_init_lr = config.lr * 1e-4
+                warmup_lr = warmup_lr_init_lr + step * (config.lr - warmup_lr_init_lr) / train_size
+                for param_group in optimizer.param_groups:
+                    param_group['lr'] = warmup_lr  
+            elif epoch == 1:
+                scheduler.last_epoch = epoch          
             wandb.log({ f'Optimizer/lr': optimizer.param_groups[0]['lr'] }, step = step)
             optimizer.zero_grad(set_to_none=True)  # Zero the gradients after updating
 

@@ -21,6 +21,7 @@ from sklearn.linear_model import LinearRegression
 from torch.utils.data import Dataset, DataLoader, Sampler
 from torch.profiler import profile, record_function, ProfilerActivity
 import torchvision.transforms.functional as TF
+import random
 
 # data 
 import pandas as pd
@@ -312,6 +313,11 @@ class NeRFQAResizedDataset(Dataset):
     
 
     def transform_pair(self, render_image, reference_image):
+        C,H,W = render_image
+        min_length = min(H,W)
+        resize_length = random.randint(256, min_length)
+        render_image = TF.resize(render_image, resize_length)
+        reference_image = TF.resize(reference_image, resize_length)
         i, j, h, w = transforms.RandomCrop.get_params(render_image, output_size=(256,256))
         assert h == 256 and w == 256
         render_image = TF.crop(render_image, i, j, h, w)
