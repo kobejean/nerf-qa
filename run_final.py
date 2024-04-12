@@ -56,11 +56,9 @@ if __name__ == '__main__':
 
     # Basic configurations
     parser.add_argument('--seed', type=int, default=42, help='Random seed.')
-    parser.add_argument('--lr', type=float, default=1e-6, help='Random seed.')
+    parser.add_argument('--lr', type=float, default=3e-6, help='Random seed.')
     parser.add_argument('--beta1', type=float, default=0.9, help='Random seed.')
     parser.add_argument('--beta2', type=float, default=0.999, help='Random seed.')
-    parser.add_argument('--momentum', type=float, default=0.9, help='Random seed.')
-    parser.add_argument('--momentum_decay', type=float, default=0.004, help='Random seed.')
     parser.add_argument('--eps', type=float, default=1e-7, help='Random seed.')
     parser.add_argument('--optimizer', type=str, default='adam', help='Random seed.')
     parser.add_argument('--project_weights', type=str, default='False', help='Random seed.')
@@ -141,20 +139,20 @@ if __name__ == '__main__':
     train_logger = MetricCollectionLogger(f'Train Metrics Dict')
 
     model = NeRFQAModel(train_df=train_df, mode=config.mode).to(device)
-    if config.optimizer == 'sadamw':
-        optimizer = schedulefree.AdamWScheduleFree(model.parameters(),                
-            lr=config.lr,
-            betas=(config.beta1, config.beta2),
-            eps=config.eps,
-            warmup_steps=config.warmup_steps,
-        )
-    else:
-        optimizer = optim.Adam(model.parameters(),
-            lr=config.lr,
-            betas=(config.beta1, config.beta2),
-            eps=config.eps,
-        )
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=test_epochs - config.warmup_steps/train_size, eta_min=0, last_epoch=-1)
+
+    optimizer = optim.Adam(model.parameters(),
+        lr=config.lr,
+        betas=(config.beta1, config.beta2),
+        eps=config.eps,
+    )
+    iterations_per_epoch = train_size
+    decay_step = 1000  # Every 1000 iterations
+
+    # Calculate the decay rate to halve the learning rate every 1000 iterations
+    gamma = 0.5 ** (iterations_per_epoch / decay_step)
+
+    # Create the scheduler
+    scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=gamma)
         
 
 
@@ -211,8 +209,6 @@ if __name__ == '__main__':
         # Test step
         model.eval()  # Set model to evaluation mode
 
-        if config.optimizer == 'sadamw':
-            optimizer.eval()
         with torch.no_grad():
             for index, row in tqdm(test_df.iterrows(), total=len(test_df), desc="Processing..."):
                 frames_data = create_test_dataloader(row, TEST_DATA_DIR)
@@ -248,12 +244,12 @@ if __name__ == '__main__':
         model.train()
 
         for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."): 
-            if batch_step < config.warmup_steps:
-                warmup_lr = config.lr * 1e-4 + batch_step * (config.lr - config.lr * 1e-4) / config.warmup_steps
-                for param_group in optimizer.param_groups:
-                    param_group['lr'] = warmup_lr  
-            elif batch_step == config.warmup_steps:
-                scheduler.last_epoch = epoch          
+            # if batch_step < config.warmup_steps:
+            #     warmup_lr = config.lr * 1e-4 + batch_step * (config.lr - config.lr * 1e-4) / config.warmup_steps
+            #     for param_group in optimizer.param_groups:
+            #         param_group['lr'] = warmup_lr  
+            # elif batch_step == config.warmup_steps:
+            #     scheduler.last_epoch = epoch          
             optimizer.zero_grad()  # Zero the gradients after updating
 
             predicted_score, dists_score = model(dist.to(device),ref.to(device))
