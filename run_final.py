@@ -239,7 +239,7 @@ if __name__ == '__main__':
         model.train()
         return results_df
     
-    def train_epoch(model, train_dataloader, train_size):
+    def train_epoch(epoch, model, train_dataloader, train_size):
         global step
         # Train step
         model.train()
@@ -247,12 +247,13 @@ if __name__ == '__main__':
         wandb.log({ f'Optimizer/lr': optimizer.param_groups[0]['lr'] }, step = step)
 
         for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."): 
-            # if step < config.warmup_steps:
-            #     warmup_lr = config.lr * 1e-4 + step * (config.lr - config.lr * 1e-4) / config.warmup_steps
-            #     for param_group in optimizer.param_groups:
-            #         param_group['lr'] = warmup_lr  
-            # elif step == config.warmup_steps:
-            #     scheduler.last_epoch = epoch          
+            if epoch == 0:
+                warmup_lr_init_lr = config.lr * 1e-4
+                warmup_lr = warmup_lr_init_lr + step * (config.lr - warmup_lr_init_lr) / train_size
+                for param_group in optimizer.param_groups:
+                    param_group['lr'] = warmup_lr  
+            elif epoch == 1:
+                scheduler.last_epoch = epoch          
             optimizer.zero_grad()  # Zero the gradients after updating
 
             predicted_score, dists_score = model(dist.to(device),ref.to(device))
@@ -289,7 +290,7 @@ if __name__ == '__main__':
 
     for epoch in range(test_epochs):
         print(f"Epoch {epoch+1}/{test_epochs}")
-        train_epoch(model, train_dataloader, train_size)
+        train_epoch(epoch, model, train_dataloader, train_size)
 
         results_df = test(model, test_df)
 
