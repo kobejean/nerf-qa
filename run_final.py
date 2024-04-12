@@ -244,7 +244,7 @@ if __name__ == '__main__':
         # Train step
         model.train()
         
-        wandb.log({ f'Optimizer/lr': next(optimizer.param_groups)['lr'] }, step = step)
+        wandb.log({ f'Optimizer/lr': optimizer.param_groups[0]['lr'] }, step = step)
 
         for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."): 
             # if step < config.warmup_steps:
