@@ -87,7 +87,8 @@ def get_correlations(col, syn_df, tnt_df, test_df):
 # List of metrics to compute correlations for
 
 data = []
-metrics = ['Ours', 'DISTS', 'DISTS_full_size', 'DISTS_square', 'A-DISTS', 'LPIPS(alex)',
+metrics = ['DISTS', 'DISTS_full_size', 'DISTS_square', 
+           'A-DISTS', 'A-DISTS_full_size', 'A-DISTS_square', 'Ours', 'LPIPS(alex)',
        'VIF', 'MS-SSIM', 'MAD', 'PieAPP', 'WaDiQaM', 'TOPIQ-FR',
        'LPIPS(vgg)', 'SSIM', 'PSNR', 'GMSD', 'FSIMc', 'NLPD',
        'ST-LPIPS', 'AHIQ']
@@ -102,6 +103,8 @@ for metric in metrics:
 df_corr = pd.DataFrame(data)
 # df_corr = df_corr.set_index('Metric')
 # df_corr
+#%%
+test_df
 #%%
 df_corr
 #%%
@@ -182,7 +185,7 @@ def scatter_plot(ax, metric, marker_size=20):
     # ax.legend()
 
 # Create a 2x3 grid of subplots
-fig, axs = plt.subplots(6, 3, figsize=set_size(width, subplots=(6, 3)))
+fig, axs = plt.subplots(8, 3, figsize=set_size(width, subplots=(8, 3)))
 
 # Flatten the array of axes to easily iterate over it
 axs = axs.flatten()
