@@ -34,33 +34,20 @@ import numpy as np
 
 # Function to plot regression lines for each scene along with all data points
 def plot_with_group_regression(pred_scores, mos, scene_video_ids, unique_videos):
-    # Define the logistic function with parameters β1 to β4
-    # def logistic(x, beta1, beta2, beta3, beta4):
-    #     return 2.0*(beta1 - beta2) / (1 + np.exp((x-beta3) / np.abs(beta4))) + beta2
-    
-    # Initial parameter guesses
-    # y = np.array([mos[vid] for vid in unique_videos])
-    # x = np.array([pred_scores[vid] for vid in unique_videos])
     fig = go.Figure()
-
-    # beta1_init = 10.0
-    # beta2_init = 1.0
-    # beta3_init = 0.0
-    # beta4_init = np.max(x)
-    # params, params_covariance = curve_fit(logistic, x, y, p0=[beta1_init, beta2_init, beta3_init, beta4_init])
-    # print(f"Params: {params}")
-    # # Predict using the fitted model for the scene
-    # x_range = np.linspace(min(x), max(x), 400)
-    # y_pred = logistic(x_range, *params)
-    # # Regression line for the scene
-    # fig.add_trace(go.Scatter(x=x_range, y=y_pred, mode='lines', name=f'Regression', line=dict(color='black')))
-
     for i, scene_id in enumerate(iter(scene_video_ids.keys())):
         scene_pred_scores = np.array([pred_scores[vid] for vid in scene_video_ids[scene_id]])
         scene_mos = np.array([mos[vid] for vid in scene_video_ids[scene_id]])
 
         # Use a unique color for each scene, cycling through the colors list
         color = COLORS[i % len(COLORS)]
+
+        indices = np.argsort(scene_mos)
+        y_sorted = scene_mos[indices]
+        x_sorted = scene_pred_scores[indices]
+
+        fig.add_trace(go.Scatter(x=x_sorted, y=y_sorted, mode='lines', line=dict(color=color)))
+
 
         fig.add_trace(go.Scatter(y=scene_mos, x=scene_pred_scores, mode='markers', name=f'Score: Scene {scene_id}', marker_color=color))
 
