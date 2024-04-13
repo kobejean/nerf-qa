@@ -29,15 +29,15 @@ class NeRFQAModel(nn.Module):
         X = train_df['DISTS'].values
 
         def logistic(x, beta1, beta2, beta3, beta4):
-            return (beta1 - beta2) / (1 + np.exp(-(x - beta3) / np.abs(beta4))) + beta2
+            return 0.5*(beta1 - beta2) / (1 + np.exp((x - beta3) / np.abs(beta4))) + beta2
     
         print("X.shape", X.shape)
         y = train_df['MOS'].values  # Response
 
         # Initial parameter guesses
-        beta1_init = np.max(y)
-        beta2_init = np.min(y)
-        beta3_init = np.mean(X)
+        beta1_init = 5.0 #np.max(y)
+        beta2_init = 1.0 #np.min(y)
+        beta3_init = 0.0 #np.mean(X)
         beta4_init = np.std(X) / 4
 
         # Create a linear regression model to initialize linear layer
