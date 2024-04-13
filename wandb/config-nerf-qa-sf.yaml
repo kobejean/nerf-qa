@@ -9,8 +9,8 @@ parameters:
     # value: 1e-5
     distribution: q_log_uniform_values
     min: 1e-7
-    max: 1e-4
-    q: 1e-7
+    max: 1e-3
+    q: 1e-8
   eps:
     # distribution: q_log_uniform_values
     # min: 1e-10
@@ -31,7 +31,8 @@ parameters:
   #   value: 90
     # values: [0, 90, 180]
   epochs:
-    values: [10, 20]
+    value: 10
+    # values: [10, 20]
   # gamma:
   #   distribution: uniform
   #   min: 0.80
