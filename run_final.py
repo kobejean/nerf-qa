@@ -232,6 +232,14 @@ if __name__ == '__main__':
 
         scheduler.step()
 
+        wandb.log({ 
+            "Model/dists_weight/alpha": wandb.Histogram(model.dists_model.alpha.detach().cpu()),
+            "Model/dists_weight/beta": wandb.Histogram(model.dists_model.beta.detach().cpu()),
+            "Model/dists_weight/alpha_min": torch.min(model.dists_model.alpha),
+            "Model/dists_weight/beta_min": torch.min(model.dists_model.beta),
+        }, step=step)
+        
+
 
     test(model, test_df)
 
