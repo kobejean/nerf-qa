@@ -3,13 +3,13 @@ metric:
   name: Cross-Val Metrics Dict/mean_loss
   goal: minimize
 
-method: bayes
+method: random
 parameters:
   lr:
     # value: 1e-5
     distribution: q_log_uniform_values
     min: 1e-7
-    max: 1e-1
+    max: 1e-5
     q: 1e-7
   eps:
     # distribution: q_log_uniform_values
@@ -31,7 +31,7 @@ parameters:
     value: 90
     # values: [0, 90, 180]
   epochs:
-    value: 10
+    value: 20
     # values: [10, 20, 50, 100]
   # gamma:
   #   distribution: uniform

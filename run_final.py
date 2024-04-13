@@ -55,7 +55,7 @@ if __name__ == '__main__':
 
     # Basic configurations
     parser.add_argument('--seed', type=int, default=42, help='Random seed.')
-    parser.add_argument('--lr', type=float, default=1e-7, help='Random seed.')
+    parser.add_argument('--lr', type=float, default=1e-4, help='Random seed.')
     parser.add_argument('--beta1', type=float, default=0.9, help='Random seed.')
     parser.add_argument('--beta2', type=float, default=0.999, help='Random seed.')
     parser.add_argument('--eps', type=float, default=1e-7, help='Random seed.')
@@ -87,7 +87,7 @@ if __name__ == '__main__':
             return 'unknown'
 
     # Apply the function to create the 'scene_type' column
-    scores_df['scene_type'] = scores_df['scene'].apply(get_scene_type)
+    # scores_df['scene_type'] = scores_df['scene'].apply(get_scene_type)
 
     # scores_df = scores_df[scores_df['scene_type'] != 'synthetic'].reset_index()
     
@@ -144,7 +144,7 @@ if __name__ == '__main__':
 
     # Calculate the decay rate to halve the learning rate every 1000 iterations
     gamma = 0.5 ** (iterations_per_epoch / decay_step)
-    gamma = 1.0
+    # gamma = 1.0
 
     # Create the scheduler
     scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=gamma)
