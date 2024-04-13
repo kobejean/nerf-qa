@@ -78,7 +78,7 @@ def recursive_collate(batch):
         return batch
     
 # Batch creation function
-def create_test_dataloader(row, dir, batch_size):
+def create_test2_dataloader(row, dir, batch_size):
     # Create a dataset and dataloader for efficient batching
     dataset = Test2Dataset(row, dir)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, collate_fn = recursive_collate)
@@ -106,7 +106,7 @@ class NeRFQAResizedDataset(Dataset):
         self.total_size = self.scores_df['frame_count'].sum()
         self.cumulative_frame_counts = self.scores_df['frame_count'].cumsum()
         self.static_transforms = transforms.Compose([
-            # transforms.Resize(256), 
+            transforms.Resize(256), 
             transforms.ToTensor()
         ])
 
@@ -115,11 +115,11 @@ class NeRFQAResizedDataset(Dataset):
     
 
     def transform_pair(self, render_image, reference_image):
-        C,H,W = render_image.shape
-        min_length = min(H,W)
-        resize_length = random.randint(256, min_length)
-        render_image = TF.resize(render_image, resize_length)
-        reference_image = TF.resize(reference_image, resize_length)
+        # C,H,W = render_image.shape
+        # min_length = min(H,W)
+        # resize_length = random.randint(256, min_length)
+        # render_image = TF.resize(render_image, resize_length)
+        # reference_image = TF.resize(reference_image, resize_length)
         i, j, h, w = transforms.RandomCrop.get_params(render_image, output_size=(256,256))
         assert h == 256 and w == 256
         render_image = TF.crop(render_image, i, j, h, w)

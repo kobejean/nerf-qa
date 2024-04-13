@@ -26,7 +26,7 @@ from tqdm import tqdm
 from PIL import Image
 
 # local
-from nerf_qa.data import create_test2_dataloader, create_nerf_qa_resize_dataloader
+from nerf_qa.data_fr import create_test2_dataloader, create_nerf_qa_resize_dataloader
 from nerf_qa.logger import MetricCollectionLogger
 from nerf_qa.settings_fr import DEVICE_BATCH_SIZE
 from nerf_qa.model_stats import NeRFQAModel
