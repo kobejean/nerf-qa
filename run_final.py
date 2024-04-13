@@ -243,7 +243,7 @@ if __name__ == '__main__':
         
 
 
-    # test(model, test_df)
+    test(model, test_df)
 
     for epoch in range(test_epochs):
         print(f"Epoch {epoch+1}/{test_epochs}")
