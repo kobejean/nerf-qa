@@ -134,27 +134,29 @@ if __name__ == '__main__':
 
     model = NeRFQAModel(train_df=train_df, mode=config.mode).to(device)
 
-    optimizer = optim.Adam(model.parameters(),
-        lr=config.lr,
-        betas=(config.beta1, config.beta2),
-        eps=config.eps,
-    )
-    iterations_per_epoch = train_size
-    decay_step = 1000  # Every 1000 iterations
+    if config.optimizer == 'sadamw':
+        optimizer = schedulefree.AdamWScheduleFree(model.parameters(),                
+            lr=config.lr,
+            betas=(config.beta1, config.beta2),
+            eps=config.eps,
+            warmup_steps=config.warmup_steps,
+        )
+    else:
+        optimizer = optim.Adam(model.parameters(),
+            lr=config.lr,
+            betas=(config.beta1, config.beta2),
+            eps=config.eps,
+        )
+        gamma = 0.5 ** (train_size / 1000)
+        scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=gamma)
 
-    # Calculate the decay rate to halve the learning rate every 1000 iterations
-    gamma = 0.5 ** (iterations_per_epoch / decay_step)
-    # gamma = 1.0
-
-    # Create the scheduler
-    scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=gamma)
-
-    batch_step = 0
 
     def test(model, test_df):
         # Test step
         model.eval()  # Set model to evaluation mode
 
+        if config.optimizer == 'sadamw':
+            optimizer.eval()
         with torch.no_grad():
             for index, row in tqdm(test_df.iterrows(), total=len(test_df), desc="Processing..."):
                 frames_data = create_test2_dataloader(row, TEST_DATA_DIR, batch_size=config.batch_size)
@@ -189,6 +191,8 @@ if __name__ == '__main__':
         global step
         # Train step
         model.train()
+        if config.optimizer == 'sadamw':
+            optimizer.train()
         
 
         for dist,ref,score,i in tqdm(train_dataloader, total=train_size, desc="Training..."): 
@@ -232,7 +236,8 @@ if __name__ == '__main__':
             if config.project_weights == 'True':
                 model.dists_model.project_weights()
 
-        scheduler.step()
+        if config.optimizer != 'sadamw':
+            scheduler.step()
 
         wandb.log({ 
             "Model/dists_weight/alpha": wandb.Histogram(model.dists_model.alpha.detach().cpu()),
