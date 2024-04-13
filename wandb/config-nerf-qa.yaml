@@ -29,8 +29,8 @@ parameters:
     # distribution: uniform
     # min: 0.999
     # max: 0.99999
-  warmup_steps:
-    value: 90
+  # warmup_steps:
+  #   value: 90
     # values: [0, 90, 180]
   epochs:
     value: 10
