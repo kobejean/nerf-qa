@@ -39,8 +39,8 @@ def plot_with_group_regression(pred_scores, mos, scene_video_ids, video_ids):
         return (beta1 - beta2) / (1 + np.exp(-(x - beta3) / np.abs(beta4))) + beta2
 
     # Initial parameter guesses
-    y = np.array([mos[vid] for vid in video_ids[scene_id]])
-    x = np.array([pred_scores[vid] for vid in video_ids[scene_id]])
+    y = np.array([mos[vid] for vid in video_ids])
+    x = np.array([pred_scores[vid] for vid in video_ids])
     beta1_init = np.max(y)
     beta2_init = np.min(y)
     beta3_init = np.mean(x)
