@@ -56,9 +56,9 @@ class NeRFQAModel(nn.Module):
 
         self.dists_model = DISTS()
         self.b1 = nn.Parameter(torch.tensor([params[0]], dtype=torch.float32))
-        self.b2 = nn.Parameter(torch.tensor([params[2]], dtype=torch.float32))
-        self.b3 = nn.Parameter(torch.tensor([params[3]], dtype=torch.float32))
-        self.b4 = nn.Parameter(torch.tensor([params[4]], dtype=torch.float32))
+        self.b2 = nn.Parameter(torch.tensor([params[1]], dtype=torch.float32))
+        self.b3 = nn.Parameter(torch.tensor([params[2]], dtype=torch.float32))
+        self.b4 = nn.Parameter(torch.tensor([params[3]], dtype=torch.float32))
           
     
     def logistic(self, x):
