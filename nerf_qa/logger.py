@@ -33,16 +33,18 @@ from scipy.optimize import curve_fit
 import numpy as np
 
 # Function to plot regression lines for each scene along with all data points
-def plot_with_group_regression(pred_scores, mos, scene_video_ids):
+def plot_with_group_regression(pred_scores, mos, scene_video_ids, video_ids):
     # Define the logistic function with parameters β1 to β4
     def logistic(x, beta1, beta2, beta3, beta4):
         return (beta1 - beta2) / (1 + np.exp(-(x - beta3) / np.abs(beta4))) + beta2
 
     # Initial parameter guesses
-    beta1_init = np.max(mos)
-    beta2_init = np.min(mos)
-    beta3_init = np.mean(pred_scores)
-    beta4_init = np.std(pred_scores) / 4
+    y = np.array([mos[vid] for vid in video_ids[scene_id]])
+    x = np.array([pred_scores[vid] for vid in video_ids[scene_id]])
+    beta1_init = np.max(y)
+    beta2_init = np.min(y)
+    beta3_init = np.mean(x)
+    beta4_init = np.std(x) / 4
        
     fig = go.Figure()
 
@@ -218,7 +220,7 @@ class MetricCollectionLogger():
         if 'pred_score' in video_averages and 'mos' in video_averages:
             def log_correlations(pred, gt, name='mos', save_last=True):
 
-                logs.update({ f"{self.collection_name}/plot/{name}/scene_regression": plot_with_group_regression(pred, gt, scene_video_ids) })
+                logs.update({ f"{self.collection_name}/plot/{name}/scene_regression": plot_with_group_regression(pred, gt, scene_video_ids, video_ids) })
 
                 real_scene_ids = ['train', 'm60', 'playground', 'truck', 'fortress', 'horns', 'trex', 'room']
                 synth_scene_ids = ['ship', 'lego', 'drums', 'ficus', 'hotdog', 'materials', 'mic', 'chair']
