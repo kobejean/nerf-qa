@@ -34,8 +34,15 @@ import numpy as np
 
 # Function to plot regression lines for each scene along with all data points
 def plot_with_group_regression(pred_scores, mos, scene_video_ids):
-    def linear_func(x, a, b):
-        return a * x + b
+    # Define the logistic function with parameters β1 to β4
+    def logistic(x, beta1, beta2, beta3, beta4):
+        return (beta1 - beta2) / (1 + np.exp(-(x - beta3) / np.abs(beta4))) + beta2
+
+    # Initial parameter guesses
+    beta1_init = np.max(mos)
+    beta2_init = np.min(mos)
+    beta3_init = np.mean(pred_scores)
+    beta4_init = np.std(pred_scores) / 4
        
     fig = go.Figure()
 
@@ -46,23 +53,23 @@ def plot_with_group_regression(pred_scores, mos, scene_video_ids):
         # Use a unique color for each scene, cycling through the colors list
         color = COLORS[i % len(COLORS)]
 
-        fig.add_trace(go.Scatter(x=scene_mos, y=scene_pred_scores, mode='markers', name=f'Score: Scene {scene_id}', marker_color=color))
+        fig.add_trace(go.Scatter(y=scene_pred_scores, x=scene_mos, mode='markers', name=f'Score: Scene {scene_id}', marker_color=color))
 
         # Fit the model for each scene
-        if len(scene_mos) > 1:  # Ensure there are enough points for regression
-            params, _ = curve_fit(linear_func, scene_mos, scene_pred_scores)
-
+        if len(scene_pred_scores) > 1:  # Ensure there are enough points for regression
+            # params, _ = curve_fit(linear_func, scene_mos, scene_pred_scores)
+            params, params_covariance = curve_fit(logistic, scene_pred_scores, scene_mos, p0=[beta1_init, beta2_init, beta3_init, beta4_init])
             # Predict using the fitted model for the scene
-            x_range = np.linspace(min(scene_mos), max(scene_mos), 400)
-            y_pred = linear_func(x_range, *params)
+            x_range = np.linspace(min(scene_pred_scores), max(scene_pred_scores), 400)
+            y_pred = logistic(x_range, *params)
 
 
             # Regression line for the scene
             fig.add_trace(go.Scatter(x=x_range, y=y_pred, mode='lines', name=f'Regression: Scene {scene_id}', line=dict(color=color)))
 
-    fig.update_layout(title='Linear Regression per Scene between Predicted Score and MOS',
-                      xaxis_title='MOS',
-                      yaxis_title='Predicted Score')
+    fig.update_layout(title='Logistic Regression per Scene between Predicted Score and MOS',
+                      yaxis_title='MOS',
+                      xaxis_title='Predicted Score')
     return fig
 
 

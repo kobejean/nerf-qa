@@ -16,8 +16,8 @@ import math
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def linear_func(x, a, b):
-    return a * x + b
+# def linear_func(x, a, b):
+#     return a * x + b
 
 
 class NeRFQAModel(nn.Module):
@@ -26,35 +26,47 @@ class NeRFQAModel(nn.Module):
 
         self.mode = mode
 
-        X = np.transpose(np.array([
-            train_df['DISTS'].values,
-        ]))
+        X = train_df['DISTS'].values
+
+        def logistic(x, beta1, beta2, beta3, beta4):
+            return (beta1 - beta2) / (1 + np.exp(-(x - beta3) / np.abs(beta4))) + beta2
     
         print("X.shape", X.shape)
         y = train_df['MOS'].values  # Response
 
+        # Initial parameter guesses
+        beta1_init = np.max(y)
+        beta2_init = np.min(y)
+        beta3_init = np.mean(X)
+        beta4_init = np.std(X) / 4
+
         # Create a linear regression model to initialize linear layer
-        model = LinearRegression()
-        model.fit(X, y)
+        # model = LinearRegression()
+        # model.fit(X, y)
+
+        params, params_covariance = curve_fit(logistic, X, y, p0=[beta1_init, beta2_init, beta3_init, beta4_init])
 
         # Print the coefficients
-        print(f"Coefficient: {model.coef_}")
-        print(f"Intercept: {model.intercept_}")  
+        print(f"Params: {params}")
+        # print(f"Intercept: {model.intercept_}")  
         if wandb.config.mode in ["softmax"]:
             from nerf_qa.DISTS_pytorch.DISTS_pt_softmax import DISTS
         else:
             from nerf_qa.DISTS_pytorch.DISTS_pt_original import DISTS
 
         self.dists_model = DISTS()
-        self.dists_weight = nn.Parameter(torch.tensor([model.coef_], dtype=torch.float32).T)
-        self.dists_bias = nn.Parameter(torch.tensor([model.intercept_], dtype=torch.float32))
+        self.b1 = nn.Parameter(torch.tensor([params[0]], dtype=torch.float32))
+        self.b2 = nn.Parameter(torch.tensor([params[2]], dtype=torch.float32))
+        self.b3 = nn.Parameter(torch.tensor([params[3]], dtype=torch.float32))
+        self.b4 = nn.Parameter(torch.tensor([params[4]], dtype=torch.float32))
           
+    
+    def logistic(self, x):
+        return (self.b1 - self.b2) / (1 + torch.exp(-(x - self.b3) / torch.abs(self.b4))) + self.b2
+    
 
-    def forward(self, dist, ref, stats = None):
+    def forward(self, dist, ref):
         dists_scores = self.dists_model(dist, ref)
-        dists_scores = dists_scores.unsqueeze(1)
-
-        scores = (dists_scores @ self.dists_weight).squeeze(1) + self.dists_bias # linear function
-        
+        scores = self.logistic(dists_scores)
         return scores, dists_scores
 

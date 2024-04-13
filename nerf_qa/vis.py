@@ -58,7 +58,7 @@ def plot_group_regression_lines(df, y_col='MOS', x_col='DISTS', group_col='refer
         
         fig.add_trace(go.Scatter(x=x_range, y=y_pred, mode='lines', name=f'Regression: {group}', line=dict(color=color)))
 
-    fig.update_layout(title=f'Linear Regression per Group between {y_col} and {x_col}',
+    fig.update_layout(title=f'Logistic Regression per Group between {y_col} and {x_col}',
                       xaxis_title=x_col,
                       yaxis_title=y_col)
     return fig
