@@ -124,8 +124,8 @@ if __name__ == '__main__':
 
     test_df = pd.read_csv(TEST_SCORE_FILE)
     test_df['scene'] = test_df['reference_folder'].str.replace('gt_', '', regex=False)
-    test_balanced_dataloader = create_test2_dataloader(test_df, dir=TEST_DATA_DIR, batch_size=config.batch_size, in_memory=False, scene_balanced=True)
-    test_size = len(test_balanced_dataloader)
+    # test_balanced_dataloader = create_test2_dataloader(test_df, dir=TEST_DATA_DIR, batch_size=config.batch_size, in_memory=False, scene_balanced=True)
+    # test_size = len(test_balanced_dataloader)
     test_epochs = wandb.config.epochs
 
 
