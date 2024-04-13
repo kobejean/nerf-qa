@@ -3,7 +3,7 @@ metric:
   name: Test Metrics Dict/correlations/scene_mean/mos/plcc
   goal: maximize
 
-method: bayes
+method: random
 parameters:
   lr:
     # value: 1e-5
