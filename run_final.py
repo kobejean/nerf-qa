@@ -60,7 +60,7 @@ if __name__ == '__main__':
     parser.add_argument('--beta2', type=float, default=0.999, help='Random seed.')
     parser.add_argument('--eps', type=float, default=1e-7, help='Random seed.')
     parser.add_argument('--optimizer', type=str, default='adam', help='Random seed.')
-    parser.add_argument('--project_weights', type=str, default='True', help='Random seed.')
+    parser.add_argument('--project_weights', type=str, default='False', help='Random seed.')
     parser.add_argument('--mode', type=str, default='normal', help='Random seed.')
     parser.add_argument('--gamma', type=float, default=0.95, help='Random seed.')
     # parser.add_argument('--warmup_steps', type=int, default=0, help='Random seed.')
