@@ -106,7 +106,7 @@ class NeRFQAResizedDataset(Dataset):
         self.total_size = self.scores_df['frame_count'].sum()
         self.cumulative_frame_counts = self.scores_df['frame_count'].cumsum()
         self.static_transforms = transforms.Compose([
-            transforms.Resize(256), 
+            # transforms.Resize(256), 
             transforms.ToTensor()
         ])
 
@@ -141,8 +141,8 @@ class NeRFQAResizedDataset(Dataset):
         referenced_filename = f'{frame_within_video:03d}.png'
 
         # Construct the full paths
-        distorted_path = os.path.join(self.dist_dir, distorted_foldername, 'original_size', distorted_filename)
-        referenced_path = os.path.join(self.ref_dir, referenced_foldername, 'original_size', referenced_filename)
+        distorted_path = os.path.join(self.dist_dir, distorted_foldername, '256x256', distorted_filename)
+        referenced_path = os.path.join(self.ref_dir, referenced_foldername, '256x256', referenced_filename)
 
         # Load and optionally resize images
         distorted_image = self.static_transforms(Image.open(distorted_path).convert("RGB"))
