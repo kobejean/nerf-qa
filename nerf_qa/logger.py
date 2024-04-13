@@ -48,14 +48,15 @@ def plot_with_group_regression(pred_scores, mos, scene_video_ids, video_ids):
     beta4_init = np.std(x) / 4
     params, params_covariance = curve_fit(logistic, x, y, p0=[beta1_init, beta2_init, beta3_init, beta4_init])
     
-    beta1_init = params[0]
-    beta2_init = params[1]
-    beta3_init = params[2]
-    beta4_init = params[3]
-    def logistic_group(x, beta3, beta4):
-        return (beta1_init - beta2_init) / (1 + np.exp(-(x - beta3) / np.abs(beta4))) + beta2_init
-
     fig = go.Figure()
+
+    # Predict using the fitted model for the scene
+    x_range = np.linspace(min(x), max(x), 400)
+    y_pred = logistic(x_range, *params)
+
+
+    # Regression line for the scene
+    fig.add_trace(go.Scatter(x=x_range, y=y_pred, mode='lines', name=f'Regression', line=dict(color='grey')))
 
     for i, scene_id in enumerate(iter(scene_video_ids.keys())):
         scene_pred_scores = np.array([pred_scores[vid] for vid in scene_video_ids[scene_id]])
@@ -65,21 +66,6 @@ def plot_with_group_regression(pred_scores, mos, scene_video_ids, video_ids):
         color = COLORS[i % len(COLORS)]
 
         fig.add_trace(go.Scatter(y=scene_mos, x=scene_pred_scores, mode='markers', name=f'Score: Scene {scene_id}', marker_color=color))
-
-        # Fit the model for each scene
-        if len(scene_pred_scores) > 1:  # Ensure there are enough points for regression
-            # params, _ = curve_fit(linear_func, scene_mos, scene_pred_scores)
-
-            beta3_init = np.mean(scene_pred_scores)
-            beta4_init = np.std(scene_pred_scores) / 4
-            params, params_covariance = curve_fit(logistic_group, scene_pred_scores, scene_mos, p0=[beta3_init, beta4_init])
-            # Predict using the fitted model for the scene
-            x_range = np.linspace(min(scene_pred_scores), max(scene_pred_scores), 400)
-            y_pred = logistic_group(x_range, *params)
-
-
-            # Regression line for the scene
-            fig.add_trace(go.Scatter(x=x_range, y=y_pred, mode='lines', name=f'Regression: Scene {scene_id}', line=dict(color=color)))
 
     fig.update_layout(title='Logistic Regression per Scene between Predicted Score and MOS',
                       yaxis_title='MOS',
