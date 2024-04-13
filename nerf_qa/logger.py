@@ -36,27 +36,12 @@ import numpy as np
 def plot_with_group_regression(pred_scores, mos, scene_video_ids, unique_videos):
     # Define the logistic function with parameters β1 to β4
     def logistic(x, beta1, beta2, beta3, beta4):
-        return 2.0*(beta1 - beta2) / (1 + np.exp(x / np.abs(beta4))) + beta2
+        return 2.0*(beta1 - beta2) / (1 + np.exp((x-beta3) / np.abs(beta4))) + beta2
     
     # Initial parameter guesses
     y = np.array([mos[vid] for vid in unique_videos])
     x = np.array([pred_scores[vid] for vid in unique_videos])
-
-    beta1_init = 5.0
-    beta2_init = 1.0
-    beta3_init = 0.0
-    beta4_init = np.std(x) / 4
-    params, params_covariance = curve_fit(logistic, x, y, p0=[beta1_init, beta2_init, beta3_init, beta4_init])
-    print(f"Params: {params}")
     fig = go.Figure()
-
-    # Predict using the fitted model for the scene
-    x_range = np.linspace(min(x), max(x), 400)
-    y_pred = logistic(x_range, *params)
-
-
-    # Regression line for the scene
-    fig.add_trace(go.Scatter(x=x_range, y=y_pred, mode='lines', name=f'Regression', line=dict(color='grey')))
 
     for i, scene_id in enumerate(iter(scene_video_ids.keys())):
         scene_pred_scores = np.array([pred_scores[vid] for vid in scene_video_ids[scene_id]])
@@ -66,6 +51,19 @@ def plot_with_group_regression(pred_scores, mos, scene_video_ids, unique_videos)
         color = COLORS[i % len(COLORS)]
 
         fig.add_trace(go.Scatter(y=scene_mos, x=scene_pred_scores, mode='markers', name=f'Score: Scene {scene_id}', marker_color=color))
+
+        beta1_init = 5.0
+        beta2_init = 1.0
+        beta3_init = 0.0
+        beta4_init = np.max(scene_pred_scores)
+        params, params_covariance = curve_fit(logistic, scene_pred_scores, scene_mos, p0=[beta1_init, beta2_init, beta3_init, beta4_init])
+        print(f"Params: {params}")
+        # Predict using the fitted model for the scene
+        x_range = np.linspace(min(scene_pred_scores), max(scene_pred_scores), 400)
+        y_pred = logistic(x_range, *params)
+        # Regression line for the scene
+        fig.add_trace(go.Scatter(x=x_range, y=y_pred, mode='lines', name=f'Regression', line=dict(color=color)))
+
 
     fig.update_layout(title='Logistic Regression per Scene between Predicted Score and MOS',
                       yaxis_title='MOS',
