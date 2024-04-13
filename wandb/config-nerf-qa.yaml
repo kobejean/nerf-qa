@@ -1,9 +1,9 @@
 program: run_final.py
 metric:
-  name: Cross-Val Metrics Dict/correlations/mean_plcc
+  name: Test Metrics Dict/correlations/scene_mean/mos/plcc
   goal: maximize
 
-method: random
+method: bayes
 parameters:
   lr:
     # value: 2e-4
