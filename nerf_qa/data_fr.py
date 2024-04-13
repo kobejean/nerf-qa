@@ -106,7 +106,7 @@ class NeRFQAResizedDataset(Dataset):
         self.total_size = self.scores_df['frame_count'].sum()
         self.cumulative_frame_counts = self.scores_df['frame_count'].cumsum()
         self.static_transforms = transforms.Compose([
-            transforms.Resize(512), 
+            # transforms.Resize(256), 
             transforms.ToTensor()
         ])
 
@@ -120,8 +120,8 @@ class NeRFQAResizedDataset(Dataset):
         # resize_length = random.randint(256, min_length)
         # render_image = TF.resize(render_image, resize_length)
         # reference_image = TF.resize(reference_image, resize_length)
-        i, j, h, w = transforms.RandomCrop.get_params(render_image, output_size=(512,512))
-        # assert h == 256 and w == 256
+        i, j, h, w = transforms.RandomCrop.get_params(render_image, output_size=(256,256))
+        assert h == 256 and w == 256
         render_image = TF.crop(render_image, i, j, h, w)
         reference_image = TF.crop(reference_image, i, j, h, w)
         return render_image, reference_image
@@ -141,8 +141,8 @@ class NeRFQAResizedDataset(Dataset):
         referenced_filename = f'{frame_within_video:03d}.png'
 
         # Construct the full paths
-        distorted_path = os.path.join(self.dist_dir, distorted_foldername, 'original_size', distorted_filename)
-        referenced_path = os.path.join(self.ref_dir, referenced_foldername, 'original_size', referenced_filename)
+        distorted_path = os.path.join(self.dist_dir, distorted_foldername, '256x256', distorted_filename)
+        referenced_path = os.path.join(self.ref_dir, referenced_foldername, '256x256', referenced_filename)
 
         # Load and optionally resize images
         distorted_image = self.static_transforms(Image.open(distorted_path).convert("RGB"))
