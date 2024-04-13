@@ -75,7 +75,7 @@ def plot_with_group_regression(pred_scores, mos, scene_video_ids, video_ids):
             params, params_covariance = curve_fit(logistic_group, scene_pred_scores, scene_mos, p0=[beta3_init, beta4_init])
             # Predict using the fitted model for the scene
             x_range = np.linspace(min(scene_pred_scores), max(scene_pred_scores), 400)
-            y_pred = logistic(x_range, *params)
+            y_pred = logistic_group(x_range, *params)
 
 
             # Regression line for the scene
