@@ -64,7 +64,7 @@ def plot_with_group_regression(pred_scores, mos, scene_video_ids, video_ids):
         # Use a unique color for each scene, cycling through the colors list
         color = COLORS[i % len(COLORS)]
 
-        fig.add_trace(go.Scatter(y=scene_pred_scores, x=scene_mos, mode='markers', name=f'Score: Scene {scene_id}', marker_color=color))
+        fig.add_trace(go.Scatter(y=scene_mos, x=scene_pred_scores, mode='markers', name=f'Score: Scene {scene_id}', marker_color=color))
 
         # Fit the model for each scene
         if len(scene_pred_scores) > 1:  # Ensure there are enough points for regression
