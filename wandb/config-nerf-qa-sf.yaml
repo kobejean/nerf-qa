@@ -1,4 +1,4 @@
-program: run_nerf_qa.py
+program: run_final.py
 metric:
   name: Cross-Val Metrics Dict/mean_loss
   goal: minimize
