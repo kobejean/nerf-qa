@@ -39,12 +39,8 @@ def plot_with_group_regression(pred_scores, mos, scene_video_ids, video_ids):
         return (beta1 - beta2) / (1 + np.exp(-(x - beta3) / np.abs(beta4))) + beta2
 
     # Initial parameter guesses
-    y = np.array([mos[vid] for vid in video_ids])
-    x = np.array([pred_scores[vid] for vid in video_ids])
-    beta1_init = np.max(y)
-    beta2_init = np.min(y)
-    beta3_init = np.mean(x)
-    beta4_init = np.std(x) / 4
+    # y = np.array([mos[vid] for vid in video_ids])
+    # x = np.array([pred_scores[vid] for vid in video_ids])
        
     fig = go.Figure()
 
@@ -60,6 +56,11 @@ def plot_with_group_regression(pred_scores, mos, scene_video_ids, video_ids):
         # Fit the model for each scene
         if len(scene_pred_scores) > 1:  # Ensure there are enough points for regression
             # params, _ = curve_fit(linear_func, scene_mos, scene_pred_scores)
+
+            beta1_init = np.max(scene_mos)
+            beta2_init = np.min(scene_mos)
+            beta3_init = np.mean(scene_pred_scores)
+            beta4_init = np.std(scene_pred_scores) / 4
             params, params_covariance = curve_fit(logistic, scene_pred_scores, scene_mos, p0=[beta1_init, beta2_init, beta3_init, beta4_init])
             # Predict using the fitted model for the scene
             x_range = np.linspace(min(scene_pred_scores), max(scene_pred_scores), 400)
