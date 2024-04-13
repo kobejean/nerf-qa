@@ -99,8 +99,8 @@ class DISTS(torch.nn.Module):
         dist2 = 0 
         c1 = 1e-6
         c2 = 1e-6
-        aplha = torch.relu(aplha)
-        beta = torch.relu(beta)
+        aplha = torch.relu(self.aplha)
+        beta = torch.relu(self.beta)
         w_sum = alpha.sum() + beta.sum()
         alpha = torch.split(alpha/w_sum, self.chns, dim=1)
         beta = torch.split(beta/w_sum, self.chns, dim=1)

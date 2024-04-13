@@ -46,7 +46,7 @@ def plot_with_group_regression(pred_scores, mos, scene_video_ids, unique_videos)
     beta1_init = 5.0
     beta2_init = 1.0
     beta3_init = 0.0
-    beta4_init = np.std(x) / 4
+    beta4_init = -np.std(x) / 4
     params, params_covariance = curve_fit(logistic, x, y, p0=[beta1_init, beta2_init, beta3_init, beta4_init])
     print(f"Params: {params}")
     fig = go.Figure()

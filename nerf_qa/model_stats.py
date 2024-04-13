@@ -38,7 +38,7 @@ class NeRFQAModel(nn.Module):
         beta1_init = 5.0 #np.max(y)
         beta2_init = 1.0 #np.min(y)
         beta3_init = 0.0 #np.mean(X)
-        beta4_init = np.std(X) / 4
+        beta4_init = -np.std(X) / 4
 
         # Create a linear regression model to initialize linear layer
         # model = LinearRegression()
