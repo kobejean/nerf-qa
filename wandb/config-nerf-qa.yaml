@@ -6,7 +6,7 @@ metric:
 method: random
 parameters:
   lr:
-    value: 1e-6
+    value: 2e-4
     # distribution: q_log_uniform_values
     # min: 1e-7
     # max: 1e-4
