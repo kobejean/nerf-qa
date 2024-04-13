@@ -55,7 +55,7 @@ if __name__ == '__main__':
 
     # Basic configurations
     parser.add_argument('--seed', type=int, default=42, help='Random seed.')
-    parser.add_argument('--lr', type=float, default=1e-5, help='Random seed.')
+    parser.add_argument('--lr', type=float, default=1e-6, help='Random seed.')
     parser.add_argument('--beta1', type=float, default=0.9, help='Random seed.')
     parser.add_argument('--beta2', type=float, default=0.999, help='Random seed.')
     parser.add_argument('--eps', type=float, default=1e-7, help='Random seed.')
@@ -64,7 +64,7 @@ if __name__ == '__main__':
     parser.add_argument('--mode', type=str, default='normal', help='Random seed.')
     parser.add_argument('--gamma', type=float, default=0.95, help='Random seed.')
     # parser.add_argument('--warmup_steps', type=int, default=0, help='Random seed.')
-    parser.add_argument('--epochs', type=int, default=20, help='Random seed.')
+    parser.add_argument('--epochs', type=int, default=100, help='Random seed.')
 
     # Parse arguments
     args = parser.parse_args()
