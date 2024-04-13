@@ -62,7 +62,7 @@ class NeRFQAModel(nn.Module):
           
     
     def logistic(self, x):
-        return (self.b1 - self.b2) / (1 + torch.exp(-(x - self.b3) / torch.abs(self.b4))) + self.b2
+        return 2.0*(self.b1 - self.b2) / (1 + torch.exp(-(x - self.b3) / torch.abs(self.b4))) + self.b2
     
 
     def forward(self, dist, ref):
