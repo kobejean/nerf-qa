@@ -27,12 +27,11 @@ parameters:
     # distribution: uniform
     # min: 0.999
     # max: 0.99999
-  warmup_steps:
-    value: 90
+  # warmup_steps:
+  #   value: 90
     # values: [0, 90, 180]
   epochs:
-    value: 20
-    # values: [10, 20, 50, 100]
+    values: [10, 20, 50, 100]
   # gamma:
   #   distribution: uniform
   #   min: 0.80
@@ -41,8 +40,8 @@ parameters:
     # values: ['mean']
     value: 'softmax'
   project_weights:
-    # values: ['True', 'False']
-    value: 'False'
+    values: ['True', 'False']
+    # value: 'False'
   optimizer:
     value: 'sadamw'
     # values: ['adam', 'sadamw'] #: ['nadam', 'adam', 'sgd', 'sgd_momentum']
