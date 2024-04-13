@@ -26,14 +26,9 @@ class NeRFQAModel(nn.Module):
 
         self.mode = mode
 
-        if wandb.config.mode in ["sqrt", "softmax+sqrt"]:
-            X = np.sqrt(np.transpose(np.array([
-                train_df['DISTS'].values,
-            ])))
-        else:
-            X = np.transpose(np.array([
-                train_df['DISTS'].values,
-            ]))
+        X = np.transpose(np.array([
+            train_df['DISTS'].values,
+        ]))
     
         print("X.shape", X.shape)
         y = train_df['MOS'].values  # Response
@@ -45,7 +40,7 @@ class NeRFQAModel(nn.Module):
         # Print the coefficients
         print(f"Coefficient: {model.coef_}")
         print(f"Intercept: {model.intercept_}")  
-        if wandb.config.mode in ["softmax", "softmax+sqrt"]:
+        if wandb.config.mode in ["softmax"]:
             from nerf_qa.DISTS_pytorch.DISTS_pt_softmax import DISTS
         else:
             from nerf_qa.DISTS_pytorch.DISTS_pt_original import DISTS
@@ -59,10 +54,7 @@ class NeRFQAModel(nn.Module):
         dists_scores = self.dists_model(dist, ref)
         dists_scores = dists_scores.unsqueeze(1)
 
-        if wandb.config.mode in ["sqrt", "softmax+sqrt"]:
-            scores = (torch.sqrt(dists_scores) @ self.dists_weight).squeeze(1) + self.dists_bias # linear function
-        else:
-            scores = (dists_scores @ self.dists_weight).squeeze(1) + self.dists_bias # linear function
+        scores = (dists_scores @ self.dists_weight).squeeze(1) + self.dists_bias # linear function
         
         return scores, dists_scores
 
