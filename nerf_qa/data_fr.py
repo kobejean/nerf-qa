@@ -197,21 +197,3 @@ class SceneBalancedSampler(Sampler):
 
     def __len__(self):
         return self.num_samples
-
-#%%
-# if __name__ == "__main__":
-
-    # DATA_DIR = "/home/ccl/Datasets/NeRF-NR-QA/"  # Specify the path to your DATA_DIR
-
-    # # CSV file path
-    # csv_file = "/home/ccl/Datasets/NeRF-NR-QA/output.csv"
-    # # Read the CSV file
-    # scores_df = pd.read_csv(csv_file)
-    # dataset = NerfNRQADataset(scores_df, dir=DATA_DIR, mode='gt',is_train=True)
-    # batch = dataset[7000]
-    # to_pil = transforms.ToPILImage()
-    # print(batch[0].shape)
-    # display(to_pil(batch[0]))
-    # display(to_pil(batch[1]['256x256']))
-
-
