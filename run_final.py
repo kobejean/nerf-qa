@@ -89,7 +89,7 @@ if __name__ == '__main__':
     # Apply the function to create the 'scene_type' column
     scores_df['scene_type'] = scores_df['scene'].apply(get_scene_type)
 
-    scores_df = scores_df[scores_df['scene_type'] != 'synthetic'].reset_index()
+    # scores_df = scores_df[scores_df['scene_type'] != 'synthetic'].reset_index()
     
 
     config = {
