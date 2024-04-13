@@ -43,9 +43,9 @@ def plot_with_group_regression(pred_scores, mos, scene_video_ids, video_ids):
     y = np.array([mos[vid] for vid in video_ids])
     x = np.array([pred_scores[vid] for vid in video_ids])
 
-    beta1_init = 10.0
+    beta1_init = 5.0
     beta2_init = 1.0
-    beta3_init = np.mean(x)
+    beta3_init = 0.0
     beta4_init = np.std(x) / 4
     params, params_covariance = curve_fit(logistic, x, y, p0=[beta1_init, beta2_init, beta3_init, beta4_init])
     
