@@ -101,9 +101,9 @@ class DISTS(torch.nn.Module):
         c2 = 1e-6
         aplha = torch.relu(aplha)
         beta = torch.relu(beta)
-        w_sum = self.alpha.sum() + self.beta.sum()
-        alpha = torch.split(self.alpha/w_sum, self.chns, dim=1)
-        beta = torch.split(self.beta/w_sum, self.chns, dim=1)
+        w_sum = alpha.sum() + beta.sum()
+        alpha = torch.split(alpha/w_sum, self.chns, dim=1)
+        beta = torch.split(beta/w_sum, self.chns, dim=1)
         for k in range(len(self.chns)):
             x_mean = feats0[k].mean([2,3], keepdim=True)
             y_mean = feats1[k].mean([2,3], keepdim=True)
