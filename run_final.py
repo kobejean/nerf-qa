@@ -139,7 +139,7 @@ if __name__ == '__main__':
             lr=config.lr,
             betas=(config.beta1, config.beta2),
             eps=config.eps,
-            warmup_steps=config.warmup_steps,
+            warmup_steps=train_size,
         )
     else:
         optimizer = optim.Adam(model.parameters(),
