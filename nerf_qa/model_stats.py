@@ -29,7 +29,7 @@ class NeRFQAModel(nn.Module):
         X = train_df['DISTS'].values
 
         def logistic(x, beta1, beta2, beta3, beta4):
-            return 2.0*(beta1 - beta2) / (1 + np.exp((x) / np.abs(beta4))) + beta2
+            return 2.0*(beta1 - beta2) / (1 + np.exp(-(x) / np.abs(beta4))) + beta2
     
         print("X.shape", X.shape)
         y = train_df['MOS'].values  # Response

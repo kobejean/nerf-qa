@@ -37,7 +37,7 @@ def plot_with_group_regression(pred_scores, mos, scene_video_ids, video_ids):
     # Define the logistic function with parameters β1 to β4
 
     def logistic(x, beta1, beta2, beta3, beta4):
-        return 2.0*(beta1 - beta2) / (1 + np.exp((x) / np.abs(beta4))) + beta2
+        return 2.0*(beta1 - beta2) / (1 + np.exp(-(x) / np.abs(beta4))) + beta2
     
     # Initial parameter guesses
     y = np.array([mos[vid] for vid in video_ids])
