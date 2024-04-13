@@ -1,9 +1,9 @@
-program: run_nerf_qa.py
+program: run_final.py
 metric:
   name: Cross-Val Metrics Dict/correlations/mean_plcc
   goal: maximize
 
-method: bayes
+method: random
 parameters:
   lr:
     value: 1e-6

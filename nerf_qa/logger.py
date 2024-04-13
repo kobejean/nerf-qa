@@ -35,9 +35,8 @@ import numpy as np
 # Function to plot regression lines for each scene along with all data points
 def plot_with_group_regression(pred_scores, mos, scene_video_ids, unique_videos):
     # Define the logistic function with parameters β1 to β4
-
     def logistic(x, beta1, beta2, beta3, beta4):
-        return -2.0*(beta1 - beta2) / (1 + np.exp(-(x) / np.abs(beta4))) + beta2
+        return 2.0*(beta1 - beta2) / (1 + np.exp(x / np.abs(beta4))) + beta2
     
     # Initial parameter guesses
     y = np.array([mos[vid] for vid in unique_videos])
@@ -46,7 +45,7 @@ def plot_with_group_regression(pred_scores, mos, scene_video_ids, unique_videos)
     beta1_init = 5.0
     beta2_init = 1.0
     beta3_init = 0.0
-    beta4_init = -np.std(x) / 4
+    beta4_init = np.std(x) / 4
     params, params_covariance = curve_fit(logistic, x, y, p0=[beta1_init, beta2_init, beta3_init, beta4_init])
     print(f"Params: {params}")
     fig = go.Figure()
