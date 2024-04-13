@@ -199,7 +199,7 @@ class SceneBalancedSampler(Sampler):
         return self.num_samples
 
 #%%
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
     # DATA_DIR = "/home/ccl/Datasets/NeRF-NR-QA/"  # Specify the path to your DATA_DIR
 
