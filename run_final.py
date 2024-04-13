@@ -26,7 +26,6 @@ from tqdm import tqdm
 from PIL import Image
 
 # local
-from nerf_qa.DISTS_pytorch.DISTS_pt_original import prepare_image
 from nerf_qa.data import create_test2_dataloader, create_nerf_qa_resize_dataloader
 from nerf_qa.logger import MetricCollectionLogger
 from nerf_qa.settings_fr import DEVICE_BATCH_SIZE
@@ -90,6 +89,8 @@ if __name__ == '__main__':
     # Apply the function to create the 'scene_type' column
     scores_df['scene_type'] = scores_df['scene'].apply(get_scene_type)
 
+    scores_df = scores_df[scores_df['scene_type'] != 'synthetic'].reset_index()
+    
 
     config = {
         # "epochs": epochs,
@@ -115,13 +116,7 @@ if __name__ == '__main__':
     mse_fn = nn.MSELoss(reduction='none')
     loss_fn = nn.L1Loss(reduction='none')
 
-    # Specify the number of splits
-    # n_splits = 4
-    # gkf = GroupKFold(n_splits=n_splits)
-    # groups = scores_df['scene']
     step = 0
-
-
 
     train_df = scores_df
     train_dataloader = create_nerf_qa_resize_dataloader(train_df, dir=DATA_DIR, batch_size=config.batch_size)
@@ -153,55 +148,6 @@ if __name__ == '__main__':
 
     # Create the scheduler
     scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=gamma)
-        
-
-
-    class Test2Dataset(Dataset):
-        def __init__(self, row, dir):
-            gt_dir = path.join(dir, "Reference", row['reference_folder'])
-            render_dir = path.join(dir, "Renders", row['distorted_folder'])
-
-            gt_files = [os.path.join(gt_dir, f) for f in os.listdir(gt_dir) if f.endswith((".jpg", ".png"))]
-            gt_files.sort()
-            render_files = [os.path.join(render_dir, f) for f in os.listdir(render_dir) if f.endswith((".jpg", ".png"))]
-            render_files.sort()
-
-            self.files = list(zip(gt_files, render_files))
-            
-        def __len__(self):
-            return len(self.files)
-        
-        def __getitem__(self, index):
-            # Retrieve the data row at the given index
-            gt_path, render_path = self.files[index]
-            gt = self.load_image(gt_path)
-            render = self.load_image(render_path)
-            return gt, render
-        
-        def load_image(self, path):
-            image = Image.open(path).convert("RGB")
-            image = prepare_image(image, resize=True)
-            return image
-        
-    def recursive_collate(batch):
-        if isinstance(batch[0], torch.Tensor):
-            return (torch.stack(batch) if batch[0].dim() == 0 or batch[0].shape[0] > 1 else torch.concat(batch, dim=0)).detach()
-        elif isinstance(batch[0], tuple):
-            return tuple(recursive_collate(samples) for samples in zip(*batch))
-        elif isinstance(batch[0], list):
-            return [recursive_collate(samples) for samples in zip(*batch)]
-        elif isinstance(batch[0], dict):
-            return {key: recursive_collate([sample[key] for sample in batch]) for key in batch[0]}
-        else:
-            return batch
-        
-    # Batch creation function
-    def create_test_dataloader(row, dir):
-        # Create a dataset and dataloader for efficient batching
-        dataset = Test2Dataset(row, dir)
-        dataloader = DataLoader(dataset, batch_size=config.batch_size, shuffle=False, collate_fn = recursive_collate)
-        return dataloader 
-    
 
     batch_step = 0
 
@@ -211,7 +157,7 @@ if __name__ == '__main__':
 
         with torch.no_grad():
             for index, row in tqdm(test_df.iterrows(), total=len(test_df), desc="Processing..."):
-                frames_data = create_test_dataloader(row, TEST_DATA_DIR)
+                frames_data = create_test2_dataloader(row, TEST_DATA_DIR)
                 for ref, render in frames_data:
                     i = np.full(shape=render.shape[0], fill_value=index)
                     # Compute score
@@ -287,12 +233,13 @@ if __name__ == '__main__':
         scheduler.step()
 
 
+    test(model, test_df)
 
     for epoch in range(test_epochs):
         print(f"Epoch {epoch+1}/{test_epochs}")
         train_epoch(epoch, model, train_dataloader, train_size)
-
-        results_df = test(model, test_df)
+        if (epoch+1) % 5 == 0:
+            results_df = test(model, test_df)
 
     results_df.to_csv('results.csv')
     torch.save(model, f'model.pth')
