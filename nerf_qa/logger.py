@@ -52,7 +52,7 @@ def plot_with_group_regression(pred_scores, mos, scene_video_ids, unique_videos)
 
         fig.add_trace(go.Scatter(y=scene_mos, x=scene_pred_scores, mode='markers', name=f'Score: Scene {scene_id}', marker_color=color))
 
-        beta1_init = 5.0
+        beta1_init = 10.0
         beta2_init = 1.0
         beta3_init = 0.0
         beta4_init = np.max(scene_pred_scores)
