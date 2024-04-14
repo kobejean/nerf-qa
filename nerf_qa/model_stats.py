@@ -31,16 +31,17 @@ class NeRFQAModel(nn.Module):
         y = train_df[wandb.config.subjective_score_type].values  # Response
 
         if wandb.config.regression_type == 'logistic':
+            sign = 1.0 if wandb.config.subjective_score_type == 'MOS' else -1.0
             def logistic(x, beta1, beta2, beta3, beta4):
-                return 2.0*(beta1 - beta2) / (1 + np.exp((x - beta3) / np.abs(beta4))) + beta2
-    
+                return (beta1 - beta2) / (1 + np.exp(sign*(x - beta3) / np.abs(beta4))) + beta2
+
             # Initial parameter guesses
             beta1_init = np.max(y) if wandb.config.subjective_score_type == 'MOS' else np.min(y)
             beta2_init = np.min(y) if wandb.config.subjective_score_type == 'MOS' else np.max(y)
-            beta3_init = 0.0 #np.mean(X)
-            beta4_init = np.max(X)
+            beta3_init = np.median(X)
+            beta4_init = np.std(X)
             params, params_covariance = curve_fit(logistic, X, y, p0=[beta1_init, beta2_init, beta3_init, beta4_init])
-            print(f"Params: {params}")
+            print(f"Params: {params}, Covariance: {params_covariance}")
             self.b1 = nn.Parameter(torch.tensor([params[0]], dtype=torch.float32))
             self.b2 = nn.Parameter(torch.tensor([params[1]], dtype=torch.float32))
             self.b3 = nn.Parameter(torch.tensor([params[2]], dtype=torch.float32))
@@ -68,7 +69,8 @@ class NeRFQAModel(nn.Module):
           
     
     def logistic(self, dists_scores):
-        return 2.0 * (self.b1 - self.b2) / (1 + torch.exp((dists_scores - self.b3) / torch.abs(self.b4))) + self.b2
+        sign = 1.0 if wandb.config.subjective_score_type == 'MOS' else -1.0
+        return (self.b1 - self.b2) / (1 + torch.exp(sign*(dists_scores - self.b3) / torch.abs(self.b4))) + self.b2
     
     def sqrt(self, dists_scores):
         return torch.sqrt(dists_scores) * self.dists_weight + self.dists_bias 
