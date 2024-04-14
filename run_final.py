@@ -208,7 +208,7 @@ if __name__ == '__main__':
 
             predicted_score, dists_score = model(dist.to(device),ref.to(device))
             score = train_df[wandb.config.subjective_score_type].iloc[i.numpy()].values
-            target_score = score.to(device).float()
+            target_score = torch.tensor(score, device=device).float()
             
             # Compute loss
             loss = loss_fn(predicted_score, target_score)
