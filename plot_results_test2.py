@@ -87,7 +87,8 @@ def get_correlations(col, syn_df, tnt_df, test_df):
 # List of metrics to compute correlations for
 
 data = []
-metrics = ['DISTS', 'DISTS_full_size', 'DISTS_square', 
+metrics = ['DISTS', 'DISTS_full_size'#]
+        , 'DISTS_square', 
            'A-DISTS', 'A-DISTS_full_size', 'A-DISTS_square', 'Ours', 'LPIPS(alex)',
        'VIF', 'MS-SSIM', 'MAD', 'PieAPP', 'WaDiQaM', 'TOPIQ-FR',
        'LPIPS(vgg)', 'SSIM', 'PSNR', 'GMSD', 'FSIMc', 'NLPD',
@@ -159,33 +160,44 @@ tex_fonts = {
 plt.rcParams.update(tex_fonts)
 
 from matplotlib.lines import Line2D
+
+COLORS = plt.cm.get_cmap('tab10', 10)  # Adjust the second argument based on the number of unique scenes
+scene_to_color = {scene: COLORS(i) for i, scene in enumerate(test_df['scene'].unique())}
 legend_elements = [
-    Line2D([0], [0], marker='x', color='w', label='Synthetic Scemes', markersize=7, markeredgecolor='#0080bd', markeredgewidth=2),
-    Line2D([0], [0], marker='o', color='w', label='Real Scemes', markersize=9, markerfacecolor='#ff7500'), # 00b238
+    *[Line2D([0], [0], marker='x', color='w', label=scene, markersize=7, markeredgecolor=scene_to_color[scene], markeredgewidth=2) for scene in test_df['scene'].unique()],
+    # Line2D([0], [0], marker='o', color='w', label='Real Scemes', markersize=9, markerfacecolor='#ff7500'), # 00b238
 ]
+
 # Update scatter_plot function to accept an ax parameter
-def scatter_plot(ax, metric, marker_size=20):
-    # Scatter plot for synthetic data
-    ax.scatter(syn_df[metric], syn_df['MOS'], c='#0080bd', marker='x', s=marker_size, label='Synthetic Scemes')
+def scatter_plot(ax, metric, marker_size=10):
+        
+    def plot_dataset(df, metric, label, marker):
+        unique_scenes = df['scene'].unique()
+        for scene in unique_scenes:
+            scene_df = df[df['scene'] == scene].sort_values(by='MOS')
+            ax.scatter(scene_df[metric], scene_df['MOS'], color=scene_to_color[scene], marker=marker, s=marker_size, label=label)# Draw line connecting sorted points
+            ax.plot(scene_df[metric], scene_df['MOS'], color=scene_to_color[scene])
 
-    # Scatter plot for real data
-    ax.scatter(tnt_df[metric], tnt_df['MOS'], c='#ff7500', marker='o', s=marker_size, label='Real Scemes')
 
-    # # Regression line for synthetic data (uncomment if needed)
-    # slope, intercept, r_value, p_value, std_err = stats.linregress(syn_df[metric], syn_df['MOS'])
-    # ax.plot(syn_df['MOS'], intercept + slope*syn_df['MOS'], 'r--', color='#0080bd')
+    plot_dataset(syn_df, metric, 'Synthetic Scemes', marker='x')
+    plot_dataset(tnt_df, metric, 'Real Scemes', marker='o')
+    # # Scatter plot for synthetic data
+    # ax.scatter(syn_df[metric], syn_df['MOS'], c='#0080bd', marker='x', s=marker_size, label='Synthetic Scemes')
 
-    # # Regression line for real data (uncomment if needed)
-    # slope, intercept, r_value, p_value, std_err = stats.linregress(tnt_df[metric], tnt_df['MOS'])
-    # ax.plot(tnt_df['MOS'], intercept + slope*tnt_df['MOS'], 'r--', color='#ff7500')
+    # # Scatter plot for real data
+    # ax.scatter(tnt_df[metric], tnt_df['MOS'], c='#ff7500', marker='o', s=marker_size, label='Real Scemes')
+
+
 
     # Labeling the plot
     ax.set_xlabel(metric)
     ax.set_ylabel('MOS')
     # ax.legend()
 
+
+
 # Create a 2x3 grid of subplots
-fig, axs = plt.subplots(8, 3, figsize=set_size(width, subplots=(8, 3)))
+fig, axs = plt.subplots(21, 1, figsize=set_size(width, subplots=(21, 1)))
 
 # Flatten the array of axes to easily iterate over it
 axs = axs.flatten()

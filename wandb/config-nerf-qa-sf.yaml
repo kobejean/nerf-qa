@@ -8,8 +8,8 @@ parameters:
   lr:
     # value: 1e-5
     distribution: q_log_uniform_values
-    min: 1e-7
-    max: 1e-3
+    min: 3e-7
+    max: 5e-7
     q: 1e-8
   eps:
     # distribution: q_log_uniform_values
@@ -18,15 +18,17 @@ parameters:
     # q: 1e-10
     value: 1e-7
   beta1:
-    value: 0.9
-    # distribution: uniform
-    # min: 0.8
-    # max: 0.9
+    # value: 0.9
+    distribution: q_log_uniform_values
+    min: 0.8
+    max: 0.99
+    q: 1e-3
   beta2:
-    value: 0.999
-    # distribution: uniform
-    # min: 0.999
-    # max: 0.99999
+    # value: 0.999
+    distribution: q_log_uniform_values
+    min: 0.998
+    max: 0.9999
+    q: 1e-5
   # warmup_steps:
   #   value: 90
     # values: [0, 90, 180]
