@@ -125,8 +125,9 @@ def select_valid_sample(df, scenes, subject_ids):
         scene = random.choice(scenes)
         subject = random.choice(subject_ids)
         sample_df = df[df['scene'] == scene]
-        if not sample_df[[subject]].isna().any().any():
+        if not sample_df[[subject]].isna().all().all():
             break  # Break the loop if no NaN values are found
+    sample_df = sample_df[~sample_df[[subject]].isna()]
     return scene, subject, sample_df.copy()
 
 from tqdm import tqdm
@@ -135,7 +136,7 @@ for dataset, df in [('Synthetic', syn_df), ('Real', tnt_df)]:
     scenes = df['scene'].unique().tolist()
     methods =  df['method'].unique().tolist()
     
-    n_bootstrap_samples = 2000
+    n_bootstrap_samples = 10
     for _ in tqdm(range(n_bootstrap_samples)):
         n_samples = len(scenes) * len(subject_ids)
         sample_dfs = []
