@@ -1,6 +1,6 @@
 program: run_final.py
 metric:
-  name: Test Metrics Dict/correlations/scene_mean/mos/plcc
+  name: Test Metrics Dict/real/correlations/scene_mean/mos/plcc
   goal: maximize
 
 method: random
