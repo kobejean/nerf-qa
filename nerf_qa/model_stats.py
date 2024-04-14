@@ -79,7 +79,7 @@ class NeRFQAModel(nn.Module):
         return dists_scores * self.dists_weight + self.dists_bias # linear function
     
     def entropy_loss(self):
-        weights = torch.cat([self.dists.alpha, self.dists.beta], dim=1)
+        weights = torch.cat([self.dists_model.alpha, self.dists_model.beta], dim=1)
         if wandb.config.dists_weight_norm == 'softmax':
             weights = torch.softmax(weights, dim=1)
         else:
