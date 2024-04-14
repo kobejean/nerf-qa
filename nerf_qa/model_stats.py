@@ -46,6 +46,7 @@ class NeRFQAModel(nn.Module):
             self.b3 = nn.Parameter(torch.tensor([params[2]], dtype=torch.float32))
             self.b4 = nn.Parameter(torch.tensor([params[3]], dtype=torch.float32))
         else:
+            X = X.values.reshape(-1, 1)
             if wandb.config.regression_type == 'sqrt': 
                 # Create a linear regression model to initialize linear layer
                 X = np.sqrt(X)
