@@ -39,7 +39,7 @@ DEBUG = True
 DATA_DIR = "/home/ccl/Datasets/NeRF-QA"
 SCORE_FILE = path.join(DATA_DIR, "NeRF_VQA_MOS.csv")
 TEST_DATA_DIR = "/home/ccl/Datasets/Test_2-datasets"
-TEST_SCORE_FILE = path.join(TEST_DATA_DIR, "scores_new.csv")
+TEST_SCORE_FILE = path.join(TEST_DATA_DIR, "scores_aspect.csv")
 
 import argparse
 import wandb
