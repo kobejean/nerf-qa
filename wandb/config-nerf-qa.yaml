@@ -44,6 +44,7 @@ parameters:
     # distribution: uniform
     min: 0.80
     max: 0.999
+    q: 1e-5
   subjective_score_type:
     values: ['MOS', 'DMOS']
     # weights: [0.6, 0.4]
