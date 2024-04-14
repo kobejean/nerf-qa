@@ -60,11 +60,11 @@ if __name__ == '__main__':
     parser.add_argument('--beta2', type=float, default=0.999, help='Random seed.')
     parser.add_argument('--eps', type=float, default=1e-7, help='Random seed.')
     parser.add_argument('--optimizer', type=str, default='adam', help='Random seed.')
-    parser.add_argument('--project_weights', type=str, default='False', help='Random seed.')
-    parser.add_argument('--mode', type=str, default='normal', help='Random seed.')
-    parser.add_argument('--gamma', type=float, default=0.95, help='Random seed.')
-    # parser.add_argument('--warmup_steps', type=int, default=0, help='Random seed.')
-    parser.add_argument('--epochs', type=int, default=100, help='Random seed.')
+    parser.add_argument('--dists_weight_norm', type=str, default='off', help='Random seed.')
+    parser.add_argument('--regression_type', type=str, default='linear', help='Random seed.')
+    parser.add_argument('--subjective_score_type', type=str, default='MOS', help='Random seed.')
+    parser.add_argument('--gamma', type=float, default=0.812, help='Random seed.')
+    parser.add_argument('--epochs', type=int, default=10, help='Random seed.')
 
     # Parse arguments
     args = parser.parse_args()
@@ -132,7 +132,7 @@ if __name__ == '__main__':
     test_logger = MetricCollectionLogger('Test Metrics Dict')
     train_logger = MetricCollectionLogger(f'Train Metrics Dict')
 
-    model = NeRFQAModel(train_df=train_df, mode=config.mode).to(device)
+    model = NeRFQAModel(train_df=train_df).to(device)
 
     if config.optimizer == 'sadamw':
         optimizer = schedulefree.AdamWScheduleFree(model.parameters(),                
@@ -147,8 +147,7 @@ if __name__ == '__main__':
             betas=(config.beta1, config.beta2),
             eps=config.eps,
         )
-        gamma = 0.5 ** (train_size / 1000)
-        scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=gamma)
+        scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
 
 
     def test(model, test_df):
@@ -234,7 +233,7 @@ if __name__ == '__main__':
             
             # Update parameters every batches_per_step steps or on the last iteration
             optimizer.step()
-            if config.project_weights == 'True':
+            if config.dists_weight_norm == 'project':
                 model.dists_model.project_weights()
 
         if config.optimizer != 'sadamw':

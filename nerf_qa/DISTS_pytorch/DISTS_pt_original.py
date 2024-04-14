@@ -4,6 +4,7 @@
 import numpy as np
 import os,sys
 import torch
+import wandb
 from torchvision import models,transforms
 import torch.nn as nn
 import torch.nn.functional as F
@@ -99,11 +100,11 @@ class DISTS(torch.nn.Module):
         dist2 = 0 
         c1 = 1e-6
         c2 = 1e-6
-        alpha = torch.relu(self.alpha)
-        beta = torch.relu(self.beta)
 
-        # alpha = self.alpha
-        # beta = self.beta
+        
+        alpha = torch.relu(self.alpha) if wandb.config.dists_weight_norm == 'relu' else self.alpha
+        beta = torch.relu(self.beta) if wandb.config.dists_weight_norm == 'relu' else self.beta
+
         w_sum = alpha.sum() + beta.sum()
         alpha = torch.split(alpha/w_sum, self.chns, dim=1)
         beta = torch.split(beta/w_sum, self.chns, dim=1)

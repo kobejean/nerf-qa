@@ -25,7 +25,7 @@ class L2pooling(nn.Module):
         return (out+1e-12).sqrt()
 
 class DISTS(torch.nn.Module):
-    def __init__(self, load_weights=True, from_feats=False):
+    def __init__(self, load_weights=True):
         super(DISTS, self).__init__()
         vgg_pretrained_features = models.vgg16(pretrained=True).features
         self.stage1 = torch.nn.Sequential()
@@ -66,18 +66,11 @@ class DISTS(torch.nn.Module):
             beta = weights['beta']
             # Ensure alpha and beta are flattened and concatenated to form a single weight vector
             weights_concat = torch.cat([alpha, beta], dim=1)
-            print("torch.min(weights_concat)", torch.min(weights_concat), torch.relu(torch.min(weights_concat)))
-            #weights_concat = weights_concat + torch.relu(torch.min(weights_concat))
             logits_approx = torch.log(torch.clamp(weights_concat, min=0.0) + 1e-10)
-            print(torch.max(torch.abs(torch.softmax(logits_approx, dim=1) - weights_concat)))
             alpha_logits, beta_logits = torch.split(logits_approx, [alpha.numel(), beta.numel()], dim=1)
 
             self.alpha.data = alpha_logits
             self.beta.data = beta_logits
-            # self.alpha.data = torch.clamp(alpha, min=1e-10)
-            # self.beta.data = torch.clamp(beta, min=1e-10)
-            # self.alpha.data = weights['alpha']
-            # self.beta.data = weights['beta']
 
     def project_weights(self):
         lower_bound = torch.zeros_like(self.alpha.data)
@@ -101,19 +94,7 @@ class DISTS(torch.nn.Module):
         h = self.stage5(h)
         h_relu5_3 = h
         return [x,h_relu1_2, h_relu2_2, h_relu3_3, h_relu4_3, h_relu5_3]
-    
-    def warp(self, features, warp, certainty):
-        _, _, H, W = features.shape
-        print("warp", H, W)
-        warp = F.interpolate(warp, size=(H, W), mode='bilinear', align_corners=False).permute(0,2,3,1)
-        certainty = F.interpolate(certainty, size=(H, W), mode='bilinear', align_corners=False)
-        print(certainty.shape)
-        print(warp.shape)
 
-        features = F.grid_sample(
-            features, warp, mode="bilinear", align_corners=False
-        )[0]
-        return features, certainty
 
     def forward(self, x, y, require_grad=False, batch_average=False, warp=None, certainty=None):
         if require_grad:
@@ -133,13 +114,7 @@ class DISTS(torch.nn.Module):
         alpha, beta = torch.split(w_softmax, self.alpha.shape[1], dim=1)
         alpha = torch.split(alpha, self.chns, dim=1)
         beta = torch.split(beta, self.chns, dim=1)
-        # alpha = self.alpha
-        # beta = self.beta
-        # alpha = torch.relu(self.alpha)
-        # beta = torch.relu(self.beta)
-        # w_sum = alpha.sum() + beta.sum()
-        # alpha = torch.split(alpha/w_sum, self.chns, dim=1)
-        # beta = torch.split(beta/w_sum, self.chns, dim=1)
+
         for k in range(len(self.chns)):
             x_mean = feats0[k].mean([2,3], keepdim=True)
             y_mean = feats1[k].mean([2,3], keepdim=True)

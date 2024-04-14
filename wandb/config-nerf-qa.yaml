@@ -3,7 +3,7 @@ metric:
   name: Test Metrics Dict/correlations/scene_mean/mos/plcc
   goal: maximize
 
-method: bayes
+method: random
 parameters:
   lr:
     # value: 2e-4
@@ -14,40 +14,50 @@ parameters:
     # max: 1e-2
     q: 1e-8
   eps:
-    # distribution: q_log_uniform_values
-    # min: 1e-10
-    # max: 1e-5
-    # q: 1e-10
-    value: 1e-7
+    distribution: q_log_uniform_values
+    min: 1e-10
+    max: 1e-5
+    q: 1e-10
+    # value: 1e-7
   beta1:
-    value: 0.9
-    # distribution: uniform
-    # min: 0.8
-    # max: 0.9
+    # value: 0.9
+    distribution: q_log_uniform_values
+    min: 0.8
+    max: 0.999
+    q: 1e-3
   beta2:
-    value: 0.999
-    # distribution: uniform
-    # min: 0.999
-    # max: 0.99999
+    # value: 0.999
+    distribution: q_log_uniform_values
+    min: 0.998
+    max: 0.99999
+    q: 1e-6
   # warmup_steps:
   #   value: 90
     # values: [0, 90, 180]
   epochs:
-    value: 10
-    # values: [10, 20, 50, 100]
-  # gamma:
-  #   distribution: uniform
-  #   min: 0.80
-  #   max: 1.0
-  mode:
-    # values: ['mean']
-    value: 'normal'
-  project_weights:
-    # values: ['True', 'False']
-    value: 'False'
+    # value: 10
+    values: [5, 10, 20]
+    weights: [0.5, 0.4, 0.1]
+  gamma:
+    # value: 0.812
+    distribution: q_log_uniform_values
+    # distribution: uniform
+    min: 0.80
+    max: 0.999
+  subjective_score_type:
+    values: ['MOS', 'DMOS']
+    weights: [0.6, 0.4]
+  regression_type:
+    values: ['linear', 'sqrt', 'logistic']
+    weights: [0.6, 0.2, 0.2]
+  dists_weight_norm:
+    values: ['off', 'project', 'relu', 'softmax']
+    weights: [0.6, 0.1, 0.2, 0.1]
+
   optimizer:
-    value: 'adam'
-    # values: ['adam', 'sadamw'] #: ['nadam', 'adam', 'sgd', 'sgd_momentum']
+    # value: 'adam'
+    values: ['adam', 'sadamw'] #: ['nadam', 'adam', 'sgd', 'sgd_momentum']
+    weights: [0.7, 0.3]
 
 command:
 - ${env}

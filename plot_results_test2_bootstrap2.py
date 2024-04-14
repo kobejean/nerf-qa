@@ -40,7 +40,8 @@ results_df = pd.read_csv('results_v344.csv')
 
 results_df
 #%%
-participants_df = participants_df[['distorted_folder', *[f'Subject {i}' for i in range(1,48)]]]
+subject_ids = [f'Subject {i}' for i in range(1,48)]
+participants_df = participants_df[['distorted_folder', 'method', *subject_ids]]
 #%%
 results_df = results_df.rename(columns={'video_id': 'distorted_folder', 'pred_score': 'NeRF-DISTS'})
 results_df = results_df[['distorted_folder', 'NeRF-DISTS']]
@@ -116,23 +117,49 @@ df_corr
 
 
 # %%
+import random
 data = []
+
+def select_valid_sample(df, scenes, subject_ids):
+    while True:
+        scene = random.choice(scenes)
+        subject = random.choice(subject_ids)
+        sample_df = df[df['scene'] == scene]
+        if not sample_df[[subject]].isna().any().any():
+            break  # Break the loop if no NaN values are found
+    return scene, subject, sample_df.copy()
+
+from tqdm import tqdm
+
 for dataset, df in [('Synthetic', syn_df), ('Real', tnt_df)]:
-    scenes = df['scene'].unique()
-    for scene in scenes:
-        scene_df = df[df['scene'] == scene]
-        for subjective_measure in ['MOS']:
-            for metric in metrics:
-                row_data = {}
-                correlations = compute_correlations(scene_df[metric].values, scene_df[subjective_measure])
-                row_data['metric'] = metric
-                row_data['scene'] = scene
-                row_data['dataset'] = dataset
-                row_data['subjective_measure'] = subjective_measure
-                for corr_type in ['plcc', 'srcc', 'ktcc']:
-                    row_data[corr_type] = np.abs(correlations[corr_type])
-                data.append(row_data)
+    scenes = df['scene'].unique().tolist()
+    methods =  df['method'].unique().tolist()
     
+    n_bootstrap_samples = 2000
+    for _ in tqdm(range(n_bootstrap_samples)):
+        n_samples = len(scenes) * len(subject_ids)
+        sample_dfs = []
+        for i in range(n_samples):
+            scene, subject, sample_df = select_valid_sample(df, scenes, subject_ids)
+            sample_df.loc[:, 'MOS_bootstrap'] = sample_df.loc[:, (subject)]
+            sample_df.drop(columns=subject_ids, inplace=True)
+            sample_dfs.append(sample_df)
+        sample_dfs = pd.concat(sample_dfs, ignore_index=True)
+        grouped_df = sample_dfs.groupby('method').mean(numeric_only=True)
+        # display(grouped_df)
+        # print(grouped_df.columns)
+        
+        for metric in metrics:
+            row_data = {}
+            correlations = compute_correlations(sample_dfs[metric].values, sample_dfs['MOS_bootstrap'])
+            row_data['metric'] = metric
+            # row_data['scene'] = scene
+            row_data['dataset'] = dataset
+            row_data['subjective_measure'] = 'MOS_bootstrap'
+            for corr_type in ['plcc', 'srcc', 'ktcc']:
+                row_data[corr_type] = np.abs(correlations[corr_type])
+            data.append(row_data)
+        
 
 
 # Creating the DataFrame
@@ -183,7 +210,7 @@ tex_fonts = {
     "ytick.labelsize": 8
 }
 plt.rcParams.update(tex_fonts)
-def plot_corr_distributions(ax, dataset='Synthetic', subjective_measure='MOS', corr_type='srcc'):
+def plot_corr_distributions(ax, dataset='Synthetic', subjective_measure='MOS_bootstrap', corr_type='srcc'):
     condition = (df_corr['dataset'] == dataset) & (df_corr['subjective_measure'] == subjective_measure)
     df_plot = df_corr[condition]
     mean_correlation = df_plot.groupby('metric')[corr_type].mean().reset_index()
@@ -194,7 +221,7 @@ def plot_corr_distributions(ax, dataset='Synthetic', subjective_measure='MOS', c
     df_plot = df_plot.sort_values('metric')
 
     sns.violinplot(ax=ax, x='metric', y=corr_type, data=df_plot, inner=None, width=0.5, color='skyblue', edgecolor='k', linewidth=0.5)
-    sns.swarmplot(ax=ax, x='metric', y=corr_type, data=df_plot, size=2.0, color='k')
+    # sns.swarmplot(ax=ax, x='metric', y=corr_type, data=df_plot, size=2.0, color='k')
     sns.pointplot(ax=ax, x='metric', y=corr_type, data=df_plot, dodge=True, join=False, markers="+", color='red', scale=0.75, ci=None, order=sorted_metrics)
 
     for i, metric in enumerate(sorted_metrics):
@@ -209,8 +236,8 @@ def plot_corr_distributions(ax, dataset='Synthetic', subjective_measure='MOS', c
 def plot_all_distributions(corr_type):
     # size = set_size('textwidth', subplots=(2, 1))[0]
     fig, axs = plt.subplots(2, 1, figsize=set_size('textwidth', subplots=(2, 2)))
-    plot_corr_distributions(axs[0], 'Synthetic', 'MOS', corr_type)
-    plot_corr_distributions(axs[1], 'Real', 'MOS', corr_type)
+    plot_corr_distributions(axs[0], 'Synthetic', 'MOS_bootstrap', corr_type)
+    plot_corr_distributions(axs[1], 'Real', 'MOS_bootstrap', corr_type)
     plt.tight_layout()
 
     fig.savefig(f'violin_{corr_type}_mos.pdf', format='pdf', bbox_inches='tight')
