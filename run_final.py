@@ -58,6 +58,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=1e-4, help='Random seed.')
     parser.add_argument('--beta1', type=float, default=0.9, help='Random seed.')
     parser.add_argument('--beta2', type=float, default=0.999, help='Random seed.')
+    parser.add_argument('--entropy_loss_coeff', type=float, default=0.0, help='Random seed.')
     parser.add_argument('--eps', type=float, default=1e-7, help='Random seed.')
     parser.add_argument('--optimizer', type=str, default='adam', help='Random seed.')
     parser.add_argument('--dists_weight_norm', type=str, default='off', help='Random seed.')
@@ -211,7 +212,7 @@ if __name__ == '__main__':
             target_score = torch.tensor(score, device=device).float()
             
             # Compute loss
-            loss = loss_fn(predicted_score, target_score)
+            loss = loss_fn(predicted_score, target_score) - config.entropy_loss_coeff * model.entropy_loss()
             step += 1
 
             # Store metrics in logger

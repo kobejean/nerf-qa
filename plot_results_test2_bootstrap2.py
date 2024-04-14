@@ -137,7 +137,7 @@ for dataset, df in [('Synthetic', syn_df), ('Real', tnt_df)]:
     scenes = df['scene'].unique().tolist()
     methods =  df['method'].unique().tolist()
     
-    n_bootstrap_samples = 100
+    n_bootstrap_samples = 2000
     for _ in tqdm(range(n_bootstrap_samples)):
         n_samples = len(scenes) * len(subject_ids)
         sample_dfs = []
