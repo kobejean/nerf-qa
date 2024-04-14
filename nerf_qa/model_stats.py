@@ -35,8 +35,8 @@ class NeRFQAModel(nn.Module):
                 return 2.0*(beta1 - beta2) / (1 + np.exp((x - beta3) / np.abs(beta4))) + beta2
     
             # Initial parameter guesses
-            beta1_init = 5.0 #np.max(y)
-            beta2_init = 1.0 #np.min(y)
+            beta1_init = np.max(y)
+            beta2_init = np.min(y)
             beta3_init = 0.0 #np.mean(X)
             beta4_init = np.max(X)
             params, params_covariance = curve_fit(logistic, X, y, p0=[beta1_init, beta2_init, beta3_init, beta4_init])
