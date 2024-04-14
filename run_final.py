@@ -158,7 +158,7 @@ if __name__ == '__main__':
             optimizer.eval()
         with torch.no_grad():
             for index, row in tqdm(test_df.iterrows(), total=len(test_df), desc="Processing..."):
-                frames_data = create_test2_dataloader(row, TEST_DATA_DIR, batch_size=config.batch_size)
+                frames_data = create_test2_dataloader(row, TEST_DATA_DIR, batch_size=config.batch_size//4)
                 for ref, render in frames_data:
                     i = np.full(shape=render.shape[0], fill_value=index)
                     # Compute score
