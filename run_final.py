@@ -163,7 +163,7 @@ if __name__ == '__main__':
                     i = np.full(shape=render.shape[0], fill_value=index)
                     # Compute score
                     predicted_score, dists_score = model(render.to(device), ref.to(device))
-                    score = test_df['MOS'].iloc[i].values
+                    score = test_df[wandb.config.subjective_score_type].iloc[i].values
                     target_score = torch.tensor(score, device=device).float()
 
                     # Compute loss

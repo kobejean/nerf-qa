@@ -150,7 +150,7 @@ class NeRFQAResizedDataset(Dataset):
         distorted_image, referenced_image = self.transform_pair(distorted_image, referenced_image)
 
         row = self.scores_df.iloc[video_idx]
-        score = row['MOS']
+        score = row[wandb.config.subjective_score_type]
         return distorted_image, referenced_image, score, video_idx
     
     def get_scene_indices(self):

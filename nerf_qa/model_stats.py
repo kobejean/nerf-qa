@@ -28,7 +28,7 @@ class NeRFQAModel(nn.Module):
         X = train_df['DISTS'].values
 
         print("X.shape", X.shape)
-        y = train_df['MOS'].values  # Response
+        y = train_df[wandb.config.subjective_score_type].values  # Response
 
         if wandb.config.regression_type == 'logistic':
             def logistic(x, beta1, beta2, beta3, beta4):
