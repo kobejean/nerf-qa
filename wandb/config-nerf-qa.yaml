@@ -53,6 +53,8 @@ parameters:
   subjective_score_type:
     values: ['MOS', 'DMOS']
     # weights: [0.6, 0.4]
+  real_scenes_only:
+    values: ['True', 'False']
   regression_type:
     values: ['linear', 'sqrt']
     # weights: [0.6, 0.2, 0.2]

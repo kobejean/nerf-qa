@@ -62,6 +62,7 @@ if __name__ == '__main__':
     parser.add_argument('--eps', type=float, default=1e-7, help='Random seed.')
     parser.add_argument('--optimizer', type=str, default='adam', help='Random seed.')
     parser.add_argument('--dists_weight_norm', type=str, default='off', help='Random seed.')
+    parser.add_argument('--real_scenes_only', type=str, default='False', help='Random seed.')
     parser.add_argument('--regression_type', type=str, default='linear', help='Random seed.')
     parser.add_argument('--subjective_score_type', type=str, default='MOS', help='Random seed.')
     parser.add_argument('--gamma', type=float, default=0.812, help='Random seed.')
@@ -90,8 +91,6 @@ if __name__ == '__main__':
     # Apply the function to create the 'scene_type' column
     scores_df['scene_type'] = scores_df['scene'].apply(get_scene_type)
 
-    # scores_df = scores_df[scores_df['scene_type'] != 'synthetic'].reset_index()
-    
 
     config = {
         # "epochs": epochs,
@@ -112,6 +111,9 @@ if __name__ == '__main__':
     run = wandb.init(project='nerf-qa-2', name=exp_name, config=config)
     config = wandb.config
 
+    if config.real_scenes_only == 'True':
+        scores_df = scores_df[scores_df['scene_type'] != 'synthetic'].reset_index()
+    
 
 
     mse_fn = nn.MSELoss(reduction='none')
