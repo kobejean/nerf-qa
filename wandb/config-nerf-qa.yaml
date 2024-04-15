@@ -33,7 +33,7 @@ parameters:
     q: 1e-6
   entropy_loss_coeff:
     distribution: q_log_uniform_values
-    min: 0.0
+    min: 0.0001
     max: 1.0
     q: 1e-6
   # warmup_steps:
