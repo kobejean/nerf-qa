@@ -9,7 +9,7 @@ parameters:
     # value: 2e-4
     distribution: q_log_uniform_values
     min: 1e-7
-    max: 1e-3
+    max: 1e-1
     # min: 1e-4
     # max: 1e-2
     q: 1e-8
@@ -41,28 +41,28 @@ parameters:
     # values: [0, 90, 180]
   epochs:
     # value: 10
-    values: [5, 10, 20]
+    values: [5, 10]
     # weights: [0.5, 0.4, 0.1]
   gamma:
     # value: 0.812
     distribution: q_log_uniform_values
     # distribution: uniform
-    min: 0.80
-    max: 0.999
+    min: 0.70
+    max: 0.95
     q: 1e-5
   subjective_score_type:
     values: ['MOS', 'DMOS']
     # weights: [0.6, 0.4]
   regression_type:
-    values: ['linear', 'sqrt', 'logistic']
+    values: ['linear', 'sqrt']
     # weights: [0.6, 0.2, 0.2]
   dists_weight_norm:
-    values: ['off', 'project', 'relu', 'softmax']
+    values: ['project', 'relu', 'softmax']
     # weights: [0.6, 0.1, 0.2, 0.1]
 
   optimizer:
-    # value: 'adam'
-    values: ['adam', 'sadamw'] #: ['nadam', 'adam', 'sgd', 'sgd_momentum']
+    value: 'adam'
+    # values: ['adam', 'sadamw'] #: ['nadam', 'adam', 'sgd', 'sgd_momentum']
     # weights: [0.7, 0.3]
 
 command:
