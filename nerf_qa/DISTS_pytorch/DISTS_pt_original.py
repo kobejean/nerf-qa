@@ -80,7 +80,7 @@ class DISTS(torch.nn.Module):
         return [x,h_relu1_2, h_relu2_2, h_relu3_3, h_relu4_3, h_relu5_3]
 
     def project_weights(self):
-        lower_bound = torch.zeros_like(self.alpha.data)
+        lower_bound = torch.zeros_like(self.alpha.data) + 1e-5
         lower_bound[:,:3,:,:] = 0.02
         alpha = torch.max(self.alpha.data, lower_bound)
         beta = torch.max(self.beta.data, lower_bound)
