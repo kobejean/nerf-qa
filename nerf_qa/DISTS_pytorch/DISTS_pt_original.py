@@ -62,8 +62,8 @@ class DISTS(torch.nn.Module):
         self.beta.data.normal_(0.1,0.01)
         if load_weights:
             weights = torch.load(os.path.join(sys.prefix,'weights.pt'))
-            self.alpha.data = weights['alpha']
-            self.beta.data = weights['beta']
+            self.alpha.data = torch.clamp(weights['alpha'], min=2e-4)
+            self.beta.data = torch.clamp(weights['beta'], min=2e-4)
         
     def forward_once(self, x):
         h = (x-self.mean)/self.std
