@@ -6,6 +6,7 @@ import os,sys
 import torch
 from torchvision import models,transforms
 import torch.nn as nn
+import wandb
 import torch.nn.functional as F
 
 class L2pooling(nn.Module):
@@ -114,6 +115,8 @@ class DISTS(torch.nn.Module):
         alpha, beta = torch.split(w_softmax, self.alpha.shape[1], dim=1)
         alpha = torch.split(alpha, self.chns, dim=1)
         beta = torch.split(beta, self.chns, dim=1)
+        if wandb.config.detach_beta == 'True':
+            beta = beta.detach()
 
         for k in range(len(self.chns)):
             x_mean = feats0[k].mean([2,3], keepdim=True)

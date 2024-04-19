@@ -62,8 +62,10 @@ class DISTS(torch.nn.Module):
         self.beta.data.normal_(0.1,0.01)
         if load_weights:
             weights = torch.load(os.path.join(sys.prefix,'weights.pt'))
-            self.alpha.data = torch.clamp(weights['alpha'], min=2e-4)
-            self.beta.data = torch.clamp(weights['beta'], min=1e-4)
+            lb = wandb.config.weight_lower_bound
+            ab_ratio = wandb.config.alpha_beta_ratio
+            self.alpha.data = torch.clamp(weights['alpha'], min=lb*ab_ratio)
+            self.beta.data = torch.clamp(weights['beta'], min=lb)
         
     def forward_once(self, x):
         h = (x-self.mean)/self.std
@@ -80,9 +82,9 @@ class DISTS(torch.nn.Module):
         return [x,h_relu1_2, h_relu2_2, h_relu3_3, h_relu4_3, h_relu5_3]
 
     def project_weights(self):
-        lower_bound = torch.zeros_like(self.alpha.data)
-        lower_bound[:,:3,:,:] = 0.02
-        alpha = torch.max(self.alpha.data, lower_bound)
+        lower_bound = torch.zeros_like(self.alpha.data) +  wandb.config.weight_lower_bound
+        #lower_bound[:,:3,:,:] = 0.02
+        alpha = torch.max(self.alpha.data, lower_bound * wandb.config.alpha_beta_ratio)
         beta = torch.max(self.beta.data, lower_bound)
         weight_sum = torch.cat([alpha, beta], dim=1).sum()
         self.alpha.data = alpha / weight_sum
@@ -102,12 +104,17 @@ class DISTS(torch.nn.Module):
         c2 = 1e-6
 
         
-        alpha = torch.relu(self.alpha) if wandb.config.dists_weight_norm == 'relu' else self.alpha
-        beta = torch.relu(self.beta) if wandb.config.dists_weight_norm == 'relu' else self.beta
+        alpha = torch.relu(self.alpha) if 'relu' in wandb.config.dists_weight_norm.split('+') else self.alpha
+        beta = torch.relu(self.beta) if 'relu' in wandb.config.dists_weight_norm.split('+') else self.beta
+        
+        if wandb.config.detach_beta == 'True':
+            beta = beta.detach()
 
         w_sum = alpha.sum() + beta.sum()
-        alpha = torch.split(alpha/w_sum.detach(), self.chns, dim=1)
-        beta = torch.split(beta/w_sum.detach(), self.chns, dim=1)
+        if 'w_sum_detach' in wandb.config.dists_weight_norm.split('+'):
+            w_sum = w_sum.detach()
+        alpha = torch.split(alpha/w_sum, self.chns, dim=1)
+        beta = torch.split(beta/w_sum, self.chns, dim=1)
         for k in range(len(self.chns)):
             x_mean = feats0[k].mean([2,3], keepdim=True)
             y_mean = feats1[k].mean([2,3], keepdim=True)

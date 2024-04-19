@@ -58,9 +58,19 @@ parameters:
   regression_type:
     values: ['linear', 'sqrt']
     # weights: [0.6, 0.2, 0.2]
+  weight_lower_bound:
+    distribution: q_log_uniform_values
+    min: 1e-7
+    max: 5e-4
+    q: 1e-8
+  alpha_beta_ratio:
+    distribution: uniform
+    min: 1.0
+    max: 2.0
   dists_weight_norm:
-    values: ['project', 'relu', 'softmax']
-    # weights: [0.6, 0.1, 0.2, 0.1]
+    values: ['project', 'relu', 'relu+w_sum_detach', 'project+w_sum_detach']
+  detach_beta:
+    values: ['True', 'False']
 
   optimizer:
     value: 'adam'

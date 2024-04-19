@@ -63,8 +63,11 @@ if __name__ == '__main__':
     parser.add_argument('--optimizer', type=str, default='adam', help='Random seed.')
     parser.add_argument('--dists_weight_norm', type=str, default='off', help='Random seed.')
     parser.add_argument('--real_scenes_only', type=str, default='False', help='Random seed.')
+    parser.add_argument('--detach_beta', type=str, default='False', help='Random seed.')
     parser.add_argument('--regression_type', type=str, default='linear', help='Random seed.')
     parser.add_argument('--subjective_score_type', type=str, default='MOS', help='Random seed.')
+    parser.add_argument('--weight_lower_bound', type=float, default=1e-4, help='Random seed.')
+    parser.add_argument('--alpha_beta_ratio', type=float, default=2.0, help='Random seed.')
     parser.add_argument('--gamma', type=float, default=0.812, help='Random seed.')
     parser.add_argument('--epochs', type=int, default=10, help='Random seed.')
 
