@@ -87,7 +87,7 @@ class NeRFQAModel(nn.Module):
                 weights = torch.relu(weights)
             weights = weights / weights.sum()
         original_weights = torch.cat([self.dists_model.original_alpha, self.dists_model.original_beta], dim=1)
-        return -torch.sum(original_weights * torch.log(weights + 1e-10))
+        return -torch.sum(original_weights.to(device) * torch.log(weights + 1e-10))
 
     def forward(self, dist, ref):
         dists_scores = self.dists_model(dist, ref)
