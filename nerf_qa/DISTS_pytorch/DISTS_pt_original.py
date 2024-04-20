@@ -62,6 +62,8 @@ class DISTS(torch.nn.Module):
         self.beta.data.normal_(0.1,0.01)
         if load_weights:
             weights = torch.load(os.path.join(sys.prefix,'weights.pt'))
+            self.original_alpha = torch.tensor(weights['alpha'])
+            self.original_beta = torch.tensor(weights['beta'])
             lb = wandb.config.weight_lower_bound
             ab_ratio = wandb.config.alpha_beta_ratio
             self.alpha.data = torch.clamp(weights['alpha'], min=lb*ab_ratio)

@@ -86,7 +86,8 @@ class NeRFQAModel(nn.Module):
             if wandb.config.dists_weight_norm == 'relu':
                 weights = torch.relu(weights)
             weights = weights / weights.sum()
-        return -torch.sum(weights * torch.log(weights + 1e-10))
+        original_weights = torch.cat([self.dists_model.original_alpha, self.dists_model.original_beta], dim=1)
+        return -torch.sum(original_weights * torch.log(weights + 1e-10))
 
     def forward(self, dist, ref):
         dists_scores = self.dists_model(dist, ref)
