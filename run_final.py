@@ -217,7 +217,7 @@ if __name__ == '__main__':
             target_score = torch.tensor(score, device=device).float()
             
             # Compute loss
-            loss = loss_fn(predicted_score, target_score) - config.entropy_loss_coeff * model.entropy_loss()
+            loss = loss_fn(predicted_score, target_score) + config.entropy_loss_coeff * model.entropy_loss()
             step += 1
 
             # Store metrics in logger

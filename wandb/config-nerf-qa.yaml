@@ -3,13 +3,13 @@ metric:
   name: Test Metrics Dict/real/correlations/scene_mean/mos/plcc
   goal: maximize
 
-method: random
+method: bayes
 parameters:
   lr:
     # value: 2e-4
     distribution: q_log_uniform_values
-    min: 1e-7
-    max: 1e-1
+    min: 8e-7
+    max: 3e-6
     # min: 1e-4
     # max: 1e-2
     q: 1e-8
@@ -22,42 +22,45 @@ parameters:
   beta1:
     # value: 0.9
     distribution: q_log_uniform_values
-    min: 0.8
-    max: 0.999
+    min: 0.85
+    max: 0.95
     q: 1e-3
   beta2:
     # value: 0.999
     distribution: q_log_uniform_values
-    min: 0.998
-    max: 0.99999
+    min: 0.997
+    max: 0.9995
     q: 1e-6
   entropy_loss_coeff:
+    # value: 0.75
     distribution: q_log_uniform_values
-    min: 0.3
-    max: 4.0
+    min: 0.7
+    max: 0.8
     q: 1e-6
   # warmup_steps:
   #   value: 90
     # values: [0, 90, 180]
   epochs:
-    # value: 10
-    values: [5, 10]
+    value: 10
+    # values: [5, 10]
     # weights: [0.5, 0.4, 0.1]
   gamma:
     # value: 0.812
     distribution: q_log_uniform_values
     # distribution: uniform
-    min: 0.70
-    max: 0.95
+    min: 0.81
+    max: 0.85
     q: 1e-5
   subjective_score_type:
     value: 'DMOS'
     # values: ['MOS', 'DMOS']
     # weights: [0.6, 0.4]
   real_scenes_only:
-    values: ['True', 'False']
+    value: 'False'
+    # values: ['True', 'False']
   regression_type:
-    values: ['linear', 'sqrt']
+    value: 'linear'
+    # values: ['linear', 'sqrt']
     # weights: [0.6, 0.2, 0.2]
   weight_lower_bound:
     distribution: q_log_uniform_values
@@ -66,12 +69,14 @@ parameters:
     q: 1e-8
   alpha_beta_ratio:
     distribution: uniform
-    min: 1.0
-    max: 2.0
+    min: 1.7
+    max: 2.2
   dists_weight_norm:
-    values: ['project', 'relu', 'relu+w_sum_detach', 'project+w_sum_detach']
+    value: 'relu'
+    # values: ['project', 'relu', 'relu+w_sum_detach', 'project+w_sum_detach']
   detach_beta:
-    values: ['True', 'False']
+    value: 'False'
+    # values: ['True', 'False']
 
   optimizer:
     value: 'adam'
