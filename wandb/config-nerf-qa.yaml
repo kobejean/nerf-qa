@@ -2,13 +2,13 @@ program: run_final.py
 metric:
   name: Test Metrics Dict/combined_score
   goal: maximize
-method: bayes
+method: random
 parameters:
   lr:
     # value: 2e-4
     distribution: q_log_uniform_values
-    min: 8e-7
-    max: 3e-6
+    min: 1e-7
+    max: 2e-6
     # min: 1e-4
     # max: 1e-2
     q: 1e-8
@@ -31,28 +31,29 @@ parameters:
     max: 0.9995
     q: 1e-6
   entropy_loss_coeff:
+    values: [0.0, 0.75]
     # value: 0.75
-    distribution: q_log_uniform_values
-    min: 0.7
-    max: 0.8
-    q: 1e-6
+    # distribution: q_log_uniform_values
+    # min: 0.001
+    # max: 0.8
+    # q: 1e-6
   # warmup_steps:
   #   value: 90
     # values: [0, 90, 180]
   epochs:
-    value: 10
-    # values: [5, 10]
+    # value: 10
+    values: [5, 10]
     # weights: [0.5, 0.4, 0.1]
   gamma:
     # value: 0.812
     distribution: q_log_uniform_values
     # distribution: uniform
-    min: 0.81
-    max: 0.85
+    min: 0.4
+    max: 0.8
     q: 1e-5
   subjective_score_type:
-    value: 'DMOS'
-    # values: ['MOS', 'DMOS']
+    # value: 'DMOS'
+    values: ['MOS', 'DMOS']
     # weights: [0.6, 0.4]
   real_scenes_only:
     value: 'False'
@@ -62,20 +63,22 @@ parameters:
     # values: ['linear', 'sqrt']
     # weights: [0.6, 0.2, 0.2]
   weight_lower_bound:
-    distribution: q_log_uniform_values
-    min: 1e-9
-    max: 5e-4
-    q: 1e-8
+    values: [0.0, 1e-7]
+    # distribution: q_log_uniform_values
+    # min: 1e-9
+    # max: 1e-7
+    # q: 1e-8
   alpha_beta_ratio:
-    distribution: uniform
-    min: 1.7
-    max: 2.2
+    value: 2.0
+    # distribution: uniform
+    # min: 1.7
+    # max: 2.2
   dists_weight_norm:
     value: 'relu'
     # values: ['project', 'relu', 'relu+w_sum_detach', 'project+w_sum_detach']
   detach_beta:
-    value: 'False'
-    # values: ['True', 'False']
+    # value: 'False'
+    values: ['True', 'False']
 
   optimizer:
     value: 'adam'
