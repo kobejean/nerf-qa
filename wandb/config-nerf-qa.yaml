@@ -7,7 +7,7 @@ parameters:
   lr:
     # value: 2e-4
     distribution: q_log_uniform_values
-    min: 1e-7
+    min: 8e-7
     max: 2e-6
     # min: 1e-4
     # max: 1e-2
@@ -31,8 +31,8 @@ parameters:
     max: 0.9995
     q: 1e-6
   entropy_loss_coeff:
-    values: [0.0, 0.75]
-    # value: 0.75
+    # values: [0.0, 0.75]
+    value: 0.0
     # distribution: q_log_uniform_values
     # min: 0.001
     # max: 0.8
@@ -42,7 +42,7 @@ parameters:
     # values: [0, 90, 180]
   epochs:
     # value: 10
-    values: [5, 10]
+    values: [5]
     # weights: [0.5, 0.4, 0.1]
   gamma:
     # value: 0.812
@@ -77,8 +77,8 @@ parameters:
     value: 'relu'
     # values: ['project', 'relu', 'relu+w_sum_detach', 'project+w_sum_detach']
   detach_beta:
-    # value: 'False'
-    values: ['True', 'False']
+    value: 'False'
+    # values: ['True', 'False']
 
   optimizer:
     value: 'adam'
