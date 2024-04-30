@@ -287,17 +287,17 @@ class MetricCollectionLogger():
                 x = x / r
                 return 120*x if x < 0 else x
             combined_score = scale("correlations/scene_mean/mos/plcc", 0.9337, 1.0) + \
-                             scale("correlations/scene_mean/mos/srcc", 0.9149, 1.0) + \
-                             scale("real/correlations/scene_mean/mos/plcc", 0.9572, 1.0) + \
+                             scale("correlations/scene_mean/mos/srcc", 0.9268, 1.0) + \
+                             scale("real/correlations/scene_mean/mos/plcc", 0.9556, 1.0) + \
                              scale("real/correlations/scene_mean/mos/srcc", 0.9429, 1.0) + \
                              scale("synthetic/correlations/scene_mean/mos/plcc", 0.9117, 1.0) + \
-                             scale("synthetic/correlations/scene_mean/mos/srcc", 0.8869, 1.0) + \
+                             scale("synthetic/correlations/scene_mean/mos/srcc", 0.9107, 1.0) + \
                              scale("correlations/mos/plcc", -0.878, -1.0) + \
-                             scale("correlations/mos/srcc", -0.9146, -1.0) + \
-                             scale("correlations/real/mos/plcc", -0.9128, -1.0) + \
-                             scale("correlations/real/mos/srcc", -0.9404, -1.0) + \
+                             scale("correlations/mos/srcc", -0.9149, -1.0) + \
+                             scale("correlations/real/mos/plcc", -0.9081, -1.0) + \
+                             scale("correlations/real/mos/srcc", -0.9395, -1.0) + \
                              scale("correlations/synthetic/mos/plcc", -0.8971, -1.0) + \
-                             scale("correlations/synthetic/mos/srcc", -0.915, -1.0) 
+                             scale("correlations/synthetic/mos/srcc", -0.9139, -1.0) 
             logs.update({ f"{self.collection_name}/combined_score": combined_score })
 
 

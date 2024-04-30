@@ -7,8 +7,8 @@ parameters:
   lr:
     # value: 2e-4
     distribution: q_log_uniform_values
-    min: 8e-7
-    max: 2e-6
+    min: 1e-6
+    max: 4e-6
     # min: 1e-4
     # max: 1e-2
     q: 1e-8
@@ -48,8 +48,8 @@ parameters:
     # value: 0.812
     distribution: q_log_uniform_values
     # distribution: uniform
-    min: 0.4
-    max: 0.8
+    min: 0.35
+    max: 0.65
     q: 1e-5
   subjective_score_type:
     # value: 'DMOS'
@@ -63,7 +63,8 @@ parameters:
     # values: ['linear', 'sqrt']
     # weights: [0.6, 0.2, 0.2]
   weight_lower_bound:
-    values: [0.0, 1e-7]
+    value: 0
+    # values: [0.0, 1e-7]
     # distribution: q_log_uniform_values
     # min: 1e-9
     # max: 1e-7
