@@ -2,13 +2,13 @@ program: run_final.py
 metric:
   name: Test Metrics Dict/combined_score
   goal: maximize
-method: random
+method: bayes
 parameters:
   lr:
     # value: 2e-4
     distribution: q_log_uniform_values
     min: 1e-6
-    max: 4e-6
+    max: 1e-4
     # min: 1e-4
     # max: 1e-2
     q: 1e-8
@@ -41,19 +41,19 @@ parameters:
   #   value: 90
     # values: [0, 90, 180]
   epochs:
-    value: 10
+    value: 5
     # values: [5]
     # weights: [0.5, 0.4, 0.1]
   gamma:
     # value: 0.812
     distribution: q_log_uniform_values
     # distribution: uniform
-    min: 0.35
+    min: 0.2
     max: 0.65
     q: 1e-5
   subjective_score_type:
-    # value: 'DMOS'
-    values: ['MOS', 'DMOS']
+    value: 'MOS'
+    # values: ['MOS', 'DMOS']
     # weights: [0.6, 0.4]
   real_scenes_only:
     value: 'False'
