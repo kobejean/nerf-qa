@@ -2,7 +2,7 @@ program: run_final.py
 metric:
   name: Test Metrics Dict/combined_score
   goal: maximize
-method: bayes
+method: random
 parameters:
   lr:
     # value: 2e-4
