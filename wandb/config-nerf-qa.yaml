@@ -45,12 +45,12 @@ parameters:
     # values: [5]
     # weights: [0.5, 0.4, 0.1]
   gamma:
-    # value: 0.812
-    distribution: q_log_uniform_values
+    value: 0.5
+    # distribution: q_log_uniform_values
     # distribution: uniform
-    min: 0.2
-    max: 0.75
-    q: 1e-5
+    # min: 0.2
+    # max: 0.75
+    # q: 1e-5
   subjective_score_type:
     value: 'MOS'
     # values: ['MOS', 'DMOS']
