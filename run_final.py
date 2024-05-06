@@ -237,7 +237,7 @@ if __name__ == '__main__':
         train_df = scores_df.iloc[train_idx].reset_index(drop=True)
             # val_df = scores_df.iloc[val_idx].reset_index(drop=True)
 
-        train_df = scores_df
+        # train_df = scores_df
         train_dataloader = create_nerf_qa_resize_dataloader(train_df, dir=DATA_DIR, batch_size=config.batch_size)
         train_size = len(train_dataloader)
 
