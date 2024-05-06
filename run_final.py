@@ -264,7 +264,7 @@ if __name__ == '__main__':
         for epoch in range(test_epochs):
             print(f"Epoch {epoch+1}/{test_epochs}")
             train_epoch(epoch, model, train_dataloader, train_size, optimizer, scheduler)
-            results_df = test(model, test_df)
+            results_df = test(model, test_df, optimizer)
         step += 1000
 
         results_df.to_csv(f'results_{fold}.csv')
