@@ -286,7 +286,7 @@ class MetricCollectionLogger():
                 x = logs[f"{self.collection_name}/{metric}"] - l
                 x = x / r
                 return 120*x if x < 0 else x
-            tol = 0.01
+            tol = 0.05
             combined_score = scale("correlations/scene_mean/mos/plcc", 0.9337-tol, 1.0) + \
                              scale("correlations/scene_mean/mos/srcc", 0.9268-tol, 1.0) + \
                              scale("real/correlations/scene_mean/mos/plcc", 0.9556-tol, 1.0) + \
