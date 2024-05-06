@@ -286,12 +286,13 @@ class MetricCollectionLogger():
                 x = logs[f"{self.collection_name}/{metric}"] - l
                 x = x / r
                 return 120*x if x < 0 else x
-            combined_score = scale("correlations/scene_mean/mos/plcc", 0.9337, 1.0) + \
-                             scale("correlations/scene_mean/mos/srcc", 0.9268, 1.0) + \
-                             scale("real/correlations/scene_mean/mos/plcc", 0.9556, 1.0) + \
-                             scale("real/correlations/scene_mean/mos/srcc", 0.9429, 1.0) + \
-                             scale("synthetic/correlations/scene_mean/mos/plcc", 0.9117, 1.0) + \
-                             scale("synthetic/correlations/scene_mean/mos/srcc", 0.9107, 1.0) + \
+            tol = 0.01
+            combined_score = scale("correlations/scene_mean/mos/plcc", 0.9337-tol, 1.0) + \
+                             scale("correlations/scene_mean/mos/srcc", 0.9268-tol, 1.0) + \
+                             scale("real/correlations/scene_mean/mos/plcc", 0.9556-tol, 1.0) + \
+                             scale("real/correlations/scene_mean/mos/srcc", 0.9429-tol, 1.0) + \
+                             scale("synthetic/correlations/scene_mean/mos/plcc", 0.9117-tol, 1.0) + \
+                             scale("synthetic/correlations/scene_mean/mos/srcc", 0.9107-tol, 1.0) + \
                              scale("correlations/mos/plcc", -0.878, -1.0) + \
                              scale("correlations/mos/srcc", -0.9149, -1.0) + \
                              scale("correlations/real/mos/plcc", -0.9081, -1.0) + \

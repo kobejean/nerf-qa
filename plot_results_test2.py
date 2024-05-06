@@ -29,7 +29,7 @@ test_df = pd.read_csv("scores_aspect-3.csv")
 test_df['scene'] = test_df['reference_folder'].str.replace('gt_', '', regex=False)
 test_size = test_df.shape[0]
 test_df.columns
-results_df = pd.read_csv('results_v285.csv')
+results_df = pd.read_csv('results_v1060.csv')
 
 results_df
 #%%

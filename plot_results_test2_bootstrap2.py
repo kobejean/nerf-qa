@@ -36,7 +36,7 @@ test_df = pd.read_csv("scores_aspect-3.csv")
 test_df['scene'] = test_df['reference_folder'].str.replace('gt_', '', regex=False)
 test_size = test_df.shape[0]
 test_df.columns
-results_df = pd.read_csv('results_v344.csv')
+results_df = pd.read_csv('results_v1060.csv')
 
 results_df
 #%%
@@ -94,7 +94,7 @@ def get_correlations(col, syn_df, tnt_df, test_df):
 # List of metrics to compute correlations for
 
 data = []
-metrics = ['Ours', 'DISTS', 'DISTS_full_size', 'DISTS_square', 'A-DISTS', 'LPIPS(alex)',
+metrics = ['Ours', 'DISTS', 'LPIPS(alex)',
        'VIF', 'MS-SSIM', 'MAD', 'PieAPP', 'WaDiQaM', 'TOPIQ-FR',
        'LPIPS(vgg)', 'SSIM', 'PSNR', 'GMSD', 'FSIMc', 'NLPD',
        'ST-LPIPS', 'AHIQ']

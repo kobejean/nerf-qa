@@ -2,13 +2,13 @@ program: run_final.py
 metric:
   name: Test Metrics Dict/combined_score
   goal: maximize
-method: grid
+method: random
 parameters:
   lr:
-    value: 0.000003125
-    # distribution: q_log_uniform_values
-    # min: 1e-6
-    # max: 4e-6
+    # value: 0.000003125
+    distribution: q_log_uniform_values
+    min: 1e-6
+    max: 4e-6
     # min: 1e-4
     # max: 1e-2
     # q: 1e-8

@@ -233,11 +233,12 @@ if __name__ == '__main__':
     test_df['scene'] = test_df['reference_folder'].str.replace('gt_', '', regex=False)
     test_epochs = wandb.config.epochs
     
-    for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups)):
-        train_df = scores_df.iloc[train_idx].reset_index(drop=True)
+    # for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups)):
+    for fold in range(1):
+        # train_df = scores_df.iloc[train_idx].reset_index(drop=True)
             # val_df = scores_df.iloc[val_idx].reset_index(drop=True)
 
-        # train_df = scores_df
+        train_df = scores_df
         train_dataloader = create_nerf_qa_resize_dataloader(train_df, dir=DATA_DIR, batch_size=config.batch_size)
         train_size = len(train_dataloader)
 
