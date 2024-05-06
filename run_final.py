@@ -124,39 +124,11 @@ if __name__ == '__main__':
 
     step = 0
 
-    train_df = scores_df
-    train_dataloader = create_nerf_qa_resize_dataloader(train_df, dir=DATA_DIR, batch_size=config.batch_size)
-    train_size = len(train_dataloader)
-
-    test_df = pd.read_csv(TEST_SCORE_FILE)
-    test_df['scene'] = test_df['reference_folder'].str.replace('gt_', '', regex=False)
-    # test_balanced_dataloader = create_test2_dataloader(test_df, dir=TEST_DATA_DIR, batch_size=config.batch_size, in_memory=False, scene_balanced=True)
-    # test_size = len(test_balanced_dataloader)
-    test_epochs = wandb.config.epochs
-
 
     test_logger = MetricCollectionLogger('Test Metrics Dict')
     train_logger = MetricCollectionLogger(f'Train Metrics Dict')
 
-    model = NeRFQAModel(train_df=train_df).to(device)
-
-    if config.optimizer == 'sadamw':
-        optimizer = schedulefree.AdamWScheduleFree(model.parameters(),                
-            lr=config.lr,
-            betas=(config.beta1, config.beta2),
-            eps=config.eps,
-            warmup_steps=train_size,
-        )
-    else:
-        optimizer = optim.Adam(model.parameters(),
-            lr=config.lr,
-            betas=(config.beta1, config.beta2),
-            eps=config.eps,
-        )
-        scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
-
-
-    def test(model, test_df):
+    def test(model, test_df, optimizer):
         # Test step
         model.eval()  # Set model to evaluation mode
 
@@ -192,7 +164,7 @@ if __name__ == '__main__':
         model.train()
         return results_df
     
-    def train_epoch(epoch, model, train_dataloader, train_size):
+    def train_epoch(epoch, model, train_dataloader, train_size, optimizer, scheduler):
         global step
         # Train step
         model.train()
@@ -253,27 +225,59 @@ if __name__ == '__main__':
             "Model/dists_weight/beta_min": torch.min(model.dists_model.beta),
         }, step=step)
         
+    n_splits = 4
+    gkf = GroupKFold(n_splits=n_splits)
+    groups = scores_df['scene']
+
+    test_df = pd.read_csv(TEST_SCORE_FILE)
+    test_df['scene'] = test_df['reference_folder'].str.replace('gt_', '', regex=False)
+    test_epochs = wandb.config.epochs
+    
+    for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups)):
+        train_df = scores_df.iloc[train_idx].reset_index(drop=True)
+            # val_df = scores_df.iloc[val_idx].reset_index(drop=True)
+
+        train_df = scores_df
+        train_dataloader = create_nerf_qa_resize_dataloader(train_df, dir=DATA_DIR, batch_size=config.batch_size)
+        train_size = len(train_dataloader)
+
+        model = NeRFQAModel(train_df=train_df).to(device)
+
+        if config.optimizer == 'sadamw':
+            optimizer = schedulefree.AdamWScheduleFree(model.parameters(),                
+                lr=config.lr,
+                betas=(config.beta1, config.beta2),
+                eps=config.eps,
+                warmup_steps=train_size,
+            )
+        else:
+            optimizer = optim.Adam(model.parameters(),
+                lr=config.lr,
+                betas=(config.beta1, config.beta2),
+                eps=config.eps,
+            )
+            scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
 
 
-    test(model, test_df)
+        test(model, test_df, optimizer)
 
-    for epoch in range(test_epochs):
-        print(f"Epoch {epoch+1}/{test_epochs}")
-        train_epoch(epoch, model, train_dataloader, train_size)
-        if (epoch+1) % 5 == 0:
+        for epoch in range(test_epochs):
+            print(f"Epoch {epoch+1}/{test_epochs}")
+            train_epoch(epoch, model, train_dataloader, train_size, optimizer, scheduler)
             results_df = test(model, test_df)
+        step += 1000
 
-    results_df.to_csv('results.csv')
-    torch.save(model, f'model.pth')
+        results_df.to_csv(f'results_{fold}.csv')
+        torch.save(model, f'model_{fold}.pth')
 
-    # Create and log an artifact for the results
-    results_artifact = wandb.Artifact('results', type='dataset')
-    results_artifact.add_file('results.csv')
-    wandb.log_artifact(results_artifact)
+        # Create and log an artifact for the results
+        results_artifact = wandb.Artifact(f'results_{fold}', type='dataset')
+        results_artifact.add_file(f'results_{fold}.csv')
+        wandb.log_artifact(results_artifact)
 
-    # Create and log an artifact for the model
-    model_artifact = wandb.Artifact('model', type='model')
-    model_artifact.add_file(f'model.pth')
-    wandb.log_artifact(model_artifact)
+        # Create and log an artifact for the model
+        model_artifact = wandb.Artifact(f'model_{fold}', type='model')
+        model_artifact.add_file(f'model_{fold}.pth')
+        wandb.log_artifact(model_artifact)
 
     wandb.finish()
