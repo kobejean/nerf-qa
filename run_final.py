@@ -232,13 +232,13 @@ if __name__ == '__main__':
     test_df = pd.read_csv(TEST_SCORE_FILE)
     test_df['scene'] = test_df['reference_folder'].str.replace('gt_', '', regex=False)
     test_epochs = wandb.config.epochs
-    
-    # for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups)):
-    for fold in range(1):
-        # train_df = scores_df.iloc[train_idx].reset_index(drop=True)
+    cv_results = []
+    for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups)):
+    # for fold in range(1):
+        train_df = scores_df.iloc[train_idx].reset_index(drop=True)
             # val_df = scores_df.iloc[val_idx].reset_index(drop=True)
 
-        train_df = scores_df
+        # train_df = scores_df
         train_dataloader = create_nerf_qa_resize_dataloader(train_df, dir=DATA_DIR, batch_size=config.batch_size)
         train_size = len(train_dataloader)
 
@@ -269,6 +269,7 @@ if __name__ == '__main__':
         step += 1000
 
         results_df.to_csv(f'results_{fold}.csv')
+        cv_results.append(cv_results)
         torch.save(model, f'model_{fold}.pth')
 
         # Create and log an artifact for the results
@@ -280,5 +281,13 @@ if __name__ == '__main__':
         model_artifact = wandb.Artifact(f'model_{fold}', type='model')
         model_artifact.add_file(f'model_{fold}.pth')
         wandb.log_artifact(model_artifact)
+
+    cv_results = pd.concat(cv_results)
+    cv_mean = cv_results.groupby(cv_results.index).mean()
+
+    results_df.to_csv(f'results_cv.csv')
+    results_artifact = wandb.Artifact(f'results_cv', type='dataset')
+    results_artifact.add_file(f'results_cv.csv')
+    wandb.log_artifact(results_artifact)
 
     wandb.finish()
