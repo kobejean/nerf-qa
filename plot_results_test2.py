@@ -25,11 +25,11 @@ def compute_correlations(pred_scores, mos):
     }
 #%%
 # TEST_DATA_DIR = "/home/ccl/Datasets/NeRF-QA"
-test_df = pd.read_csv("scores_aspect-3.csv")
+test_df = pd.read_csv("scores_image_sizes.csv")
 test_df['scene'] = test_df['reference_folder'].str.replace('gt_', '', regex=False)
 test_size = test_df.shape[0]
 test_df.columns
-results_df = pd.read_csv('results_v1060.csv')
+results_df = pd.read_csv('results_v6_0.csv')
 
 results_df
 #%%
@@ -87,9 +87,10 @@ def get_correlations(col, syn_df, tnt_df, test_df):
 # List of metrics to compute correlations for
 
 data = []
-metrics = ['DISTS', 'DISTS_full_size'#]
-        , 'DISTS_square', 
-           'A-DISTS', 'A-DISTS_full_size', 'A-DISTS_square', 'Ours', 'LPIPS(alex)',
+metrics = ['Ours', 'DISTS', 
+        #    'DISTS_full_size', 'DISTS_square', 
+        #    'A-DISTS', 'A-DISTS_full_size', 'A-DISTS_square', 
+        #    'Ours', 'LPIPS(alex)',
        'VIF', 'MS-SSIM', 'MAD', 'PieAPP', 'WaDiQaM', 'TOPIQ-FR',
        'LPIPS(vgg)', 'SSIM', 'PSNR', 'GMSD', 'FSIMc', 'NLPD',
        'ST-LPIPS', 'AHIQ']
