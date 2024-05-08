@@ -269,7 +269,7 @@ if __name__ == '__main__':
         step += 1000
 
         results_df.to_csv(f'results_{fold}.csv')
-        cv_results.append(cv_results)
+        cv_results.append(results_df)
         torch.save(model, f'model_{fold}.pth')
 
         # Create and log an artifact for the results
