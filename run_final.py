@@ -123,6 +123,7 @@ if __name__ == '__main__':
     loss_fn = nn.L1Loss(reduction='none')
 
     step = 0
+    fold_step = 0
 
 
     test_logger = MetricCollectionLogger('Test Metrics Dict')
@@ -166,6 +167,7 @@ if __name__ == '__main__':
     
     def train_epoch(epoch, model, train_dataloader, train_size, optimizer, scheduler):
         global step
+        global fold_step
         # Train step
         model.train()
         if config.optimizer == 'sadamw':
@@ -176,7 +178,7 @@ if __name__ == '__main__':
             if config.optimizer != 'sadamw':
                 if epoch == 0:
                     warmup_lr_init_lr = config.lr * 1e-4
-                    warmup_lr = warmup_lr_init_lr + step * (config.lr - warmup_lr_init_lr) / train_size
+                    warmup_lr = warmup_lr_init_lr + fold_step * (config.lr - warmup_lr_init_lr) / train_size
                     for param_group in optimizer.param_groups:
                         param_group['lr'] = warmup_lr  
                 elif epoch == 1:
@@ -191,6 +193,7 @@ if __name__ == '__main__':
             # Compute loss
             loss = loss_fn(predicted_score, target_score) + config.entropy_loss_coeff * model.entropy_loss()
             step += 1
+            fold_step += 1
 
             # Store metrics in logger
             scene_ids =  train_df['scene'].iloc[i.numpy()].values
@@ -235,6 +238,7 @@ if __name__ == '__main__':
     cv_results = []
     for fold, (train_idx, val_idx) in enumerate(gkf.split(scores_df, groups=groups)):
     # for fold in range(1):
+        fold_step = 0
         train_df = scores_df.iloc[train_idx].reset_index(drop=True)
             # val_df = scores_df.iloc[val_idx].reset_index(drop=True)
 
