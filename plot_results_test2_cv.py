@@ -29,14 +29,13 @@ test_df = pd.read_csv("scores_image_sizes.csv")
 test_df['scene'] = test_df['reference_folder'].str.replace('gt_', '', regex=False)
 test_size = test_df.shape[0]
 test_df.columns
-results_df = pd.read_csv('results_cv.csv')
-
-results_df
-#%%
-results_df = results_df.rename(columns={'video_id': 'distorted_folder', 'pred_score': 'NeRF-DISTS'})
-results_df = results_df[['distorted_folder', 'NeRF-DISTS']]
-test_df = pd.merge(test_df, results_df, on='distorted_folder')
-test_df.to_csv('results_test2_pw_sf.csv')
+for fold in range(4):
+    results_df = pd.read_csv(f'results_e3_{fold}.csv')
+    results_df
+    results_df = results_df.rename(columns={'video_id': 'distorted_folder', 'pred_score': f'NeRF-DISTS_{fold}'})
+    results_df = results_df[['distorted_folder', f'NeRF-DISTS_{fold}']]
+    test_df = pd.merge(test_df, results_df, on='distorted_folder')
+test_df.to_csv('results_test2_pw_sf_cv.csv')
 test_df.head(3)
 #%%
 test_df.columns
@@ -87,9 +86,12 @@ def get_correlations(col, syn_df, tnt_df, test_df):
 # List of metrics to compute correlations for
 
 data = []
-metrics = ['Ours', 'DISTS', 
+metrics = [
+    # 'Ours', 
+           'DISTS', 
            'DISTS_full_size', 'DISTS_square', 
            'A-DISTS', 'A-DISTS_full_size', 'A-DISTS_square', 
+           'NeRF-DISTS_0', 'NeRF-DISTS_1', 'NeRF-DISTS_2', 'NeRF-DISTS_3',
         #    'Ours', 'LPIPS(alex)',
        'VIF', 'MS-SSIM', 'MAD', 'PieAPP', 'WaDiQaM', 'TOPIQ-FR',
        'LPIPS(vgg)', 'SSIM', 'PSNR', 'GMSD', 'FSIMc', 'NLPD',
@@ -109,6 +111,29 @@ df_corr = pd.DataFrame(data)
 test_df
 #%%
 df_corr
+#%%
+# Filter rows for NeRF-DISTS_0 to NeRF-DISTS_3
+nerf_dists = df_corr[df_corr['Metric'].str.contains("NeRF-DISTS")]
+
+# Calculate the mean of these rows
+average_data = nerf_dists.mean()
+
+# Create a new row with the metric 'Ours' and the calculated averages
+new_row = pd.DataFrame(average_data).transpose()
+new_row['Metric'] = 'Ours'  # Adding the 'Metric' name
+
+# Append the new row to the original DataFrame
+df_corr = df_corr.append(new_row, ignore_index=True)
+
+# Remove the original NeRF-DISTS rows
+df_corr = df_corr[~df_corr['Metric'].str.contains("NeRF-DISTS")]
+ours_index = df_corr[df_corr['Metric'] == 'Ours'].index
+
+# Move 'Ours' row to the top
+df_corr = pd.concat([df_corr.loc[ours_index], df_corr.drop(ours_index)]).reset_index(drop=True)
+
+df_corr
+metrics = df_corr['Metric'].values
 #%%
 import pandas as pd
 import numpy as np

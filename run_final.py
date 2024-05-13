@@ -286,6 +286,55 @@ if __name__ == '__main__':
         model_artifact.add_file(f'model_{fold}.pth')
         wandb.log_artifact(model_artifact)
 
+
+
+    fold_step = 0
+    train_df = scores_df
+        # val_df = scores_df.iloc[val_idx].reset_index(drop=True)
+
+    # train_df = scores_df
+    train_dataloader = create_nerf_qa_resize_dataloader(train_df, dir=DATA_DIR, batch_size=config.batch_size)
+    train_size = len(train_dataloader)
+
+    model = NeRFQAModel(train_df=train_df).to(device)
+
+    if config.optimizer == 'sadamw':
+        optimizer = schedulefree.AdamWScheduleFree(model.parameters(),                
+            lr=config.lr,
+            betas=(config.beta1, config.beta2),
+            eps=config.eps,
+            warmup_steps=train_size,
+        )
+    else:
+        optimizer = optim.Adam(model.parameters(),
+            lr=config.lr,
+            betas=(config.beta1, config.beta2),
+            eps=config.eps,
+        )
+        scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
+
+
+    test(model, test_df, optimizer)
+
+    for epoch in range(test_epochs):
+        print(f"Epoch {epoch+1}/{test_epochs}")
+        train_epoch(epoch, model, train_dataloader, train_size, optimizer, scheduler)
+        results_df = test(model, test_df, optimizer)
+    step += 1000
+
+    results_df.to_csv(f'results.csv')
+    torch.save(model, f'model.pth')
+
+    # Create and log an artifact for the results
+    results_artifact = wandb.Artifact(f'results', type='dataset')
+    results_artifact.add_file(f'results.csv')
+    wandb.log_artifact(results_artifact)
+
+    # Create and log an artifact for the model
+    model_artifact = wandb.Artifact(f'model', type='model')
+    model_artifact.add_file(f'model.pth')
+    wandb.log_artifact(model_artifact)
+
     cv_results = pd.concat(cv_results)
     cv_mean = cv_results.groupby(cv_results.index).mean()
 
