@@ -29,6 +29,10 @@ test_df = pd.read_csv("scores_image_sizes.csv")
 test_df['scene'] = test_df['reference_folder'].str.replace('gt_', '', regex=False)
 test_size = test_df.shape[0]
 test_df.columns
+
+results_full_df = pd.read_csv('results_reeval.csv')
+results_full_df = results_full_df.rename(columns={'video_id': 'distorted_folder', 'pred_score': 'NeRF-DISTS-full'})
+results_full_df = results_full_df[['distorted_folder', 'NeRF-DISTS-full']]
 results_df = pd.read_csv('results_fin.csv')
 
 results_df
@@ -39,6 +43,7 @@ bt500
 #%%
 results_df = results_df.rename(columns={'video_id': 'distorted_folder', 'pred_score': 'NeRF-DISTS'})
 results_df = results_df[['distorted_folder', 'NeRF-DISTS']]
+test_df = pd.merge(test_df, results_full_df, on='distorted_folder')
 test_df = pd.merge(test_df, results_df, on='distorted_folder')
 test_df = pd.merge(test_df, bt500, on='distorted_folder')
 test_df.to_csv('results_test2_pw_sf.csv')
@@ -54,6 +59,7 @@ print(len(test_df))
 # test_df = pd.read_csv('results_combined.csv')
 test_df = test_df.rename(columns={
     'NeRF-DISTS': 'Ours',
+    'NeRF-DISTS-full': 'Ours(full-size)',
     'PSNRq': 'PSNR',
     'SSIMq': 'SSIM',
     'gmsd': 'GMSD',
@@ -101,7 +107,7 @@ def get_correlations(col, syn_df, tnt_df, test_df):
 # List of metrics to compute correlations for
 
 data = []
-metrics = ['Ours', #'DISTS', 'DISTS_full_size', 
+metrics = ['Ours', 'Ours(full-size)', #'DISTS', 'DISTS_full_size', 
            'DISTS(IQA-PyTorch)', #'Topiq-fr(IQA-PyTorch)',
         #    'DISTS_full_size', 'DISTS_square', 
         #    'A-DISTS', 'A-DISTS_full_size', 'A-DISTS_square', 
