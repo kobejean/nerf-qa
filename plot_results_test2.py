@@ -29,13 +29,16 @@ test_df = pd.read_csv("scores_image_sizes.csv")
 test_df['scene'] = test_df['reference_folder'].str.replace('gt_', '', regex=False)
 test_size = test_df.shape[0]
 test_df.columns
-results_df = pd.read_csv('results_cv.csv')
+results_df = pd.read_csv('results_fin.csv')
 
 results_df
+bt500 = pd.read_csv('Test_2_iqa.csv')
+bt500 = bt500[['distorted_folder', 'BT-500']]
 #%%
 results_df = results_df.rename(columns={'video_id': 'distorted_folder', 'pred_score': 'NeRF-DISTS'})
 results_df = results_df[['distorted_folder', 'NeRF-DISTS']]
 test_df = pd.merge(test_df, results_df, on='distorted_folder')
+test_df = pd.merge(test_df, bt500, on='distorted_folder')
 test_df.to_csv('results_test2_pw_sf.csv')
 test_df.head(3)
 #%%
@@ -87,12 +90,11 @@ def get_correlations(col, syn_df, tnt_df, test_df):
 # List of metrics to compute correlations for
 
 data = []
-metrics = ['Ours', 'DISTS', 
-           'DISTS_full_size', 'DISTS_square', 
-           'A-DISTS', 'A-DISTS_full_size', 'A-DISTS_square', 
-        #    'Ours', 'LPIPS(alex)',
+metrics = ['Ours', 'DISTS', 'DISTS_full_size', 'DISTS_square',
+        #    'DISTS_full_size', 'DISTS_square', 
+        #    'A-DISTS', 'A-DISTS_full_size', 'A-DISTS_square', 
        'VIF', 'MS-SSIM', 'MAD', 'PieAPP', 'WaDiQaM', 'TOPIQ-FR',
-       'LPIPS(vgg)', 'SSIM', 'PSNR', 'GMSD', 'FSIMc', 'NLPD',
+       'LPIPS(vgg)', 'LPIPS(alex)', 'SSIM', 'PSNR', 'GMSD', 'FSIMc', 'NLPD',
        'ST-LPIPS', 'AHIQ']
 
 # Assuming syn_df, tnt_df, and test_df are your DataFrames with the data
@@ -165,8 +167,9 @@ from matplotlib.lines import Line2D
 COLORS = plt.cm.get_cmap('tab10', 10)  # Adjust the second argument based on the number of unique scenes
 scene_to_color = {scene: COLORS(i) for i, scene in enumerate(test_df['scene'].unique())}
 legend_elements = [
-    *[Line2D([0], [0], marker='x', color='w', label=scene, markersize=7, markeredgecolor=scene_to_color[scene], markeredgewidth=2) for scene in test_df['scene'].unique()],
-    # Line2D([0], [0], marker='o', color='w', label='Real Scemes', markersize=9, markerfacecolor='#ff7500'), # 00b238
+    # *[Line2D([0], [0], marker='x', color='w', label=scene, markersize=7, markeredgecolor=scene_to_color[scene], markeredgewidth=2) for scene in test_df['scene'].unique()],
+    Line2D([0], [0], marker='x', color='w', label='Synthetic Scenes', markeredgewidth=2, markersize=7, markeredgecolor='#0080bd'), # 00b238
+    Line2D([0], [0], marker='o', color='w', label='Real Scenes', markersize=9, markerfacecolor='#ff7500'), # 00b238
 ]
 
 # Update scatter_plot function to accept an ax parameter
@@ -177,16 +180,16 @@ def scatter_plot(ax, metric, marker_size=10):
         for scene in unique_scenes:
             scene_df = df[df['scene'] == scene].sort_values(by='MOS')
             ax.scatter(scene_df[metric], scene_df['MOS'], color=scene_to_color[scene], marker=marker, s=marker_size, label=label)# Draw line connecting sorted points
-            ax.plot(scene_df[metric], scene_df['MOS'], color=scene_to_color[scene])
+            # ax.plot(scene_df[metric], scene_df['MOS'], color=scene_to_color[scene])
 
 
-    plot_dataset(syn_df, metric, 'Synthetic Scemes', marker='x')
-    plot_dataset(tnt_df, metric, 'Real Scemes', marker='o')
-    # # Scatter plot for synthetic data
-    # ax.scatter(syn_df[metric], syn_df['MOS'], c='#0080bd', marker='x', s=marker_size, label='Synthetic Scemes')
+    # plot_dataset(syn_df, metric, 'Synthetic Scenes', marker='x')
+    # plot_dataset(tnt_df, metric, 'Real Scenes', marker='o')
+    # Scatter plot for synthetic data
+    ax.scatter(syn_df[metric], syn_df['MOS'], c='#0080bd', marker='x', s=marker_size, label='Synthetic Scenes')
 
-    # # Scatter plot for real data
-    # ax.scatter(tnt_df[metric], tnt_df['MOS'], c='#ff7500', marker='o', s=marker_size, label='Real Scemes')
+    # Scatter plot for real data
+    ax.scatter(tnt_df[metric], tnt_df['MOS'], c='#ff7500', marker='o', s=marker_size, label='Real Scenes')
 
 
 
@@ -198,7 +201,7 @@ def scatter_plot(ax, metric, marker_size=10):
 
 
 # Create a 2x3 grid of subplots
-fig, axs = plt.subplots(21, 1, figsize=set_size(width, subplots=(21, 1)))
+fig, axs = plt.subplots(6, 3, figsize=set_size(width, subplots=(6, 3)))
 
 # Flatten the array of axes to easily iterate over it
 axs = axs.flatten()

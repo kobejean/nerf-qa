@@ -39,7 +39,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #%%
 class Test2Dataset(Dataset):
-    def __init__(self, row, dir):
+    def __init__(self, row, dir, resize=True):
+        self.resize = resize
         gt_dir = path.join(dir, "Reference", row['reference_folder'])
         render_dir = path.join(dir, "Renders", row['distorted_folder'])
 
@@ -62,7 +63,7 @@ class Test2Dataset(Dataset):
     
     def load_image(self, path):
         image = Image.open(path).convert("RGB")
-        image = prepare_image(image, resize=True)
+        image = prepare_image(image, resize=self.resize)
         return image
     
 def recursive_collate(batch):
@@ -78,9 +79,9 @@ def recursive_collate(batch):
         return batch
     
 # Batch creation function
-def create_test2_dataloader(row, dir, batch_size):
+def create_test2_dataloader(row, dir, batch_size, resize=True):
     # Create a dataset and dataloader for efficient batching
-    dataset = Test2Dataset(row, dir)
+    dataset = Test2Dataset(row, dir, resize)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, collate_fn = recursive_collate)
     return dataloader 
 

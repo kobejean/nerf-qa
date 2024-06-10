@@ -30,7 +30,7 @@ test_df['scene'] = test_df['reference_folder'].str.replace('gt_', '', regex=Fals
 test_size = test_df.shape[0]
 test_df.columns
 for fold in range(4):
-    results_df = pd.read_csv(f'results_e3_{fold}.csv')
+    results_df = pd.read_csv(f'results_fin_{fold}.csv')
     results_df
     results_df = results_df.rename(columns={'video_id': 'distorted_folder', 'pred_score': f'NeRF-DISTS_{fold}'})
     results_df = results_df[['distorted_folder', f'NeRF-DISTS_{fold}']]
@@ -89,8 +89,8 @@ data = []
 metrics = [
     # 'Ours', 
            'DISTS', 
-           'DISTS_full_size', 'DISTS_square', 
-           'A-DISTS', 'A-DISTS_full_size', 'A-DISTS_square', 
+        #    'DISTS_full_size', 'DISTS_square', 
+        #    'A-DISTS', 'A-DISTS_full_size', 'A-DISTS_square', 
            'NeRF-DISTS_0', 'NeRF-DISTS_1', 'NeRF-DISTS_2', 'NeRF-DISTS_3',
         #    'Ours', 'LPIPS(alex)',
        'VIF', 'MS-SSIM', 'MAD', 'PieAPP', 'WaDiQaM', 'TOPIQ-FR',
@@ -132,8 +132,8 @@ ours_index = df_corr[df_corr['Metric'] == 'Ours'].index
 # Move 'Ours' row to the top
 df_corr = pd.concat([df_corr.loc[ours_index], df_corr.drop(ours_index)]).reset_index(drop=True)
 
-df_corr
 metrics = df_corr['Metric'].values
+df_corr
 #%%
 import pandas as pd
 import numpy as np
@@ -223,7 +223,7 @@ def scatter_plot(ax, metric, marker_size=10):
 
 
 # Create a 2x3 grid of subplots
-fig, axs = plt.subplots(21, 1, figsize=set_size(width, subplots=(21, 1)))
+fig, axs = plt.subplots(18, 3, figsize=set_size(width, subplots=(21, 1)))
 
 # Flatten the array of axes to easily iterate over it
 axs = axs.flatten()

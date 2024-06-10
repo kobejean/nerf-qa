@@ -13,7 +13,7 @@ sweep.config['parameters']['entropy_loss_coeff'] = {
     'q': '1e-06'
 }
 #%%
-sweep.config
+sweep.config['parameters'].get('entropy_loss_coeff')
 
 #%%
 sweep.update()

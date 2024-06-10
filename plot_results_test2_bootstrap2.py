@@ -36,7 +36,7 @@ test_df = pd.read_csv("scores_aspect-3.csv")
 test_df['scene'] = test_df['reference_folder'].str.replace('gt_', '', regex=False)
 test_size = test_df.shape[0]
 test_df.columns
-results_df = pd.read_csv('results_v1060.csv')
+results_df = pd.read_csv('results_fin.csv')
 
 results_df
 #%%
@@ -94,9 +94,9 @@ def get_correlations(col, syn_df, tnt_df, test_df):
 # List of metrics to compute correlations for
 
 data = []
-metrics = ['Ours', 'DISTS', 'LPIPS(alex)',
+metrics = ['Ours', 'DISTS', 'LPIPS(alex)', 'LPIPS(vgg)', 
        'VIF', 'MS-SSIM', 'MAD', 'PieAPP', 'WaDiQaM', 'TOPIQ-FR',
-       'LPIPS(vgg)', 'SSIM', 'PSNR', 'GMSD', 'FSIMc', 'NLPD',
+       'SSIM', 'PSNR', 'GMSD', 'FSIMc', 'NLPD',
        'ST-LPIPS', 'AHIQ']
 
 # Assuming syn_df, tnt_df, and test_df are your DataFrames with the data
@@ -231,7 +231,7 @@ def plot_corr_distributions(ax, dataset='Synthetic', subjective_measure='MOS_boo
         ax.text(i, mean_val, f'{mean_val:.2f}', color='black', ha='left', va='bottom')
 
     ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right')
-    ax.set_title(r'\textbf{' + dataset + r' Dataset}')
+    ax.set_title(r'\textbf{' + dataset + r' Scenes}')
     ax.set_ylabel(corr_type.upper())
     ax.set_xlabel('Metric')
 
