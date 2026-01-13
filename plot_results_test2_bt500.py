@@ -107,8 +107,9 @@ def get_correlations(col, syn_df, tnt_df, test_df):
 # List of metrics to compute correlations for
 
 data = []
-metrics = ['Ours', 'Ours(full-size)', #'DISTS', 'DISTS_full_size', 
-           'DISTS(IQA-PyTorch)', #'Topiq-fr(IQA-PyTorch)',
+metrics = ['Ours(full-size)', 'DISTS(IQA-PyTorch)',
+    # 'Ours', 'Ours(full-size)', 'DISTS', 'DISTS_full_size', 
+        #    'DISTS(IQA-PyTorch)', #'Topiq-fr(IQA-PyTorch)',
         #    'DISTS_full_size', 'DISTS_square', 
         #    'A-DISTS', 'A-DISTS_full_size', 'A-DISTS_square', 
        'VIF', 'MS-SSIM', 'MAD', 'PieAPP', 'WaDiQaM', 'TOPIQ-FR',
